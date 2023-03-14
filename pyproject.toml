@@ -10,6 +10,7 @@ python = "^3.10"
 fastapi = "^0.93.0"
 aiosql = "^7.2"
 httpx = "^0.23.3"
+prql-python = "^0.6.1"
 
 
 [tool.poetry.group.dev.dependencies]
