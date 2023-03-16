@@ -1,3 +1,4 @@
+from sqlite3 import Row
 from datetime import datetime, timedelta
 from typing import List, Literal
 
@@ -41,3 +42,20 @@ class Server:
             if isinstance(v, list):
                 res[k] = ",".join(v)
         return res
+
+    @classmethod
+    def from_sql_row(cls, row: Row) -> "Server":
+        data = dict(row)
+        data["uptime"] = timedelta(seconds=data["uptime"])
+        data["expiry_date"] = datetime.strptime(data["expiry_date"], "%Y-%m-%d %H:%M:%S")
+        for k in [
+            "nfs_shares",
+            "webdav_shares",
+            "contact_persons",
+            "available_updates",
+            "users",
+            "groups",
+            "installed_packages",
+        ]:
+            data[k] = data[k].split(",")
+        return cls(**data)
