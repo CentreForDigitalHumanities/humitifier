@@ -33,3 +33,11 @@ class Server:
     users: List[str]  # A list of users on the server. Example: ["john", "jane"]
     groups: List[str]  # A list of groups on the server. Example: ["developers", "admins"]
     installed_packages: List[str]  # A list of installed packages on the server. Example: ["nginx", "mysql", "python3"]
+
+    def to_query(self) -> dict:
+        res = self.__dict__
+        res["uptime"] = res["uptime"].seconds
+        for k, v in res.items():
+            if isinstance(v, list):
+                res[k] = ",".join(v)
+        return res
