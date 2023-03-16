@@ -1,7 +1,6 @@
 -- name: create_schema#
 create table servers (
-    id integer primary key,
-    name text,
+    name text primary key,
     ip_address text,
     cpu_total integer,
     cpu_usage real,
