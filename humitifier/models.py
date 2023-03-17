@@ -59,3 +59,10 @@ class Server:
         ]:
             data[k] = data[k].split(",")
         return cls(**data)
+
+    @property
+    def status(self) -> Literal["ok", "warning", "critical"]:
+        if self.reboot_required:
+            return "critical"
+        else:
+            return "ok"

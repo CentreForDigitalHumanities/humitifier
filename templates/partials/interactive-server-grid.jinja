@@ -1,0 +1,13 @@
+<article id="interactive-server-grid">
+    <header id="title">{{ title }}</header>
+    <aside id="summary">
+        Viewing <mark class="count">10 servers</mark>
+        of which <mark class="critical">2 require immediate attention</mark>
+    </aside>
+    <article id="items">
+        {% for server in servers %}
+        {% include "partials/interactive-server-grid-item.jinja" %}
+        {% endfor %}
+    </article>
+    <aside id="server-details">No server selected.</aside>
+</article>
