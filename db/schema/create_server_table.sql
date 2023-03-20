@@ -16,6 +16,7 @@ create table servers (
     requesting_department text,
     server_type text,
     contact_persons text,
+    creation_date integer,
     expiry_date integer,
     update_policy text,
     available_updates text,

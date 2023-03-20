@@ -10,7 +10,6 @@
                 <td class="value">{{ server.ip_address }}</td>
             </tr>
 
-
             <tr>
                 <td class="label">Memory</td>
                 <td class="value">{{ server.memory_usage }} / {{ server.memory_total }}</td>
@@ -34,21 +33,28 @@
                 <td class="value">
                     <ul style="list-style: none; padding:0; margin:0;">
                         {% for p in server.installed_packages %}
-                        <li>{{p}}</li>
+                        <li>
+                            {% if p in server.available_updates %}
+                            <mark class="requires-update">{{p}}</mark>
+                            {% else %}
+                            {{p}}
+                            {% endif %}
+                        </li>
                         {% endfor %}
                     </ul>
                 </td>
             </tr>
             <tr>
-                <td class="label">Available updates</td>
+                <td class="label">Issues</td>
                 <td class="value">
                     <ul style="list-style: none; padding:0; margin:0;">
-                        {% for p in server.installed_packages %}
-                        <li>{{p}}</li>
+                        {% for s, i in server.issues %}
+                        <li class="issue-{{s}}">{{i}}</li>
                         {% endfor %}
                     </ul>
                 </td>
             </tr>
+
         </tbody>
     </table>
 </article>

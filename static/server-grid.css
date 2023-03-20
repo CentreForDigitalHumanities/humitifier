@@ -86,6 +86,10 @@ mark + .critical {
     background-color: red;
 }
 
+.warning {
+    background-color: yellow;
+}
+
 .label {
     font-weight: bolder;
     vertical-align: top;

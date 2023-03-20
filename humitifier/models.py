@@ -1,6 +1,6 @@
 from sqlite3 import Row
-from datetime import datetime, timedelta
-from typing import List, Literal
+from datetime import datetime, date, timedelta
+from typing import Literal
 
 from dataclasses import dataclass
 
@@ -22,20 +22,21 @@ class Server:
     is_virtual: bool  # Whether the server is virtual or physical. Example: True
     os: str  # The operating system of the server. Example: "Ubuntu 20.04 LTS"
     uptime: timedelta  # The uptime of the server. Example: timedelta(days=30, hours=12)
-    nfs_shares: List[str]  # A list of NFS shares on the server. Example: ["/mnt/nfs", "/mnt/nfs2"]
-    webdav_shares: List[str]  # A list of WebDAV shares on the server. Example: ["/webdav", "/webdav2"]
+    nfs_shares: list[str]  # A list of NFS shares on the server. Example: ["/mnt/nfs", "/mnt/nfs2"]
+    webdav_shares: list[str]  # A list of WebDAV shares on the server. Example: ["/webdav", "/webdav2"]
     requesting_department: str  # The department that requested the server. Example: "IT"
     server_type: str  # The type of server. Example: "Web Server"
-    contact_persons: List[str]  # Contact persons for the server. Example: ["J.Doe@mail.me", "J.Smit@mail.co"]
-    expiry_date: datetime  # The expiry date of the server. Example: datetime(2022, 12, 31)
+    contact_persons: list[str]  # Contact persons for the server. Example: ["J.Doe@mail.me", "J.Smit@mail.co"]
+    creation_date: date  # The date on which the server was created. Example date(2022, 12, 31)
+    expiry_date: date  # The expiry date of the server. Example: date(2022, 12, 31)
     update_policy: Literal["automatic", "manual"]  # The server's update policy. Example: "automatic"
-    available_updates: List[str]  # The available package updates. Example: ["nginx", "mysql"]
+    available_updates: list[str]  # The available package updates. Example: ["nginx", "mysql"]
     reboot_required: bool  # Whether a reboot is required for the updates to take effect.
-    users: List[str]  # A list of users on the server. Example: ["john", "jane"]
-    groups: List[str]  # A list of groups on the server. Example: ["developers", "admins"]
-    installed_packages: List[str]  # A list of installed packages on the server. Example: ["nginx", "mysql", "python3"]
+    users: list[str]  # A list of users on the server. Example: ["john", "jane"]
+    groups: list[str]  # A list of groups on the server. Example: ["developers", "admins"]
+    installed_packages: list[str]  # A list of installed packages on the server. Example: ["nginx", "mysql", "python3"]
 
-    def to_query(self) -> dict:
+    def serialize(self) -> dict:
         res = self.__dict__
         res["uptime"] = res["uptime"].seconds
         for k, v in res.items():
@@ -44,10 +45,11 @@ class Server:
         return res
 
     @classmethod
-    def from_sql_row(cls, row: Row) -> "Server":
+    def deserialize(cls, row: Row) -> "Server":
         data = dict(row)
         data["uptime"] = timedelta(seconds=data["uptime"])
-        data["expiry_date"] = datetime.strptime(data["expiry_date"], "%Y-%m-%d %H:%M:%S")
+        data["expiry_date"] = datetime.strptime(data["expiry_date"], "%Y-%m-%d").date()
+        data["creation_date"] = datetime.strptime(data["creation_date"], "%Y-%m-%d").date()
         for k in [
             "nfs_shares",
             "webdav_shares",
@@ -62,7 +64,25 @@ class Server:
 
     @property
     def status(self) -> Literal["ok", "warning", "critical"]:
-        if self.reboot_required:
+        severities = [s for s, _ in self.issues]
+        if "critical" in severities or len(self.issues) > 3:
             return "critical"
+        elif len(severities) > 2:
+            return "warning"
         else:
             return "ok"
+
+    @property
+    def issues(self) -> list[tuple[str, str]]:
+        issues = []
+        if self.reboot_required:
+            issues.append(("warning", "requires reboot"))
+        if self.available_updates:
+            issues.append(("warning", "has pending updates"))
+        if self.expiry_date < date.today():
+            issues.append(("critical", "past expiration date"))
+        elif (self.expiry_date - timedelta(days=30)) < date.today():
+            issues.append(("warning", "server expiring soon"))
+        if self.local_storage_usage > int(self.local_storage_total * 0.7):
+            issues.append(("critical", "70 percent of local storage used"))
+        return issues
