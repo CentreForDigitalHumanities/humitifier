@@ -1,0 +1,56 @@
+-- name: server_bulk_insert*!
+-- Insert many servers at once
+insert into
+    servers (
+        name,
+        ip_address,
+        cpu_total,
+        cpu_usage,
+        memory_total,
+        memory_usage,
+        local_storage_total,
+        local_storage_usage,
+        is_virtual,
+        os,
+        uptime,
+        nfs_shares,
+        webdav_shares,
+        requesting_department,
+        server_type,
+        contact_persons,
+        creation_date,
+        expiry_date,
+        update_policy,
+        available_updates,
+        reboot_required,
+        users,
+        groups,
+        installed_packages
+    )
+values
+    (
+        :name,
+        :ip_address,
+        :cpu_total,
+        :cpu_usage,
+        :memory_total,
+        :memory_usage,
+        :local_storage_total,
+        :local_storage_usage,
+        :is_virtual,
+        :os,
+        :uptime,
+        :nfs_shares,
+        :webdav_shares,
+        :requesting_department,
+        :server_type,
+        :contact_persons,
+        :creation_date,
+        :expiry_date,
+        :update_policy,
+        :available_updates,
+        :reboot_required,
+        :users,
+        :groups,
+        :installed_packages
+    );

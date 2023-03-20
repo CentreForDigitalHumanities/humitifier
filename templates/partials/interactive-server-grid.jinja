@@ -1,0 +1,16 @@
+<article id="interactive-server-grid">
+    <header id="title">{{ title }}</header>
+    <nav id="search">
+        {% include "partials/grid-filter-bar.jinja" %}
+    </nav>
+    <aside id="summary">
+        Viewing <mark class="count">{{ display_count }} servers</mark>
+        of which <mark class="critical">{{ critical_count }} require immediate attention</mark>
+    </aside>
+    <article id="items">
+        {% for server in servers %}
+        {% include "partials/interactive-server-grid-item.jinja" %}
+        {% endfor %}
+    </article>
+    <aside id="server-details">No server selected.</aside>
+</article>

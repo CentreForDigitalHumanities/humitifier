@@ -1,0 +1,11 @@
+<article class="grid-item">
+    <aside><span class="status-dot {{ server.status }}"></span></aside>
+    <ul class="meta">
+        <li class="name">{{ server.name }}</li>
+        <li class="os">{{ server.os }} {% if not server.is_virtual%}(Baremetal){% endif %}</li>
+        <li class="ip_address">{{ server.ip_address }}</li>
+        <li class="department">{{ server.requesting_department }}</li>
+        <li class="expiry_date">{{ server.creation_date }} - {{ server.expiry_date }}</li>
+    </ul>
+    <button hx-get="/htmx-server-details/{{ server.name }}" hx-swap="none">Details</button>
+</article>

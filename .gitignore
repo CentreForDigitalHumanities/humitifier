@@ -2,3 +2,4 @@
 poetry.lock
 .vscode/
 .scribble/
+__pycache__/
