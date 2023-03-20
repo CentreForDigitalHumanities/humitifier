@@ -6,7 +6,7 @@
 
 #interactive-server-grid {
     display: grid;
-    grid-template-areas: "title summary summary" "items items details";
+    grid-template-areas: "title summary summary" "search search search" "items items details";
     grid-template-columns: 2fr 4fr 3fr;
     column-gap: 10px;
     row-gap: 10px;
@@ -33,6 +33,10 @@ mark + .critical {
 #interactive-server-grid > #details {
     grid-area: details;
 } 
+
+#interactive-server-grid > #search {
+    grid-area: search;
+}
 
 .status-dot {
     height: 25px;

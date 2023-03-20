@@ -1,0 +1,12 @@
+<form id="filterform" hx-get="/htmx-filter-grid-by" hx-swap="none">
+    {% for k, v in list_filters.items() %}
+    <label for="{{ k }}-input">{{ k }}</label>
+    <input list="{{ k }}-choice" name="{{ k }}" id="{{ k }}-input">
+    <datalist id="{{ k }}-choice">
+        {% for i in v %}
+        <option value="{{ i }}">
+            {% endfor %}
+    </datalist>
+    {% endfor %}
+    <button type="submit">Search</button>
+</form>
