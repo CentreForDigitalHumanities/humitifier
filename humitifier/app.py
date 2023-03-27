@@ -1,23 +1,16 @@
-import aiosql
-import sqlite3
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from humitifier.models import Server
+from humitifier.fake.models import generate_server
 
 from typing import Optional
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
-db = aiosql.from_path("db", "sqlite3")
 
-
-with sqlite3.connect(".scribble/local.db") as conn:
-    conn.row_factory = sqlite3.Row
-    servers = db.queries.get_all_servers(conn)
-servers = (Server.deserialize(row) for row in servers)
+servers = (generate_server() for _ in range(100))
 servers = {s.name: s for s in servers}
 
 

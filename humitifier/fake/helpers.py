@@ -1,9 +1,32 @@
+import random
 from faker import Faker
 from datetime import timedelta, date
 from humitifier.fake import lists
 
 fake = Faker()
 TODAY = date.today()
+
+
+def generate_full_name():
+    return random.choice(lists.first_names) + " " + random.choice(lists.last_names)
+
+
+def generate_username(full_name: str) -> str:
+    first_name = full_name.split()[0]
+    last_name = full_name.split()[-1]
+    return f"{first_name[:3]}_{last_name[:3]}"
+
+
+def generate_email(username: str) -> str:
+    domain = random.choice(lists.domains)
+    return f"{username}@{domain}"
+
+
+def generate_person_args() -> tuple[str, str, str]:
+    full_name = generate_full_name()
+    username = generate_username(full_name)
+    email = generate_email(username)
+    return full_name, username, email
 
 
 def unique_list_picks(source: list, min: int, max: int) -> list:

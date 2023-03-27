@@ -1,14 +1,45 @@
-from sqlite3 import Row
-from datetime import datetime, date, timedelta
-from typing import Literal
+from datetime import date, timedelta
+from typing import Literal, Optional
 
 from dataclasses import dataclass
 
 
 @dataclass
+class Person:
+    """
+    A person associated to a server
+    """
+
+    name: str  # The name of the person. Example: "Bartolomew Bagshot"
+    email: str  # The email address of the person. Example: "bbagshot@hogwarts.co.uk"
+    role: Optional[Literal["admin", "user", "developer", "researcher"]]  # The role of the person. Example: "admin"
+    department: Optional[str]  # The department of the person. Example: "Department of Magical Creatures"
+    notes: Optional[str]  # Optional notes about the person. Example: "Contact for server maintenance"
+
+
+@dataclass
+class ServiceContract:
+    """
+    A service contract associated to a server
+    """
+
+    entity: str  # The entity that the contract is with. Example: "Hogwarts School of Witchcraft and Wizardry"
+    owner: Person  # The owner of the contract. Example: Person(name="Bartolomew Bagshot", email="b.bagshot@hogwarts.co.uk")
+    creation_date: date  # The date on which the contract was created. Example: date(2022, 12, 31)
+    expiry_date: date  # The expiry date of the contract. Example: date(2022, 12, 31)
+    purpose: str  # The purpose of the contract. Example: "webapp"
+
+
+@dataclass
+class Package:
+    name: str  # The name of the package. Example: "nginx"
+    version: str  # The version of the package. Example: "1.21.1-1ubuntu1"
+
+
+@dataclass
 class Server:
     """
-    A HUM-IT server
+    An arbitrary server
     """
 
     name: str  # The name of the server. Example: "web-server-01"
@@ -24,65 +55,9 @@ class Server:
     uptime: timedelta  # The uptime of the server. Example: timedelta(days=30, hours=12)
     nfs_shares: list[str]  # A list of NFS shares on the server. Example: ["/mnt/nfs", "/mnt/nfs2"]
     webdav_shares: list[str]  # A list of WebDAV shares on the server. Example: ["/webdav", "/webdav2"]
-    requesting_department: str  # The department that requested the server. Example: "IT"
-    server_type: str  # The type of server. Example: "Web Server"
-    contact_persons: list[str]  # Contact persons for the server. Example: ["J.Doe@mail.me", "J.Smit@mail.co"]
-    creation_date: date  # The date on which the server was created. Example date(2022, 12, 31)
-    expiry_date: date  # The expiry date of the server. Example: date(2022, 12, 31)
-    update_policy: Literal["automatic", "manual"]  # The server's update policy. Example: "automatic"
-    available_updates: list[str]  # The available package updates. Example: ["nginx", "mysql"]
+    packages: list[Package]  # A list of packages installed on the server. Example: [Package(...)]
+    service_contract: ServiceContract  # The service contract associated to the server. Example: ServiceContract(...)
+    people: list[Person]  # A list of people associated to the server. Example: [Person(...), Person(...)]
     reboot_required: bool  # Whether a reboot is required for the updates to take effect.
     users: list[str]  # A list of users on the server. Example: ["john", "jane"]
     groups: list[str]  # A list of groups on the server. Example: ["developers", "admins"]
-    installed_packages: list[str]  # A list of installed packages on the server. Example: ["nginx", "mysql", "python3"]
-
-    def serialize(self) -> dict:
-        res = self.__dict__
-        res["uptime"] = res["uptime"].seconds
-        for k, v in res.items():
-            if isinstance(v, list):
-                res[k] = ",".join(v)
-        return res
-
-    @classmethod
-    def deserialize(cls, row: Row) -> "Server":
-        data = dict(row)
-        data["uptime"] = timedelta(seconds=data["uptime"])
-        data["expiry_date"] = datetime.strptime(data["expiry_date"], "%Y-%m-%d").date()
-        data["creation_date"] = datetime.strptime(data["creation_date"], "%Y-%m-%d").date()
-        for k in [
-            "nfs_shares",
-            "webdav_shares",
-            "contact_persons",
-            "available_updates",
-            "users",
-            "groups",
-            "installed_packages",
-        ]:
-            data[k] = data[k].split(",")
-        return cls(**data)
-
-    @property
-    def status(self) -> Literal["ok", "warning", "critical"]:
-        severities = [s for s, _ in self.issues]
-        if "critical" in severities or len(self.issues) > 3:
-            return "critical"
-        elif len(severities) > 2:
-            return "warning"
-        else:
-            return "ok"
-
-    @property
-    def issues(self) -> list[tuple[str, str]]:
-        issues = []
-        if self.reboot_required:
-            issues.append(("warning", "requires reboot"))
-        if self.available_updates:
-            issues.append(("warning", "has pending updates"))
-        if self.expiry_date < date.today():
-            issues.append(("critical", "past expiration date"))
-        elif (self.expiry_date - timedelta(days=30)) < date.today():
-            issues.append(("warning", "server expiring soon"))
-        if self.local_storage_usage > int(self.local_storage_total * 0.7):
-            issues.append(("critical", "70 percent of local storage used"))
-        return issues
