@@ -1,0 +1,19 @@
+{% import "macros/filter_search.jinja" as search %}
+{% import "macros/filter_select.jinja" as select %}
+
+{% macro render(filters) %}
+<form class="server-filters" hx-get="/hx-filter-interactive-server-grid" hx-swap="none">
+    {{ search.render("hostname", filters.hostname_opts) }}
+    {{ search.render("username", filters.users_opts) }}
+    {{ search.render("package", filters.package_opts) }}
+    {{ search.render("owner", filters.owner_opts) }}
+    {{ search.render("contact", filters.people_opts) }}
+    {{ select.render("purpose", filters.purpose_opts) }}
+    {{ select.render("os", filters.os_opts) }}
+    {{ select.render("department", filters.department_opts) }}
+    <article>
+        <button type="submit">Search</button>
+    </article>
+
+</form>
+{% endmacro %}

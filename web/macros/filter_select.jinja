@@ -1,0 +1,10 @@
+{% macro render(label, options) %}
+<article>
+    <select name="{{label}}">
+        <option value="" selected>Select {{ label }}...</option>
+        {% for opt in options %}
+        <option value="{{ opt }}">{{ opt }}</option>
+        {% endfor %}
+    </select>
+</article>
+{% endmacro %}

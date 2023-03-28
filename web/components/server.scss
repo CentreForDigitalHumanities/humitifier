@@ -4,6 +4,7 @@
 @use "../utils/button";
 @use "../utils/colors";
 @use "../core/typography";
+@use "../core/inputs";
 
 .server-details-modal {
     @include modal.modal-box;
@@ -63,5 +64,17 @@
 
     button {
         @include button.hx-button;
+    }
+}
+
+.server-filters {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    padding-bottom: 3em;
+    margin: 0 auto;
+
+    button {
+        @include button.hx-button;
+        @include inputs.input-core;
     }
 }
