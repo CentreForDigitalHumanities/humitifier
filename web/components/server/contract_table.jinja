@@ -1,0 +1,20 @@
+{% import "macros/table_pair.jinja" as table_pair %}
+{% import "macros/table_pair_list.jinja" as table_pair_list %}
+{% import "macros/table_pair_contact.jinja" as table_pair_contact %}
+
+{% macro render(contract) %}
+<table>
+    <tbody>
+        {{ table_pair.render("Department", contract.entity) }}
+        {{ table_pair.render("Owner", contract.owner.name) }}
+        {{ table_pair.render("Purpose", contract.purpose) }}
+        {{ table_pair.render("Contract Start", contract.creation_date) }}
+        {{ table_pair.render("Contract End", contract.expiry_date)}}
+        {{ table_pair.render("", "")}}
+        {{ table_pair_contact.render(contract.owner) }}
+        {% for p in contract.people %}
+        {{ table_pair_contact.render(p) }}
+        {% endfor %}
+    </tbody>
+</table>
+{% endmacro %}

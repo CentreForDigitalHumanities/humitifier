@@ -34,6 +34,7 @@ def generate_service_contract(
     creation_date: Optional[date] = None,
     expiry_date: Optional[date] = None,
     purpose: Optional[str] = None,
+    people: Optional[list[Person]] = None,
 ) -> ServiceContract:
     if entity is None:
         entity = fake.random_element(elements=lists.departments)
@@ -45,8 +46,15 @@ def generate_service_contract(
         expiry_date = fake.date_between(start_date=creation_date, end_date="+1y")
     if purpose is None:
         purpose = fake.random_element(elements=lists.applications)
+    if people is None:
+        people = [generate_person() for _ in range(fake.random_int(min=1, max=5))]
     return ServiceContract(
-        entity=entity, owner=owner, creation_date=creation_date, expiry_date=expiry_date, purpose=purpose
+        entity=entity,
+        owner=owner,
+        creation_date=creation_date,
+        expiry_date=expiry_date,
+        purpose=purpose,
+        people=people,
     )
 
 
@@ -74,7 +82,6 @@ def generate_server(
     webdav_shares: list[str] = None,
     packages: list[Package] = None,
     service_contract: ServiceContract = None,
-    people: list[Person] = None,
     reboot_required: bool = None,
     users: list[str] = None,
     groups: list[str] = None,
@@ -88,7 +95,7 @@ def generate_server(
     if not cpu_usage:
         cpu_usage = fake.random_int(min=0, max=100) * 1.0
     if not memory_total:
-        memory_total = fake.random_int(min=1, max=256)
+        memory_total = fake.random_int(min=1, max=32)
     if not memory_usage:
         memory_usage = fake.random_int(min=0, max=memory_total)
     if not local_storage_total:
@@ -98,23 +105,22 @@ def generate_server(
     if not is_virtual:
         is_virtual = fake.boolean()
     if not os:
-        os = fake.word() + " " + fake.word() + " " + fake.word()
+        os = fake.random_element(elements=lists.operating_systems)
     if not uptime:
         uptime = timedelta(days=fake.random_int(min=0, max=1000), hours=fake.random_int(min=0, max=23))
     if not nfs_shares:
         nfs_shares = [
-            fake.file_path(depth=fake.random_int(min=1, max=5)) for _ in range(fake.random_int(min=0, max=5))
+            fake.file_path(depth=fake.random_int(min=1, max=3)) for _ in range(fake.random_int(min=0, max=3))
         ]
     if not webdav_shares:
         webdav_shares = [
-            fake.file_path(depth=fake.random_int(min=1, max=5)) for _ in range(fake.random_int(min=0, max=5))
+            fake.file_path(depth=fake.random_int(min=1, max=3)) for _ in range(fake.random_int(min=0, max=3))
         ]
     if not packages:
         packages = [generate_package() for _ in range(fake.random_int(min=1, max=5))]
     if not service_contract:
         service_contract = generate_service_contract()
-    if not people:
-        people = [generate_person() for _ in range(fake.random_int(min=1, max=5))]
+
     if not reboot_required:
         reboot_required = fake.boolean()
 
@@ -139,7 +145,6 @@ def generate_server(
         webdav_shares=webdav_shares,
         packages=packages,
         service_contract=service_contract,
-        people=people,
         reboot_required=reboot_required,
         users=users,
         groups=groups,

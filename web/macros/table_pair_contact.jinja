@@ -1,0 +1,13 @@
+{% macro render(person) %}
+<tr class="table-pair">
+    <td>
+        {{ person.name }}
+        {% if person.notes %}
+        <abbr title="{{ person.notes }}">🛈</abbr>
+        {% endif %}
+    </td>
+    <td>
+        <a href="mailto:{{ person.email }}">{{ person.email }}</a>
+    </td>
+</tr>
+{% endmacro %}

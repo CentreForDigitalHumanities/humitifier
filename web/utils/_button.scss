@@ -1,0 +1,22 @@
+@use "../utils/colors" as colors;
+@use "../core/typography" as typography;
+
+@mixin hx-button {
+    background-color: colors.$yellow;
+    color: colors.$black;
+    border: none;
+    padding: 0.5rem 1.5rem;
+    font-family: typography.$heading;
+    font-weight: bolder;
+    text-transform: uppercase;
+    cursor: pointer;
+
+    &:hover {
+        background-color: colors.$black;
+        color: colors.$yellow;
+    }
+}
+
+@mixin with-border {
+    border: 0.2rem solid colors.$black;
+}

@@ -1,0 +1,12 @@
+@use "../utils/colors";
+
+table {
+    border-collapse: collapse;
+    width: 100%;
+
+}
+
+td {
+    border: 1px solid colors.$black; 
+}
+

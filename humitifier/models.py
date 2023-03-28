@@ -28,12 +28,16 @@ class ServiceContract:
     creation_date: date  # The date on which the contract was created. Example: date(2022, 12, 31)
     expiry_date: date  # The expiry date of the contract. Example: date(2022, 12, 31)
     purpose: str  # The purpose of the contract. Example: "webapp"
+    people: list[Person]  # A list of people associated to the server. Example: [Person(...), Person(...)]
 
 
 @dataclass
 class Package:
     name: str  # The name of the package. Example: "nginx"
     version: str  # The version of the package. Example: "1.21.1-1ubuntu1"
+
+    def __str__(self) -> str:
+        return f"{self.name} {self.version}"
 
 
 @dataclass
@@ -57,7 +61,10 @@ class Server:
     webdav_shares: list[str]  # A list of WebDAV shares on the server. Example: ["/webdav", "/webdav2"]
     packages: list[Package]  # A list of packages installed on the server. Example: [Package(...)]
     service_contract: ServiceContract  # The service contract associated to the server. Example: ServiceContract(...)
-    people: list[Person]  # A list of people associated to the server. Example: [Person(...), Person(...)]
     reboot_required: bool  # Whether a reboot is required for the updates to take effect.
     users: list[str]  # A list of users on the server. Example: ["john", "jane"]
     groups: list[str]  # A list of groups on the server. Example: ["developers", "admins"]
+
+    @property
+    def uptime_days(self) -> int:
+        return self.uptime.days

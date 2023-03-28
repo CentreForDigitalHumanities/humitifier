@@ -1,0 +1,28 @@
+{% import "macros/table_pair.jinja" as table_pair %}
+{% import "macros/table_pair_list.jinja" as table_pair_list %}
+{% import "macros/table_pair_progress.jinja" as table_pair_progress%}
+
+{% macro render(server) %}
+<table>
+    <tbody>
+        {{ table_pair.render("Hostname", server.name) }}
+        {{ table_pair.render("IP", server.ip_address) }}
+        {% if server.is_virtual %}
+        {{ table_pair.render("OS", server.os)}}
+        {% else %}
+        {{ table_pair.render("OS", server.os|string + "(Baremetal)")}}
+        {% endif %}
+        {{ table_pair.render("Uptime", server.uptime_days|string + " days")}}
+        {{ table_pair.render("Cores", server.cpu_total) }}
+        {{ table_pair_progress.render("CPU Usage", server.cpu_usage|string + "%", server.cpu_usage)}}
+        {{ table_pair_progress.render("Memory", server.memory_usage|string + "gb/" + server.memory_total|string + "gb",
+        ((server.memory_usage / server.memory_total) * 100)|round(0))}}
+        {{ table_pair_progress.render("Local Storage", server.local_storage_usage|string + "gb/" +
+        server.local_storage_total|string + "gb", ((server.local_storage_usage / server.local_storage_total) *
+        100)|round(0))}}
+        {{ table_pair_list.render("NFS Shares", server.nfs_shares) }}
+        {{ table_pair_list.render("WebDav Shares", server.webdav_shares)}}
+        {{ table_pair_list.render("Packages", server.packages)}}
+    </tbody>
+</table>
+{% endmacro %}

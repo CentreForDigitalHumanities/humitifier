@@ -1,0 +1,67 @@
+@use "../utils/modal";
+@use "../utils/box";
+@use "../utils/lists";
+@use "../utils/button";
+@use "../utils/colors";
+@use "../core/typography";
+
+.server-details-modal {
+    @include modal.modal-box;
+    
+    display: grid;
+    grid-template-areas:
+        "info contract"
+        "exit exit";
+    
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 8fr 1fr;
+    border-radius: 2em;
+
+
+    main {
+        grid-area: info;
+        padding: 2em;
+        overflow: scroll;
+
+        li {
+            font-family: typography.$main;
+            font-size: 0.75em;
+            border-radius: 0.3em;
+        }
+    }
+
+    aside {
+        grid-area: contract;
+        padding: 2em;
+        overflow: scroll;
+    }
+
+
+    button {
+        @include button.hx-button;
+        @include button.with-border;
+        grid-area: exit;
+        height: 3em;
+        width: 20%;
+        margin: 0 auto;
+    }
+}
+
+.server-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 1rem;
+}
+
+.server-grid-item {
+    @include box.itembox;
+    @include lists.block-list;
+
+    h3 {
+        margin: 0;
+    }
+
+    button {
+        @include button.hx-button;
+    }
+}
