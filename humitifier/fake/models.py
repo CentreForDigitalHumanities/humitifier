@@ -3,17 +3,17 @@ from datetime import date, timedelta
 from humitifier.fake import lists
 from humitifier.fake.helpers import unique_list_picks, generate_full_name, generate_email, generate_username
 from humitifier.models import Server, Person, ServiceContract, Package
-from typing import Optional, Literal
+from typing import Literal
 
 fake = Faker()
 
 
 def generate_person(
-    name: Optional[str] = None,
-    email: Optional[str] = None,
-    role: Optional[Literal["admin", "user", "developer", "researcher"]] = None,
-    department: Optional[str] = None,
-    notes: Optional[str] = None,
+    name: str | None = None,
+    email: str | None = None,
+    role: Literal["admin", "user", "developer", "researcher"] | None = None,
+    department: str | None = None,
+    notes: str | None = None,
 ) -> Person:
     if not name:
         name = generate_full_name()
@@ -29,24 +29,24 @@ def generate_person(
 
 
 def generate_service_contract(
-    entity: Optional[str] = None,
-    owner: Optional[Person] = None,
-    creation_date: Optional[date] = None,
-    expiry_date: Optional[date] = None,
-    purpose: Optional[str] = None,
-    people: Optional[list[Person]] = None,
+    entity: str | None = None,
+    owner: Person | None = None,
+    creation_date: date | None = None,
+    expiry_date: date | None = None,
+    purpose: str | None = None,
+    people: list[Person] | None = None,
 ) -> ServiceContract:
-    if entity is None:
+    if not entity:
         entity = fake.random_element(elements=lists.departments)
-    if owner is None:
+    if not owner:
         owner = generate_person()
-    if creation_date is None:
+    if not creation_date:
         creation_date = fake.date_between(start_date="-1y", end_date="today")
-    if expiry_date is None:
+    if not expiry_date:
         expiry_date = fake.date_between(start_date=creation_date, end_date="+1y")
-    if purpose is None:
+    if not purpose:
         purpose = fake.random_element(elements=lists.applications)
-    if people is None:
+    if not people:
         people = [generate_person() for _ in range(fake.random_int(min=1, max=5))]
     return ServiceContract(
         entity=entity,
@@ -58,33 +58,33 @@ def generate_service_contract(
     )
 
 
-def generate_package(name: Optional[str] = None, version: Optional[str] = None) -> Package:
-    if name is None:
+def generate_package(name: str | None = None, version: str | None = None) -> Package:
+    if not name:
         name = fake.random_element(elements=lists.packages)
-    if version is None:
+    if not version:
         version = f"{fake.random_int(min=1, max=10)}.{fake.random_int(min=1, max=10)}.{fake.random_int(min=1, max=10)}-{fake.word()}{fake.random_int(min=1, max=10)}{fake.word()}"
     return Package(name=name, version=version)
 
 
 def generate_server(
-    name: str = None,
-    ip_address: str = None,
-    cpu_total: int = None,
-    cpu_usage: float = None,
-    memory_total: int = None,
-    memory_usage: int = None,
-    local_storage_total: int = None,
-    local_storage_usage: int = None,
-    is_virtual: bool = None,
-    os: str = None,
-    uptime: timedelta = None,
-    nfs_shares: list[str] = None,
-    webdav_shares: list[str] = None,
-    packages: list[Package] = None,
-    service_contract: ServiceContract = None,
-    reboot_required: bool = None,
-    users: list[str] = None,
-    groups: list[str] = None,
+    name: str | None = None,
+    ip_address: str | None = None,
+    cpu_total: int | None = None,
+    cpu_usage: float | None = None,
+    memory_total: int | None = None,
+    memory_usage: int | None = None,
+    local_storage_total: int | None = None,
+    local_storage_usage: int | None = None,
+    is_virtual: bool | None = None,
+    os: str | None = None,
+    uptime: timedelta | None = None,
+    nfs_shares: list[str] | None = None,
+    webdav_shares: list[str] | None = None,
+    packages: list[Package] | None = None,
+    service_contract: ServiceContract | None = None,
+    reboot_required: bool | None = None,
+    users: list[str] | None = None,
+    groups: list[str] | None = None,
 ) -> Server:
     if not name:
         name = fake.hostname()

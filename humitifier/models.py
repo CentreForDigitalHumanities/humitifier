@@ -12,9 +12,9 @@ class Person:
 
     name: str  # The name of the person. Example: "Bartolomew Bagshot"
     email: str  # The email address of the person. Example: "bbagshot@hogwarts.co.uk"
-    role: Optional[Literal["admin", "user", "developer", "researcher"]]  # The role of the person. Example: "admin"
-    department: Optional[str]  # The department of the person. Example: "Department of Magical Creatures"
-    notes: Optional[str]  # Optional notes about the person. Example: "Contact for server maintenance"
+    role: Literal["admin", "user", "developer", "researcher"] | None  # The role of the person. Example: "admin"
+    department: str | None  # The department of the person. Example: "Department of Magical Creatures"
+    notes: str | None  # Optional notes about the person. Example: "Contact for server maintenance"
 
 
 @dataclass
@@ -60,7 +60,7 @@ class Server:
     nfs_shares: list[str]  # A list of NFS shares on the server. Example: ["/mnt/nfs", "/mnt/nfs2"]
     webdav_shares: list[str]  # A list of WebDAV shares on the server. Example: ["/webdav", "/webdav2"]
     packages: list[Package]  # A list of packages installed on the server. Example: [Package(...)]
-    service_contract: ServiceContract  # The service contract associated to the server. Example: ServiceContract(...)
+    service_contract: ServiceContract | None  # The service contract associated to the server. Example: ServiceContract(...)
     reboot_required: bool  # Whether a reboot is required for the updates to take effect.
     users: list[str]  # A list of users on the server. Example: ["john", "jane"]
     groups: list[str]  # A list of groups on the server. Example: ["developers", "admins"]

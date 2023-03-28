@@ -3,8 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from humitifier.fake.models import generate_server
-from humitifier.views.filter import ServerFilter
-from typing import Optional
+from humitifier.filters import ServerFilter
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
@@ -15,7 +14,7 @@ servers = {s.name: s for s in servers}
 
 
 @app.get("/", response_class=HTMLResponse)
-def index(request: Request) -> HTMLResponse:
+async def index(request: Request) -> HTMLResponse:
     server_list = list(servers.values())
     filters = ServerFilter(servers=server_list)
     return templates.TemplateResponse(
@@ -25,23 +24,23 @@ def index(request: Request) -> HTMLResponse:
 
 
 @app.get("/hx-server-details/{server_name}")
-def reload_server_details(request: Request, server_name: str):
+async def reload_server_details(request: Request, server_name: str):
     return templates.TemplateResponse(
         "hx/simple-grid-details.jinja", {"request": request, "server": servers[server_name]}
     )
 
 
 @app.get("/hx-filter-interactive-server-grid")
-def filter_server_grid(
+async def filter_server_grid(
     request: Request,
-    hostname: Optional[str] = None,
-    username: Optional[str] = None,
-    package: Optional[str] = None,
-    owner: Optional[str] = None,
-    contact: Optional[str] = None,
-    purpose: Optional[str] = None,
-    os: Optional[str] = None,
-    department: Optional[str] = None,
+    hostname: str | None = None,
+    username: str | None = None,
+    package: str | None = None,
+    owner: str | None = None,
+    contact: str | None = None,
+    purpose: str | None = None,
+    os: str | None = None,
+    department: str | None = None,
 ) -> HTMLResponse:
     filtered = servers.values()
     if hostname:
@@ -65,5 +64,5 @@ def filter_server_grid(
 
 
 @app.get("/hx-clear/{target}")
-def clear_target(request: Request, target: str):
+async def clear_target(request: Request, target: str):
     return templates.TemplateResponse("hx/clear.jinja", {"request": request, "target": target})

@@ -4,7 +4,7 @@
 
 {% macro render(filters) %}
 <form class="server-filters" hx-get="/hx-filter-interactive-server-grid" hx-swap="none"
-    hx-trigger="submit, {{ tx.render(0, ['purpose', 'os', 'department'])}} {{ tx.render(0.5, ['hostname', 'owner']) }} {{ tx.render(1, ['username', 'package', 'contact'])}}">
+    hx-trigger="submit, {{ tx.render(0, ['purpose', 'os', 'department'])}} {{ tx.render(0.25, ['hostname', 'owner', 'username', 'package', 'contact']) }}">
     {{ search.render("hostname", filters.hostname_opts) }}
     {{ search.render("username", filters.users_opts) }}
     {{ search.render("package", filters.package_opts) }}
