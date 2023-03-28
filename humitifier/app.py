@@ -4,12 +4,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from humitifier.fake.models import generate_server
 from humitifier.filters import ServerFilter
+from humitifier.actions.load_db import main as load_db
 
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="web")
 
-servers = (generate_server() for _ in range(100))
+# servers = (generate_server() for _ in range(100))
+servers = load_db(".scribble/packagescan.json", ".scribble/metafiles")
 servers = {s.name: s for s in servers}
 
 
