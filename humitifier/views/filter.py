@@ -40,7 +40,7 @@ class ServerFilter(BaseModel):
         return list(set(all_people))
 
     @property
-    def owners_opts(self) -> list[str]:
+    def owner_opts(self) -> list[str]:
         all_owners = [s.service_contract.owner.name for s in self.servers]
         return list(set(all_owners))
 

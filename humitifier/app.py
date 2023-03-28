@@ -49,11 +49,11 @@ def filter_server_grid(
     if username:
         filtered = (f for f in filtered if username in f.users)
     if package:
-        filtered = (f for f in filtered if package in f.packages)
+        filtered = (f for f in filtered if package in [p.name for p in f.packages])
     if owner:
         filtered = (f for f in filtered if owner in f.service_contract.owner.name)
     if contact:
-        filtered = (f for f in filtered if contact in f.service_contract.people)
+        filtered = (f for f in filtered if contact in [p.name for p in f.service_contract.people])
     if purpose:
         filtered = (f for f in filtered if purpose in f.service_contract.purpose)
     if os:
