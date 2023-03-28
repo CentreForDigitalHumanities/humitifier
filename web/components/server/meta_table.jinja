@@ -23,6 +23,8 @@
         {{ table_pair_list.render("NFS Shares", server.nfs_shares) }}
         {{ table_pair_list.render("WebDav Shares", server.webdav_shares)}}
         {{ table_pair_list.render("Packages", server.packages)}}
+        {{ table_pair_list.render("Users", server.users) }}
+        {{ table_pair_list.render("Groups", server.groups) }}
     </tbody>
 </table>
 {% endmacro %}
