@@ -46,15 +46,15 @@ class Cluster(BaseModel):
 
     @staticmethod
     def _filter_by_entity(servers: list[Server], query: str) -> list[Server]:
-        return [s for s in servers if query in s.service_contract.entity]
+        return [s for s in servers if s.service_contract and query in s.service_contract.entity]
 
     @staticmethod
     def _filter_by_owner(servers: list[Server], query: str) -> list[Server]:
-        return [s for s in servers if query in s.service_contract.owner.name]
+        return [s for s in servers if s.service_contract and query in s.service_contract.owner.name]
 
     @staticmethod
     def _filter_by_purpose(servers: list[Server], query: str) -> list[Server]:
-        return [s for s in servers if query == s.service_contract.purpose]
+        return [s for s in servers if s.service_contract and query == s.service_contract.purpose]
 
     @staticmethod
     def _filter_by_package(servers: list[Server], query: str) -> list[Server]:
@@ -62,7 +62,11 @@ class Cluster(BaseModel):
 
     @staticmethod
     def _filter_by_contact(servers: list[Server], query: str) -> list[Server]:
-        return [s for s in servers if partial_match([p.name for p in s.service_contract.people], query)]
+        return [
+            s
+            for s in servers
+            if s.service_contract and partial_match([p.name for p in s.service_contract.people], query)
+        ]
 
     @staticmethod
     def _filter_by_issue(servers: list[Server], query: str) -> list[Server]:
