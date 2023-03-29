@@ -33,6 +33,7 @@ class Cluster(BaseModel):
             "contact": list(
                 set([p.name for p in flatten_list([s.service_contract.people for s in servers if s.service_contract])])
             ),
+            "issue": list(set([i.slug for i in flatten_list([s.issues for s in servers])])),
         }
 
     @staticmethod
@@ -62,3 +63,7 @@ class Cluster(BaseModel):
     @staticmethod
     def _filter_by_contact(servers: list[Server], query: str) -> list[Server]:
         return [s for s in servers if partial_match([p.name for p in s.service_contract.people], query)]
+
+    @staticmethod
+    def _filter_by_issue(servers: list[Server], query: str) -> list[Server]:
+        return [s for s in servers if query in [i.slug for i in s.issues]]

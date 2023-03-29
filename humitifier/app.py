@@ -45,6 +45,7 @@ async def filter_server_grid(
     purpose: str | None = None,
     os: str | None = None,
     entity: str | None = None,
+    issue: str | None = None,
 ) -> HTMLResponse:
     filter_args = {
         "hostname": hostname,
@@ -54,6 +55,7 @@ async def filter_server_grid(
         "purpose": purpose,
         "os": os,
         "entity": entity,
+        "issue": issue,
     }
     filtered = cluster.apply_filters(**filter_args)
     return templates.TemplateResponse("hx/simple-grid-filtered.jinja", {"request": request, "servers": filtered})
