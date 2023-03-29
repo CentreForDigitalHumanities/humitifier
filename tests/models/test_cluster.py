@@ -1,6 +1,8 @@
 import pytest
 from humitifier.fake.gen.server import FakeServer
 from humitifier.fake.gen.package import FakePackage
+from humitifier.fake.gen.servicecontract import FakeServiceContract
+from humitifier.fake.gen.person import FakePerson
 from humitifier.models.cluster import Cluster
 
 
@@ -61,12 +63,13 @@ def test_cluster_filter_by_package():
 
 
 def test_cluster_filter_by_contact():
-    s1 = FakeServer.generate()
-    s2 = FakeServer.generate()
-    cluster = Cluster(name="test", servers=[s1, s2])
-    filtered = cluster.apply_filters(contact=s1.service_contract.people[0].name)
+    p = FakePerson.generate()
+    c = FakeServiceContract.generate(people=[p])
+    s1 = FakeServer.generate(service_contract=c)
+    cluster = Cluster(name="test", servers=[s1])
+    filtered = cluster.apply_filters(contact=p.name)
     assert len(filtered) == 1
-    assert filtered[0].service_contract.people[0].name == s1.service_contract.people[0].name
+    assert filtered[0].service_contract.people[0].name == p.name
 
 
 def test_every_filter_opt_has_a_filter():

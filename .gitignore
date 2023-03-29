@@ -4,3 +4,4 @@ poetry.lock
 .scribble/
 __pycache__/
 static/out*
+.pytest_cache/
