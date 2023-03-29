@@ -7,3 +7,9 @@ class Package(BaseModel):
 
     def __str__(self) -> str:
         return f"{self.name} {self.version}"
+
+    @classmethod
+    def from_boltdata(cls, data: list[dict]) -> tuple[str, list["Package"]]:
+        slug = data["target"]
+        packages = [cls(**package) for package in data["value"]["packages"]]
+        return (slug, packages)
