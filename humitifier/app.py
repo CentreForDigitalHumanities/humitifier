@@ -29,6 +29,12 @@ async def reload_server_details(request: Request, server_name: str):
     return templates.TemplateResponse("hx/simple-grid-details.jinja", {"request": request, "server": server})
 
 
+@app.get("/hx-server-issues/{server_name}")
+async def get_server_issues(request: Request, server_name: str):
+    server = cluster.get_server_by_hostname(server_name)
+    return templates.TemplateResponse("hx/simple-grid-issues.jinja", {"request": request, "issues": server.issues})
+
+
 @app.get("/hx-filter-interactive-server-grid")
 async def filter_server_grid(
     request: Request,

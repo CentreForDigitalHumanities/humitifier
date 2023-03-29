@@ -1,0 +1,5 @@
+{% import "components/server/issues_modal.jinja" as modal %}
+
+<div hx-swap-oob="innerHTML:#hx-modal">
+    {{ modal.render(issues) }}
+</div>

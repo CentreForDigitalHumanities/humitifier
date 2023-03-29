@@ -1,0 +1,26 @@
+{% macro render(issues) %}
+<div class="modal-wrap">
+    <article class="issues-modal">
+        <table>
+            <thead>
+                <tr>
+                    <th>Issue</th>
+                    <th>Severity</th>
+                    <th>Descriptions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for issue in issues %}
+                <tr>
+                    <td>{{ issue.title }}</td>
+                    <td>{{ issue.severity }}</td>
+                    <td>{{ issue.description }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        <button hx-swap="none" hx-get="/hx-clear/hx-modal"
+            hx-trigger="click, keyup[key=='Escape'] from:body">Close</button>
+    </article>
+</div>
+{% endmacro %}
