@@ -1,4 +1,5 @@
 from humitifier.models.server import Server
+from humitifier.fake.gen.server import FakeServer
 from humitifier.fake.gen.servicecontract import FakeServiceContract
 from humitifier.fake.gen.package import PackagePool
 
@@ -46,3 +47,9 @@ def test_load_servers_from_files_without_servicecontract():
     assert servers[0].slug == "example-server"
     assert len(servers[0].packages) == 2
     assert servers[0].service_contract is None
+
+
+def test_server_without_contract_has_issue():
+    server = FakeServer.generate(service_contract=None)
+    assert len(server.issues) == 1
+    assert server.issues[0].slug == "missing-service-contract"

@@ -72,6 +72,15 @@ def test_cluster_filter_by_contact():
     assert filtered[0].service_contract.people[0].name == p.name
 
 
+def test_cluster_filter_by_issue():
+    s1 = FakeServer.generate(service_contract=None)
+    s2 = FakeServer.generate()
+    cluster = Cluster(name="test", servers=[s1, s2])
+    filtered = cluster.apply_filters(issue="missing-service-contract")
+    assert len(filtered) == 1
+    assert filtered[0].issues[0].slug == "missing-service-contract"
+
+
 def test_every_filter_opt_has_a_filter():
     s1 = FakeServer.generate()
     s2 = FakeServer.generate()

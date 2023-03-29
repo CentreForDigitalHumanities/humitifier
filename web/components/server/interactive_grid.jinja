@@ -7,7 +7,17 @@
         <li>{{ server.ip_address }}</li>
         <li>{{ server.os }}</li>
     </ul>
-    <button hx-swap="none" hx-get="/hx-server-details/{{ server.hostname }}">Details</button>
+    <footer>
+        <button hx-swap="none" hx-get="/hx-server-details/{{ server.hostname }}">Details</button>
+        {% if server.issues %}
+        <button hx-swap="none" hx-get="/hx-server-issues/{{ server.hostname }}">
+            {{ server.issues|length }} Issue(s)
+        </button>
+        {% else %}
+        <button disabled>No Issues!</button>
+        {% endif %}
+    </footer>
+
 </article>
 {% endmacro %}
 

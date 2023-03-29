@@ -9,7 +9,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="web")
 
-servers = Server.load(".scribble/packagescan.json", ".scribble/metafiles")
+servers = Server.load("/data/packagescan.json", "/data/contracts")
 cluster = Cluster(name="main", servers=servers)
 
 
@@ -29,6 +29,12 @@ async def reload_server_details(request: Request, server_name: str):
     return templates.TemplateResponse("hx/simple-grid-details.jinja", {"request": request, "server": server})
 
 
+@app.get("/hx-server-issues/{server_name}")
+async def get_server_issues(request: Request, server_name: str):
+    server = cluster.get_server_by_hostname(server_name)
+    return templates.TemplateResponse("hx/simple-grid-issues.jinja", {"request": request, "issues": server.issues})
+
+
 @app.get("/hx-filter-interactive-server-grid")
 async def filter_server_grid(
     request: Request,
@@ -39,6 +45,7 @@ async def filter_server_grid(
     purpose: str | None = None,
     os: str | None = None,
     entity: str | None = None,
+    issue: str | None = None,
 ) -> HTMLResponse:
     filter_args = {
         "hostname": hostname,
@@ -48,6 +55,7 @@ async def filter_server_grid(
         "purpose": purpose,
         "os": os,
         "entity": entity,
+        "issue": issue,
     }
     filtered = cluster.apply_filters(**filter_args)
     return templates.TemplateResponse("hx/simple-grid-filtered.jinja", {"request": request, "servers": filtered})

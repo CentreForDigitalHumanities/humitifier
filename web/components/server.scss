@@ -48,6 +48,31 @@
     }
 }
 
+.issues-modal {
+    @include modal.modal-box;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 8fr 1fr;
+
+    table {
+        max-width: 80%;
+        margin: 0 auto;
+        table-layout: fixed;
+        max-height: 75%;
+        overflow: scroll;
+
+    }
+
+    button {
+        @include button.hx-button;
+        @include button.with-border;
+        display: block;
+        height: 3em;
+        width: 20%;
+        margin: 0 auto;
+    }
+    
+}
 .server-grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -64,6 +89,12 @@
 
     button {
         @include button.hx-button;
+        width: 10rem;
+    }
+
+    button[disabled] {
+        background-color: #cccccc;
+        color: #666666;
     }
 }
 
@@ -76,5 +107,8 @@
     button {
         @include button.hx-button;
         @include inputs.input-core;
+
     }
+
+
 }
