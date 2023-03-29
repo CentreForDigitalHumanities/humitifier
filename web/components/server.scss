@@ -64,6 +64,12 @@
 
     button {
         @include button.hx-button;
+        width: 10rem;
+    }
+
+    button[disabled] {
+        background-color: #cccccc;
+        color: #666666;
     }
 }
 
@@ -76,5 +82,8 @@
     button {
         @include button.hx-button;
         @include inputs.input-core;
+
     }
+
+
 }
