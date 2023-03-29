@@ -9,7 +9,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="web")
 
-servers = Server.load(".scribble/packagescan.json", ".scribble/metafiles")
+servers = Server.load("/data/packagescan.json", "/data/contracts")
 cluster = Cluster(name="main", servers=servers)
 
 
