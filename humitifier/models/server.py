@@ -73,8 +73,9 @@ class Server(BaseModel):
         for fact_dict in facts:
             create_args = cls.extract_bolt_kwargs(fact_dict)
             slug = create_args["slug"]
+            hostname = create_args["hostname"]
             packages = package_lookup[slug]
-            contract_path = f"{contracts_dir}/{slug}.toml"
+            contract_path = f"{contracts_dir}/{hostname}.toml"
             if os.path.isfile(contract_path):
                 with open(contract_path, "r") as f:
                     toml_data = toml.load(f)

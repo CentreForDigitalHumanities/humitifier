@@ -7,3 +7,7 @@ def unpack_bolt_data(bolt_data: list[dict]) -> tuple[dict, dict]:
     facts = [x for x in bolt_data if "facts" in x][0]["facts"]
     packages = [x for x in bolt_data if "packages" in x][0]["packages"]
     return facts, packages
+
+
+def partial_match(lst: list[str], q: str) -> bool:
+    return any(q in s for s in lst)

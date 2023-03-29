@@ -13,3 +13,6 @@ class Person(BaseModel):
     @classmethod
     def from_contract(cls, data: dict) -> "Person":
         return cls(**data)
+
+    def __str__(self) -> str:
+        return f"{self.name} <{self.email}>"

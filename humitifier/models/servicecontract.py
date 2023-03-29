@@ -22,5 +22,9 @@ class ServiceContract(BaseModel):
             "owner": Person.from_contract(toml_data["contract"]["owner"]),
             "people": [Person.from_contract(person) for person in toml_data["people"]],
         }
+        if isinstance(toml_data["contract"]["start_date"], str):
+            override["start_date"] = date.fromisoformat(toml_data["contract"]["start_date"])
+        if isinstance(toml_data["contract"]["end_date"], str):
+            override["end_date"] = date.fromisoformat(toml_data["contract"]["end_date"])
         create_args = {**toml_data["contract"], **override}
         return cls(**create_args)
