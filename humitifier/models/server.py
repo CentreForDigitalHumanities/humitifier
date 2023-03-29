@@ -3,6 +3,7 @@ import os
 import toml
 from datetime import timedelta
 from pydantic import BaseModel
+from .issue import Issue
 from .package import Package
 from .servicecontract import ServiceContract
 from humitifier.utils import unpack_bolt_data
@@ -84,3 +85,10 @@ class Server(BaseModel):
                 servicecontract = None
             servers.append(cls.create(servicecontract=servicecontract, packages=packages, **create_args))
         return servers
+
+    @property
+    def issues(self) -> list[Issue]:
+        issues = []
+        if not self.service_contract:
+            issues.append(Issue.create_no_service_contract(self.hostname))
+        return issues
