@@ -1,0 +1,5 @@
+{
+    "description": "Check installed packages for Debian, RedHat, and CentOS",
+    "input_method": "stdin",
+    "parameters": {}
+}

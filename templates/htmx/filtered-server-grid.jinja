@@ -1,9 +1,0 @@
-<article hx-swap-oob="innerHTML:#items">
-    {% for server in servers %}
-    {% include "partials/interactive-server-grid-item.jinja" %}
-    {% endfor %}
-</article>
-<article hx-swap-oob="innerHTML:#summary">
-    Viewing <mark class="count">{{ display_count }} servers</mark>
-    of which <mark class="critical">{{ critical_count }} require immediate attention</mark>
-</article>

@@ -1,0 +1,25 @@
+@use "../utils/colors";
+
+$input-height: 40px;
+
+@mixin input-core {
+    height: $input-height;
+    border: 1px solid colors.$yellow;
+    border-radius: 0.1rem;
+    width: 90%;
+    margin: 0.5rem auto;
+    padding: 0;
+    &:focus {
+        outline: colors.$yellow solid 2px;
+    }
+}
+
+input[type=text] {
+    @include input-core;   
+    
+}
+
+select {
+    @include input-core;
+    background-color: colors.$white;
+}

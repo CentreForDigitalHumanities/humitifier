@@ -1,0 +1,12 @@
+{% macro render(name, suggestions) %}
+<article>
+    {# <label for="{{ name }}-input">{{ name }}</label> #}
+    <input list="{{ name }}-suggestions" id="{{ name }}-input" type="text" name="{{ name }}"
+        placeholder="search {{ name }}..." />
+    <datalist id="{{ name }}-suggestions">
+        {% for suggestion in suggestions %}
+        <option value="{{ suggestion }}">
+            {% endfor %}
+    </datalist>
+</article>
+{% endmacro %}

@@ -1,0 +1,20 @@
+{% macro render_item(server) %}
+<article class="server-grid-item">
+    <header>
+        <h3>{{ server.hostname }}</h3>
+    </header>
+    <ul>
+        <li>{{ server.ip_address }}</li>
+        <li>{{ server.os }}</li>
+    </ul>
+    <button hx-swap="none" hx-get="/hx-server-details/{{ server.hostname }}">Details</button>
+</article>
+{% endmacro %}
+
+{% macro render_grid(servers) %}
+<section class="server-grid">
+    {% for server in servers %}
+    {{ render_item(server) }}
+    {% endfor %}
+</section>
+{% endmacro %}

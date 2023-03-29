@@ -3,3 +3,4 @@ poetry.lock
 .vscode/
 .scribble/
 __pycache__/
+static/out*

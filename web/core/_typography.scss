@@ -1,0 +1,31 @@
+@use "../utils/fonts" as fonts;
+@use "../utils/colors" as colors;
+@use "../utils/animations" as animations;
+
+$main: fonts.$opensans;
+$heading: fonts.$zilla;
+$subheading: fonts.$merriweather;
+
+body {
+    font-family: $main;
+}
+
+h1, h3, h5 {
+    font-family: $heading;
+}
+
+h2, h4, h6 {
+    font-family: $subheading;
+}
+
+a {
+    text-decoration: none;
+    @include animations.onhover-left-to-right(colors.$yellow, colors.$black);
+    color: colors.$black;
+    padding-left: 0.5em;
+    padding-right: 0.5em;
+    border-bottom: 1px solid colors.$black;
+    &:hover {
+        color : colors.$yellow;
+    }
+}

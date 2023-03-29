@@ -1,0 +1,15 @@
+{% import "components/server/interactive_grid.jinja" as grid %}
+{% import "components/server/details_modal.jinja" as modal%}
+{% import "components/server/filters.jinja" as fltr %}
+{% import "components/header.jinja" as header %}
+
+{% extends "pages/base.jinja" %}
+{% block content %}
+<section id="simple-grid-page">
+    {{ header.render("Monitoring Servers", "Fucking up less") }}
+    {{ fltr.render(filters) }}
+    {{ modal.render_empty_modal() }}
+    {{ grid.render_grid(servers) }}
+</section>
+
+{% endblock %}
