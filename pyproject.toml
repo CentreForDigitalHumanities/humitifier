@@ -12,6 +12,8 @@ httpx = "^0.23.3"
 uvicorn = "^0.21.1"
 jinja2 = "^3.1.2"
 toml = "^0.10.2"
+parallel-ssh = "^2.12.0"
+asyncssh = "^2.13.1"
 
 
 [tool.poetry.group.dev.dependencies]
@@ -21,6 +23,7 @@ black = "^23.1.0"
 faker = "^17.6.0"
 bpython = "^0.24"
 pdbpp = "^0.10.3"
+hypothesis-auto = "^1.1.5"
 
 [tool.black]
 line-length = 119

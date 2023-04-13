@@ -2,15 +2,9 @@ import itertools
 from functools import cached_property
 from pssh.clients import ParallelSSHClient
 from pssh.output import HostOutput
-from pssh.config import HostConfig
 from typing import Type
 from dataclasses import dataclass
 from . import facts
-
-HostList = list[str]
-HostConfigList = list[HostConfig]
-FactList = list[Type[facts.Fact]]
-PsshArgs = tuple[HostList, HostConfigList, FactList]
 
 
 @dataclass
@@ -21,34 +15,38 @@ class PsshBuilder:
     facts: list[Type[facts.Fact]]
 
     @cached_property
-    def host_fact_product(self) -> list[tuple[str, Type[facts.Fact]]]:
-        """Generate list of tuples of host and fact for all specified hosts and facts"""
-        return list(itertools.product(self.hosts, self.facts))
+    def parsers(self) -> list[Type[facts.Fact]]:
+        """Return list of parsers for specified facts"""
+        return list(itertools.chain.from_iterable(itertools.repeat(fact, len(self.hosts)) for fact in self.facts))
 
     @cached_property
-    def configs(self) -> list[HostConfig]:
-        """Generate list of HostConfig objects for all specified hosts"""
-        return [HostConfig(alias=fact.__name__) for _, fact in self.host_fact_product]
+    def host_lookup(self) -> list[str]:
+        """Return list of hosts for specified facts"""
 
-    @cached_property
-    def client_hosts(self) -> list[str]:
-        """Generate list of hosts with fact name as alias"""
-        return [host for host, _ in self.host_fact_product]
-
-    @cached_property
-    def commands(self) -> list[str]:
-        """Generate list of commands for all specified facts"""
-        return [generate_cmd(fact, host) for host, fact in self.host_fact_product]
+        return list(itertools.chain(*[self.hosts for _ in self.facts]))
 
     def client(self, **client_kwargs) -> ParallelSSHClient:
         """Generate pssh client with specified arguments"""
-        return ParallelSSHClient(self.client_hosts, host_config=self.configs, **client_kwargs)
+        return ParallelSSHClient(self.hosts, **client_kwargs)
 
     def run(self, client: ParallelSSHClient) -> list[HostOutput]:
         """Run pssh client with specified arguments and return list of HostOutput objects"""
-        outputs = client.run_command("%s", host_args=self.commands)
+        outputs = []
+        for f in self.facts:
+            commands = [generate_cmd(f, host) for host in self.hosts]
+            outputs += client.run_command("%s", host_args=commands)
         client.join()
         return outputs
+
+    def parse(self, outputs: list[HostOutput]) -> dict[str, list[facts.Fact]]:
+        """Parse list of HostOutput objects and return dict of host to Fact objects"""
+        res = {}
+        for fact, out in zip(self.parsers, outputs):
+            host = out.host
+            if host not in res:
+                res[host] = []
+            res[host].append(fact.from_stdout(list(out.stdout)))
+        return res
 
 
 def generate_cmd(fact_type: Type[facts.Fact], host: str) -> str:
@@ -71,11 +69,3 @@ def generate_cmd(fact_type: Type[facts.Fact], host: str) -> str:
             return "cat /etc/group"
         case facts.User:
             return "cat /etc/passwd"
-
-
-def parse_output(output: HostOutput) -> facts.Fact:
-    """Parse output of pssh client and return fact object"""
-    if output.exit_code != 0:
-        raise RuntimeError(f"Error running command on host {output.host}: {output.stderr}")
-    fact_type = getattr(facts, output.alias)
-    return fact_type.from_stdout(list(output.stdout))
