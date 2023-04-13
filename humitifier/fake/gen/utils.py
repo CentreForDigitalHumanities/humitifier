@@ -23,6 +23,14 @@ class FakeUtil:
     faker = Fake
 
     @staticmethod
+    def firstname():
+        return Fake.random_element(elements=lists.first_names)
+
+    @staticmethod
+    def lastname():
+        return Fake.random_element(elements=lists.last_names)
+
+    @staticmethod
     def fullname():
         first_name = Fake.random_element(elements=lists.first_names)
         last_name = Fake.random_element(elements=lists.last_names)
@@ -94,3 +102,83 @@ class FakeUtil:
     @staticmethod
     def clustername():
         return Fake.random_element(elements=lists.packages)
+
+    @staticmethod
+    def kernel():
+        return Fake.random_element(elements=lists.kernels)
+
+    @staticmethod
+    def total_mb():
+        return Fake.pyint(min_value=1024, max_value=16384)
+
+    @staticmethod
+    def used_mb(total_mb: int):
+        return Fake.pyint(min_value=0, max_value=total_mb)
+
+    @staticmethod
+    def free_mb(total_mb: int, used_mb: int):
+        return Fake.pyint(min_value=0, max_value=total_mb - used_mb)
+
+    @staticmethod
+    def swap_total_mb():
+        return Fake.pyint(min_value=1024, max_value=16384)
+
+    @staticmethod
+    def swap_used_mb(swap_total_mb: int):
+        return Fake.pyint(min_value=0, max_value=swap_total_mb)
+
+    @staticmethod
+    def swap_free_mb(swap_total_mb: int, swap_used_mb: int):
+        return Fake.pyint(min_value=0, max_value=swap_total_mb - swap_used_mb)
+
+    @staticmethod
+    def blockname():
+        return Fake.random_element(elements=lists.block_devices)
+
+    @staticmethod
+    def blocksize():
+        return Fake.pyint(min_value=1024, max_value=16384)
+
+    @staticmethod
+    def blockused(size_mb: int):
+        return Fake.pyint(min_value=0, max_value=size_mb)
+
+    @staticmethod
+    def blockfree(size_mb: int, used_mb: int):
+        return Fake.pyint(min_value=0, max_value=size_mb - used_mb)
+
+    @staticmethod
+    def blockmountpoint():
+        return Fake.random_element(elements=lists.mountpoints)
+
+    @staticmethod
+    def blockpercent():
+        return Fake.pyfloat(min_value=0, max_value=100)
+
+    @staticmethod
+    def groupname():
+        return Fake.random_element(elements=lists.user_groups)
+
+    @staticmethod
+    def gid():
+        return Fake.pyint(min_value=1000, max_value=60000)
+
+    @staticmethod
+    def username():
+        return Fake.random_element(elements=lists.first_names).lower()
+
+    @staticmethod
+    def uid():
+        return Fake.pyint(min_value=1000, max_value=60000)
+
+    @staticmethod
+    def userhome(name: str):
+        return f"/home/{name}"
+
+    @staticmethod
+    def usershell():
+        return Fake.random_element(elements=lists.shells)
+
+    @staticmethod
+    def userinfo(name: str):
+        return f"{name} {FakeUtil.email(name + ' ' + FakeUtil.lastname())}"

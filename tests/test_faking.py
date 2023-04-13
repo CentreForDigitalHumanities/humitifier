@@ -5,6 +5,9 @@ from humitifier.fake.gen.package import FakePackage
 from humitifier.fake.gen.servicecontract import FakeServiceContract
 from humitifier.fake.gen.server import FakeServer, Server
 from humitifier.fake.gen.cluster import FakeCluster, Cluster
+from humitifier.fake.gen import facts as fake_facts
+from humitifier.infra import facts as infra_facts
+from humitifier.fake.gen.factping import FakeFactPing, FactPing
 
 
 def test_gen_fake_correctly_generates_generic_class_without_kwargs():
@@ -103,3 +106,50 @@ def test_fake_server_correctly_generates_server():
 def test_fake_cluster_correctly_generates_cluster():
     generated = FakeCluster.generate()
     assert isinstance(generated, Cluster)
+
+
+def test_fake_hostname_ctl_correctly_generates_hostname_ctl():
+    generated = fake_facts.FakeHostnameCtl.generate()
+    assert isinstance(generated, infra_facts.HostnameCtl)
+
+
+def test_fake_memory_correctly_generates_memory():
+    generated = fake_facts.FakeMemory.generate()
+    assert isinstance(generated, infra_facts.Memory)
+
+
+def test_fake_package_correctly_generates_package():
+    generated = fake_facts.FakePackage.generate()
+    assert isinstance(generated, infra_facts.Package)
+
+
+def test_fake_block_device_correctly_generates_block_device():
+    generated = fake_facts.FakeBlock.generate()
+    assert isinstance(generated, infra_facts.Block)
+
+
+def test_fake_uptime_correctly_generates_uptime():
+    generated = fake_facts.FakeUptime.generate()
+    assert isinstance(generated, infra_facts.Uptime)
+
+
+def test_fake_user_correctly_generates_user():
+    generated = fake_facts.FakeUser.generate()
+    assert isinstance(generated, infra_facts.User)
+
+
+def test_fake_group_correctly_generates_group():
+    generated = fake_facts.FakeGroup.generate()
+    assert isinstance(generated, infra_facts.Group)
+
+
+def test_fake_factping_correctly_generates_factping():
+    generated = FakeFactPing.generate()
+    assert isinstance(generated, FactPing)
+    assert generated.users
+    assert generated.groups
+    assert generated.hostnamectl
+    assert generated.memory
+    assert generated.block
+    assert generated.uptime
+    assert generated.packages
