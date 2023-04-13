@@ -146,6 +146,9 @@ class Uptime(timedelta):
         for part in line.split(", "):
             value, _, name = part.strip().partition(" ")
             args[name] = int(value)
+        for k in args:
+            if not k.endswith("s"):
+                args[k + "s"] = args.pop(k)
         return cls(**args)
 
 

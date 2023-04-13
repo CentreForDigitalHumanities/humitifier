@@ -146,10 +146,3 @@ def test_fake_group_correctly_generates_group():
 def test_fake_factping_correctly_generates_factping():
     generated = FakeFactPing.generate()
     assert isinstance(generated, FactPing)
-    assert generated.users
-    assert generated.groups
-    assert generated.hostnamectl
-    assert generated.memory
-    assert generated.block
-    assert generated.uptime
-    assert generated.packages

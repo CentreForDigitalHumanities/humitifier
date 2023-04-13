@@ -8,7 +8,7 @@ class FakeFactPing:
     groups = lambda: [FakeGroup.generate() for _ in range(FakeUtil.faker.pyint(min_value=2, max_value=10))]
     hostnamectl = lambda: FakeHostnameCtl.generate()
     memory = lambda: FakeMemory.generate()
-    block = lambda: [FakeBlock.generate() for _ in range(FakeUtil.faker.pyint(min_value=2, max_value=10))]
+    blocks = lambda: [FakeBlock.generate() for _ in range(FakeUtil.faker.pyint(min_value=2, max_value=10))]
     uptime = lambda: FakeUptime.generate()
     packages = lambda: [FakePackage.generate() for _ in range(FakeUtil.faker.pyint(min_value=10, max_value=20))]
 
