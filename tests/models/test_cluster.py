@@ -43,8 +43,10 @@ def test_cluster_filter_by_owner():
 
 
 def test_cluster_filter_by_purpose():
-    s1 = FakeServer.generate()
-    s2 = FakeServer.generate()
+    cs1 = FakeServiceContract.generate(purpose="foo")
+    cs2 = FakeServiceContract.generate(purpose="bar")
+    s1 = FakeServer.generate(service_contract=cs1)
+    s2 = FakeServer.generate(service_contract=cs2)
     cluster = Cluster(name="test", servers=[s1, s2])
     filtered = cluster.apply_filters(purpose=s1.service_contract.purpose)
     assert len(filtered) == 1
