@@ -6,14 +6,14 @@
 <table>
     <tbody>
         {{ table_pair.render("Hostname", server.hostname) }}
-        {{ table_pair.render("IP", server.ip_address) }}
+        {# {{ table_pair.render("IP", server.ip_address) }} #}
         {% if server.is_virtual %}
         {{ table_pair.render("OS", server.os)}}
         {% else %}
         {{ table_pair.render("OS", server.os|string + "(Baremetal)")}}
         {% endif %}
         {{ table_pair.render("Uptime", server.uptime_days|string + " days")}}
-        {{ table_pair.render("Cores", server.cpu_total) }}
+        {# {{ table_pair.render("Cores", server.cpu_total) }} #}
         {{ table_pair_progress.render("Memory", server.memory_usage|round(2)|string + "gb/" +
         server.memory_total|round(2)|string + "gb",
         ((server.memory_usage / server.memory_total) * 100)|round(0))}}

@@ -1,24 +1,13 @@
-from .utils import gen_fake, FakeUtil
-from .package import PackagePool
+from .utils import gen_fake
 from .servicecontract import FakeServiceContract
+from .factping import FakeFactPing
 from humitifier.models.server import Server
 from itertools import cycle
 from typing import Iterable
 
 
 class FakeServer:
-    hostname = FakeUtil.hostname
-    slug = FakeUtil.slug
-    ip_address = FakeUtil.ipv4
-    cpu_total = FakeUtil.cpu_cores
-    memory_total = FakeUtil.memory_total
-    memory_usage = FakeUtil.memory_usage
-    local_storage_total = FakeUtil.local_storage_total
-    is_virtual = lambda: FakeUtil.faker.pybool()
-    os = FakeUtil.os
-    uptime = lambda: FakeUtil.faker.time_delta()
-    reboot_required = lambda: FakeUtil.faker.pybool()
-    packages = lambda: [next(PackagePool) for _ in range(FakeUtil.faker.pyint(min_value=10, max_value=20))]
+    facts = lambda: FakeFactPing.generate()
     service_contract = lambda: FakeServiceContract.generate()
 
     @classmethod

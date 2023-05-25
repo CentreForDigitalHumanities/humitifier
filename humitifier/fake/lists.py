@@ -120,3 +120,7 @@ packages = [
 operating_systems = ["WizOS", "EnchantedOS", "SpellboundOS", "MagiX", "WizardryOS"]
 applications = ["Web server", "Database server", "Email server", "FTP server", "DNS server"]
 user_groups = ["students", "professors", "staff", "administrators", "guests"]
+kernels = ["spells", "potions", "wandlore", "divination", "creatures"]
+mountpoints = ["/mnt/disk1", "/mnt/disk2", "/mnt/disk3", "/mnt/disk4", "/mnt/disk5"]
+block_devices = ["/dev/sda", "/dev/sdb", "/dev/sdc", "/dev/sdd", "/dev/sde"]
+shells = ["/bin/bash", "/bin/zsh", "/bin/ksh", "/bin/csh", "/bin/tcsh"]

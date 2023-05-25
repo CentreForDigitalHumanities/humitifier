@@ -1,0 +1,19 @@
+# This CITATION.cff file was generated with cffinit.
+# Visit https://bit.ly/cffinit to generate yours today!
+
+cff-version: 1.2.0
+title: humitifier
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Donatas
+    family-names: Rasiukevicius
+    email: d.rasiukevicius@uu.nl
+    affiliation: Utrecht University
+    orcid: 'https://orcid.org/0009-0006-3103-0108'
+abstract: Monitoring server infrastructure and health
+keywords:
+  - infrastructure
+  - health checks
