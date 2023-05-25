@@ -6,7 +6,7 @@
 {% extends "pages/base.jinja" %}
 {% block content %}
 <section id="simple-grid-page">
-    {{ header.render("Monitoring Servers", "Mess up less") }}
+    {{ header.render("Monitor Servers", "Mess up less") }}
     {{ fltr.render(filters) }}
     {{ modal.render_empty_modal() }}
     {{ grid.render_grid(servers) }}

@@ -2,16 +2,26 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from pydantic import BaseSettings
+from typing import Literal
 from humitifier.models.cluster import Cluster
 
 from humitifier.fake.gen.server import ServerPool
 
 
+class Settings(BaseSettings):
+    environment: Literal["dev", "prod"] = "dev"
+
+
+settings = Settings()
 app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="web")
 
-servers = [next(ServerPool) for _ in range(100)]
+if settings.environment == "dev":
+    servers = [next(ServerPool) for _ in range(100)]
+else:
+    raise NotImplementedError("prod environment not implemented yet")
 
 cluster = Cluster(name="main", servers=servers)
 
