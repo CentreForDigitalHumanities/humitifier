@@ -6,3 +6,4 @@ __pycache__/
 static/out*
 .pytest_cache/
 data/
+.hypothesis/

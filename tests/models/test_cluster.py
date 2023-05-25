@@ -1,4 +1,5 @@
 import pytest
+from humitifier.fake.gen.factping import FakeFactPing
 from humitifier.fake.gen.server import FakeServer
 from humitifier.fake.gen.package import FakePackage
 from humitifier.fake.gen.servicecontract import FakeServiceContract
@@ -7,8 +8,10 @@ from humitifier.models.cluster import Cluster
 
 
 def test_cluster_filter_by_hostname():
-    s1 = FakeServer.generate(hostname="foo")
-    s2 = FakeServer.generate(hostname="bar")
+    s1 = FakeServer.generate()
+    s1.facts.hostnamectl.hostname = "foo"
+    s2 = FakeServer.generate()
+    s2.facts.hostnamectl.hostname = "bar"
     cluster = Cluster(name="test", servers=[s1, s2])
     filtered = cluster.apply_filters(hostname="foo")
     assert len(filtered) == 1
@@ -16,8 +19,10 @@ def test_cluster_filter_by_hostname():
 
 
 def test_cluster_filter_by_os():
-    s1 = FakeServer.generate(os="foo")
-    s2 = FakeServer.generate(os="bar")
+    s1 = FakeServer.generate()
+    s1.facts.hostnamectl.os = "foo"
+    s2 = FakeServer.generate()
+    s2.facts.hostnamectl.os = "bar"
     cluster = Cluster(name="test", servers=[s1, s2])
     filtered = cluster.apply_filters(os="foo")
     assert len(filtered) == 1
@@ -26,7 +31,9 @@ def test_cluster_filter_by_os():
 
 def test_cluster_filter_by_department():
     s1 = FakeServer.generate()
+    s1.service_contract.entity = "foo"
     s2 = FakeServer.generate()
+    s2.service_contract.entity = "bar"
     cluster = Cluster(name="test", servers=[s1, s2])
     filtered = cluster.apply_filters(entity=s1.service_contract.entity)
     assert len(filtered) == 1
@@ -54,8 +61,10 @@ def test_cluster_filter_by_purpose():
 
 
 def test_cluster_filter_by_package():
-    s1 = FakeServer.generate(packages=[FakePackage.generate(name="fooyou")])
-    s2 = FakeServer.generate(packages=[FakePackage.generate(name="footwo")])
+    s1 = FakeServer.generate()
+    s1.facts.packages = [FakePackage.generate(name="fooyou")]
+    s2 = FakeServer.generate()
+    s2.facts.packages = [FakePackage.generate(name="footwo")]
     cluster = Cluster(name="test", servers=[s1, s2])
     filtered = cluster.apply_filters(package="fooyou")
     assert len(filtered) == 1
@@ -92,15 +101,18 @@ def test_every_filter_opt_has_a_filter():
         assert hasattr(Cluster, f"_filter_by_{opt}")
 
 
-def test_get_setver_by_hostname():
-    s1 = FakeServer.generate(hostname="foo")
-    s2 = FakeServer.generate(hostname="bar")
+def test_get_server_by_hostname():
+    s1 = FakeServer.generate()
+    s1.facts.hostnamectl.hostname = "foo"
+    s2 = FakeServer.generate()
+    s2.facts.hostnamectl.hostname = "bar"
     cluster = Cluster(name="test", servers=[s1, s2])
     assert cluster.get_server_by_hostname("foo") == s1
     assert cluster.get_server_by_hostname("bar") == s2
     with pytest.raises(IndexError):
         cluster.get_server_by_hostname("baz")
     s3 = FakeServer.generate(hostname="foo")
+    s3.facts.hostnamectl.hostname = "foo"
     cluster = Cluster(name="test", servers=[s1, s3])
     with pytest.raises(ValueError):
         cluster.get_server_by_hostname("foo")

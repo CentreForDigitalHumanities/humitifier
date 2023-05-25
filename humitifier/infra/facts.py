@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Type
 from datetime import timedelta
 
 
