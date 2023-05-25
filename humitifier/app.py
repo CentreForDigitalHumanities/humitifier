@@ -2,7 +2,6 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
-from humitifier.models.server import Server
 from humitifier.models.cluster import Cluster
 
 from humitifier.fake.gen.server import ServerPool
@@ -12,8 +11,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="web")
 
-servers = Server.load(".scribble/data/packagescan.json", ".scribble/data/contracts")
-# servers = [next(ServerPool) for _ in range(100)]
+servers = [next(ServerPool) for _ in range(100)]
 
 cluster = Cluster(name="main", servers=servers)
 

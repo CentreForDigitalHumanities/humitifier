@@ -1,8 +1,6 @@
 from humitifier.models.server import Server
 from humitifier.fake.gen.factping import FakeFactPing
-from humitifier.fake.gen.server import FakeServer
 from humitifier.fake.gen.servicecontract import FakeServiceContract
-from humitifier.fake.gen.package import PackagePool
 
 
 def test_server_properties():

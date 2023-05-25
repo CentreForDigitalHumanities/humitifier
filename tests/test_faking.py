@@ -1,7 +1,6 @@
 from pydantic import BaseModel
 from humitifier.fake.gen.utils import gen_fake
 from humitifier.fake.gen.person import FakePerson
-from humitifier.fake.gen.package import FakePackage
 from humitifier.fake.gen.servicecontract import FakeServiceContract
 from humitifier.fake.gen.server import FakeServer, Server
 from humitifier.fake.gen.cluster import FakeCluster, Cluster
@@ -75,18 +74,6 @@ def test_person_pool_correctly_cycles():
     people = [next(pool) for _ in range(101)]
     assert people[0] == people[100]
     assert people[1] != people[100]
-
-
-def test_fake_package_correctly_generates_package():
-    generated = FakePackage.generate()
-    assert generated.name
-    assert generated.version
-
-
-def test_fake_package_correctly_generates_package_with_kwargs():
-    generated = FakePackage.generate(name="foo")
-    assert generated.name == "foo"
-    assert generated.version
 
 
 def test_fake_service_contract_correctly_generates_service_contract():

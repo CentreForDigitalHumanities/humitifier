@@ -1,7 +1,6 @@
 import pytest
-from humitifier.fake.gen.factping import FakeFactPing
 from humitifier.fake.gen.server import FakeServer
-from humitifier.fake.gen.package import FakePackage
+from humitifier.fake.gen.facts import FakePackage
 from humitifier.fake.gen.servicecontract import FakeServiceContract
 from humitifier.fake.gen.person import FakePerson
 from humitifier.models.cluster import Cluster
