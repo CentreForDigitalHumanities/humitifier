@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -6,49 +6,39 @@ from pydantic import BaseSettings
 from typing import Literal
 from humitifier.models.cluster import Cluster
 
-from humitifier.fake.gen.server import ServerPool
-
 
 class Settings(BaseSettings):
     environment: Literal["dev", "prod"] = "dev"
 
 
 settings = Settings()
-app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
+router = APIRouter()
 templates = Jinja2Templates(directory="web")
 
-if settings.environment == "dev":
-    servers = [next(ServerPool) for _ in range(100)]
-else:
-    raise NotImplementedError("prod environment not implemented yet")
 
-cluster = Cluster(name="main", servers=servers)
-
-
-@app.get("/", response_class=HTMLResponse)
+@router.get("/", response_class=HTMLResponse)
 async def index(request: Request) -> HTMLResponse:
-    server_list = cluster.servers
-    filters = cluster.opts(server_list)
+    server_list = request.app.state.cluster.servers
+    filters = request.app.state.cluster.opts(server_list)
     return templates.TemplateResponse(
         "pages/simple-grid.jinja",
         {"request": request, "servers": server_list, "filters": filters},
     )
 
 
-@app.get("/hx-server-details/{server_name}")
+@router.get("/hx-server-details/{server_name}")
 async def reload_server_details(request: Request, server_name: str):
-    server = cluster.get_server_by_hostname(server_name)
+    server = request.app.state.cluster.get_server_by_hostname(server_name)
     return templates.TemplateResponse("hx/simple-grid-details.jinja", {"request": request, "server": server})
 
 
-@app.get("/hx-server-issues/{server_name}")
+@router.get("/hx-server-issues/{server_name}")
 async def get_server_issues(request: Request, server_name: str):
-    server = cluster.get_server_by_hostname(server_name)
+    server = request.app.state.cluster.get_server_by_hostname(server_name)
     return templates.TemplateResponse("hx/simple-grid-issues.jinja", {"request": request, "issues": server.issues})
 
 
-@app.get("/hx-filter-interactive-server-grid")
+@router.get("/hx-filter-interactive-server-grid")
 async def filter_server_grid(
     request: Request,
     hostname: str | None = None,
@@ -70,10 +60,18 @@ async def filter_server_grid(
         "entity": entity,
         "issue": issue,
     }
-    filtered = cluster.apply_filters(**filter_args)
+    filtered = request.app.state.cluster.apply_filters(**filter_args)
     return templates.TemplateResponse("hx/simple-grid-filtered.jinja", {"request": request, "servers": filtered})
 
 
-@app.get("/hx-clear/{target}")
+@router.get("/hx-clear/{target}")
 async def clear_target(request: Request, target: str):
     return templates.TemplateResponse("hx/clear.jinja", {"request": request, "target": target})
+
+
+def create_app(cluster: Cluster) -> FastAPI:
+    app = FastAPI()
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.state.cluster = cluster
+    app.include_router(router)
+    return app
