@@ -26,6 +26,12 @@ A humitifier user has the following properties:
 * doesn't care about historic data, just wants to know if something is up right now
 * wants to track not just server data, but also if it is time to retire a server and who to contact in that case
 
+#### Dynamic filtering with `HTMX`
+![filtering demo](demo/filtering.gif)
+
+#### Single Server Details and filtering on package
+![single server details](demo/single-server-details.gif)
+
 ### Fundamental technology choices
 At present, there are 5 core technologies that server as the backbone for the application.
 Below is a motivation of why they were chosen:
