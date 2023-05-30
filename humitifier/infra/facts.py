@@ -59,6 +59,9 @@ class Package:
         items = (line.strip().partition("\t") for line in output)
         return [cls(name=n, version=v) for n, _, v in items]
 
+    def __str__(self) -> str:
+        return f"{self.name}=={self.version}"
+
 
 @dataclass
 class Memory:
