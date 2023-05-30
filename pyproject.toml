@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "humitifier"
 version = "0.1.0"
-description = "Tools andi nterfaces for displaying HUM-IT resources"
+description = "Tools and interfaces for displaying server resources"
 authors = ["Donatas Rasiukevicius <d.rasiukevicius@uu.nl>"]
 readme = "readme.md"
 
