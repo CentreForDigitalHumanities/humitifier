@@ -17,7 +17,7 @@ templates = Jinja2Templates(directory="web")
 
 
 @router.get("/", response_class=HTMLResponse)
-async def index(request: Request) -> HTMLResponse:
+async def index(request: Request):
     server_list = request.app.state.cluster.servers
     filters = request.app.state.cluster.opts(server_list)
     return templates.TemplateResponse(
@@ -49,7 +49,7 @@ async def filter_server_grid(
     os: str | None = None,
     entity: str | None = None,
     issue: str | None = None,
-) -> HTMLResponse:
+):
     filter_args = {
         "hostname": hostname,
         "package": package,
