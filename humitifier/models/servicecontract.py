@@ -9,6 +9,7 @@ class ServiceContract(BaseModel):
     A service contract associated to a server
     """
 
+    fqdn: str  # The fully qualified domain name of the server and ID. Example: "webapp-01.hogwarts.co.uk"
     entity: str  # The entity that the contract is with. Example: "Hogwarts School of Witchcraft and Wizardry"
     owner: Person  # The owner of the contract. Example: Person(name="Bartolomew Bagshot", email="b.bagshot@hogwarts.co.uk")
     start_date: date  # The date on which the contract was created. Example: date(2022, 12, 31)

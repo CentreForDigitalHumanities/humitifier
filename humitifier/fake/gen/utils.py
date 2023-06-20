@@ -182,3 +182,7 @@ class FakeUtil:
     @staticmethod
     def userinfo(name: str):
         return f"{name} {FakeUtil.email(name + ' ' + FakeUtil.lastname())}"
+    
+    @staticmethod
+    def fqdn():
+        return f"{Fake.domain_name()}"

@@ -5,6 +5,7 @@ from humitifier.models.servicecontract import ServiceContract
 
 
 class FakeServiceContract:
+    fqdn = FakeUtil.fqdn
     entity = FakeUtil.department
     owner = lambda: next(PersonPool)
     start_date = FakeUtil.start_date

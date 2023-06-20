@@ -3,6 +3,7 @@ from humitifier.models.servicecontract import ServiceContract
 
 example_toml = """
 [contract]
+fqdn = "db-01.hogwarts.co.uk"
 entity = "Department of Magical Creatures"
 start_date = "2022-02-01"
 end_date = "2023-02-28"
