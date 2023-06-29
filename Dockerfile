@@ -9,7 +9,7 @@ COPY web/ ./web
 COPY static/ ./static
 COPY humitifier/ ./humitifier
 COPY readme.md .
-COPY data/ /data
-RUN poetry install -n --only main
+COPY dev.py .
+RUN poetry install -n --all-extras
 
-CMD ["poetry", "run", "uvicorn", "humitifier.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["poetry", "run", "python", "dev.py"]

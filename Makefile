@@ -1,8 +1,8 @@
-docker-build:
-	docker build -t humitifier-app .
+docker-build-dev:
+	docker build -t humitifier-dev:latest .
 
-docker-run:
-	docker run -p 8080:8080 humitifier-app
+docker-run-dev:
+	docker run -p 8000:8000 humitifier-dev
 
 dev-server:
 	python dev.py

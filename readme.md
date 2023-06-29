@@ -82,5 +82,16 @@ poetry install
 * To run a local development server, you can run `make dev-server`
 * The dev server uses fake data and requires no additional configuration. 
 
+### Docker demo
+To run a demo version with docker:
+
+```bash
+make docker-build-dev
+make docker-run-dev
+```
+
+The app is then available on `localhost:8000` with generated data. 
+It does not interface with any external servers at this point. 
+
 ## Production setup
 *In progress of figuring out...*
