@@ -7,3 +7,4 @@ static/out*
 .pytest_cache/
 data/
 .hypothesis/
+docker-compose.yaml
