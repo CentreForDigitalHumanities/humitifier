@@ -20,7 +20,7 @@ jobs:
       - name: Compile CSS from SCSS files
         uses: gha-utilities/sass-build@v0.5.1
         with:
-          source: web/style.scs
+          source: web/style.scss
           destination: static/out.css
 
       - name: Login to GitHub Container Registry
