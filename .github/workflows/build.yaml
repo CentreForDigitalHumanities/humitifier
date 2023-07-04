@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Images
 
 on:
   push:
@@ -7,7 +7,8 @@ on:
 
 env:
   IMAGE_NAME: humitifier
-  DOCKERFILE_PATH: ./Dockerfile.demo
+  DOCKERFILE_DEMO_PATH: ./Dockerfile.demo
+  DOCKERFILE_PATH: ./Dockerfile
 
 jobs:
   build-and-push:
@@ -19,7 +20,7 @@ jobs:
       - name: Compile CSS from SCSS files
         uses: gha-utilities/sass-build@v0.5.1
         with:
-          source: web/style.scss
+          source: web/style.scs
           destination: static/out.css
 
       - name: Login to GitHub Container Registry
@@ -29,10 +30,18 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
+      - name: Build and push demo image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          file: ${{ env.DOCKERFILE_DEMO_PATH }}
+          push: true
+          tags: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.IMAGE_NAME }}:demo
+      
+      - name: Build and push main image
         uses: docker/build-push-action@v4
         with:
           context: .
           file: ${{ env.DOCKERFILE_PATH }}
           push: true
-          tags: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.IMAGE_NAME }}:demo
+          tags: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.IMAGE_NAME }}:latest
