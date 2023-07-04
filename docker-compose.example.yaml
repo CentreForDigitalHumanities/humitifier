@@ -1,0 +1,11 @@
+version: '3'
+services:
+  web:
+    image: humitifier:dev
+    ports:
+      - "8000:8000"
+    environment:
+      - SSH_AUTH_SOCK=/ssh-agent
+    volumes:
+      - ./data:/data
+      - $SSH_AUTH_SOCK:/ssh-agent
