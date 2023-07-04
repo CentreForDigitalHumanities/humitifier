@@ -2,8 +2,9 @@ name: Build and Push Docker Images
 
 on:
   push:
-    branches:
-      - main
+    tags:
+      - '*'
+  workflow_dispatch:
 
 env:
   IMAGE_NAME: humitifier
