@@ -27,12 +27,15 @@ A humitifier user has the following properties:
 * wants to track not just server data, but also if it is time to retire a server and who to contact in that case
 
 #### Dynamic filtering with `HTMX`
+
 ![filtering demo](demo/filtering.gif)
 
 #### Single Server Details and filtering on package
+
 ![single server details](demo/single-server-details.gif)
 
 ### Fundamental technology choices
+
 At present, there are 5 core technologies that server as the backbone for the application.
 Below is a motivation of why they were chosen:
 
@@ -58,7 +61,7 @@ Below is a motivation of why they were chosen:
   * can you configure server clusters through toml files?
   * how should you organize your service contracts?
 * [ ] how to run a production version?
-  * docker or no? 
+  * docker or no?
   * as a constant server or as a mini-service that constantly restarts?
 * [ ] What things should be instantly visible?
   * When is something a "critical" issue?
@@ -71,6 +74,7 @@ Below is a motivation of why they were chosen:
 
 
 ## Development Setup
+
 To run the project locally you must install all relevant dependencies in a venv.
 
 ```bash
@@ -79,19 +83,19 @@ poetry install
 ```
 
 * To run tests you can run `pytest`.
-* To run a local development server, you can run `make dev-server`
-* The dev server uses fake data and requires no additional configuration. 
+* To run a local development server, you can run `python entrypoint/demo.py`
+* The dev server uses fake data and requires no additional configuration.
 
 ### Docker demo
 To run a demo version with docker:
 
 ```bash
-make docker-build-dev
-make docker-run-dev
+docker pull ghcr.io/centrefordigitalhumanities/humitifier/humitifier:demo
+docker run -p 8000:8000 ghcr.io/centrefordigitalhumanities/humitifier/humitifier:demo
 ```
 
-The app is then available on `localhost:8000` with generated data. 
-It does not interface with any external servers at this point. 
+The app is then available on `localhost:8000` with generated data.
+It does not interface with any external servers at this point.
 
 ## Production setup
 *In progress of figuring out...*
