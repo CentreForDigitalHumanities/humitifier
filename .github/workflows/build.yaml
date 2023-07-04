@@ -35,4 +35,4 @@ jobs:
           context: .
           file: ${{ env.DOCKERFILE_PATH }}
           push: true
-          tags: ${{ env.IMAGE_NAME }}:demo
+          tags: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.IMAGE_NAME }}:demo
