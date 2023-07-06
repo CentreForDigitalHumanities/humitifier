@@ -1,4 +1,8 @@
-def flatten_list(nested_list: list[list]) -> list:
+from typing import TypeVar
+
+T = TypeVar("T")
+
+def flatten_list(nested_list: list[list[T]]) -> list[T]:
     return [item for sublist in nested_list for item in sublist]
 
 

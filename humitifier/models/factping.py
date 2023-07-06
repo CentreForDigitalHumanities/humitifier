@@ -46,3 +46,33 @@ class FactPing(BaseModel):
                                 kwargs["blocks"] = kwargs["blocks"] or []
                                 kwargs["blocks"].append(f)
         return cls(**kwargs)
+
+    @property
+    def uptime_days(self) -> int | None:
+        return self.uptime.days if self.uptime else None
+    
+    @property
+    def hostname(self) -> str | None:
+        return self.hostnamectl.hostname if self.hostnamectl else None
+    
+    @property
+    def memory_total(self) -> int | None:
+        return self.memory.total_mb if self.memory else None
+    
+    @property
+    def memory_usage(self) -> int | None:
+        return self.memory.used_mb if self.memory else None
+    
+    @property
+    def local_storage_total(self) -> float | None:
+        return self.blocks[0].size_mb if self.blocks else None
+    
+    @property
+    def is_virtual(self) -> bool | None:
+        return self.hostnamectl.virtualization == "vmware" if self.hostnamectl else None
+    
+    @property
+    def os(self) -> str | None:
+        return self.hostnamectl.os if self.hostnamectl else None
+    
+

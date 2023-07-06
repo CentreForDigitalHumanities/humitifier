@@ -82,7 +82,3 @@ def test_user_parses_cmd_output():
     assert isinstance(fact, list)
     assert isinstance(fact[0], User)
 
-
-def test_all_defined_facts_have_from_stdout_function():
-    for fact in Fact.__args__:
-        assert hasattr(fact, "from_stdout")

@@ -1,6 +1,16 @@
 from dataclasses import dataclass
 from datetime import timedelta
 
+from typing import Protocol
+
+class Fact(Protocol):
+    
+    @classmethod
+    def from_stdout(cls, output: list[str]) -> "Fact": ...
+
+    @staticmethod
+    def cmd(host) -> str: ...
+
 
 @dataclass
 class HostnameCtl:
@@ -40,6 +50,10 @@ class HostnameCtl:
                 case "Virtualization", _, value:
                     create_args["virtualization"] = value.strip()
         return cls(**create_args)
+    
+    @staticmethod
+    def cmd(_) -> str:
+        return "hostnamectl"
 
 
 @dataclass
@@ -61,6 +75,14 @@ class Package:
 
     def __str__(self) -> str:
         return f"{self.name}=={self.version}"
+    
+    @staticmethod
+    def cmd(_) -> str:
+        return (
+            "command -v dpkg-query >/dev/null 2>&1 && "
+            "dpkg-query -W -f='${Package}\t${Version}\n' || "
+            "rpm -qa --queryformat '%{NAME}\t%{VERSION}\n'"
+        )
 
 
 @dataclass
@@ -98,6 +120,10 @@ class Memory:
             swap_used_mb=swap[1],
             swap_free_mb=swap[2],
         )
+    
+    @staticmethod
+    def cmd(_) -> str:
+        return "free -m"
 
 
 @dataclass
@@ -131,6 +157,10 @@ class Block:
             )
             for name, size, used, available, use_percent, mount in items
         ]
+    
+    @staticmethod
+    def cmd(_) -> str:
+        return "df -m"
 
 
 class Uptime(timedelta):
@@ -150,6 +180,10 @@ class Uptime(timedelta):
             args[name] = int(value)
         fixed = {k + "s" if not k.endswith("s") else k: v for k, v in args.items()}
         return cls(**fixed)
+    
+    @staticmethod
+    def cmd(_) -> str:
+        return "uptime -p"
 
 
 @dataclass
@@ -177,6 +211,10 @@ class Group:
             return cls(name=name, gid=int(gid), users=users)
 
         return [_parse_line(groupline) for groupline in output]
+    
+    @staticmethod
+    def cmd(_) -> str:
+        return "cat /etc/group"
 
 
 @dataclass
@@ -206,6 +244,9 @@ class User:
             return cls(name=name, uid=int(uid), gid=int(gid), info=info, home=home, shell=shell)
 
         return [_parse_line(userline) for userline in output]
+    
+    @staticmethod
+    def cmd(_) -> str:
+        return "cat /etc/passwd"
 
 
-Fact = HostnameCtl | Package | Memory | Block | Uptime | Group | User

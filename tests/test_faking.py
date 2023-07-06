@@ -1,9 +1,6 @@
 from pydantic import BaseModel
 from humitifier.fake.gen.utils import gen_fake
 from humitifier.fake.gen.person import FakePerson
-from humitifier.fake.gen.servicecontract import FakeServiceContract
-from humitifier.fake.gen.server import FakeServer, Server
-from humitifier.fake.gen.cluster import FakeCluster, Cluster
 from humitifier.fake.gen import facts as fake_facts
 from humitifier.infra import facts as infra_facts
 from humitifier.fake.gen.factping import FakeFactPing, FactPing
@@ -75,24 +72,6 @@ def test_person_pool_correctly_cycles():
     assert people[0] == people[100]
     assert people[1] != people[100]
 
-
-def test_fake_service_contract_correctly_generates_service_contract():
-    generated = FakeServiceContract.generate()
-    assert generated.entity
-    assert generated.owner
-    assert generated.start_date
-    assert generated.end_date
-    assert generated.purpose
-
-
-def test_fake_server_correctly_generates_server():
-    generated = FakeServer.generate()
-    assert isinstance(generated, Server)
-
-
-def test_fake_cluster_correctly_generates_cluster():
-    generated = FakeCluster.generate()
-    assert isinstance(generated, Cluster)
 
 
 def test_fake_hostname_ctl_correctly_generates_hostname_ctl():
