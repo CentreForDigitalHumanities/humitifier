@@ -1,7 +1,7 @@
-## Humitifier
+# Humitifier
 
 A CMDB + interface for tracking the inventory servers.
-Based on the infrastructure of Humanities IT within the UU, but probably applicable to other infrastructures too. 
+Based on the infrastructure of Humanities IT within the UU, but probably applicable to other infrastructures too.
 
 Broadly speaking there are 3 parts to humitifier:
 
@@ -17,7 +17,7 @@ Broadly speaking there are 3 parts to humitifier:
 The intended way to use this is to keep a private repository of `.toml` files of servers that you wish to monitor.
 These will be refered to as `service contracts` and not only are they the entry point for connecting to a server over ssh, they also function as a way to store additional metadata, such as the lifetime of a server and the contect details of the people who make use of it.
 
-### Is it for me?
+## Is it for me?
 
 A humitifier user has the following properties:
 
@@ -26,31 +26,31 @@ A humitifier user has the following properties:
 * doesn't care about historic data, just wants to know if something is up right now
 * wants to track not just server data, but also if it is time to retire a server and who to contact in that case
 
-#### Dynamic filtering with `HTMX`
+### Dynamic filtering with `HTMX`
 
 ![filtering demo](demo/filtering.gif)
 
-#### Single Server Details and filtering on package
+### Single Server Details and filtering on package
 
 ![single server details](demo/single-server-details.gif)
 
-### Fundamental technology choices
+## Fundamental technology choices
 
 At present, there are 5 core technologies that server as the backbone for the application.
 Below is a motivation of why they were chosen:
 
-* **fastapi** is used as a webserver. It is light-weight, modern, well-maintained, and well-documented. Additionally it comes with support for strong type declarations through `pydantic` which ensures fewer mistakes in development. It makes use of `flask`-like url decoration making it relatively easy to understand. Finally, it is designed with async compatibility, which is not really very relevant, but very cutting-edge and therefore cool. 
+* **fastapi** is used as a webserver. It is light-weight, modern, well-maintained, and well-documented. Additionally it comes with support for strong type declarations through `pydantic` which ensures fewer mistakes in development. It makes use of `flask`-like url decoration making it relatively easy to understand. Finally, it is designed with async compatibility, which is not really very relevant, but very cutting-edge and therefore cool.
   * A consideration was to use django because it is the framework that is used most in our department, but then a decision was made to not get stuck in old ways
 * **jinja2** is used for templating. It is the most-used python library for serving dynamic html content. It is likely the format that most people are familiar with in python web development as it is the templating engine for django.
   * To facilitate further development the most prevalent engine was chosen
-* **htmx** is used for hot-reloading frontend content. `htmx` allows for having a greatly simplified dynamic fronted experience as alll state is managed on the backend. As bonus, you do not have to download the internet through npm to have it work. 
+* **htmx** is used for hot-reloading frontend content. `htmx` allows for having a greatly simplified dynamic fronted experience as alll state is managed on the backend. As bonus, you do not have to download the internet through npm to have it work.
   * most traditional frontend frameworks require a lot of javascript overhead, due to the scope of the project the choice is made to not include this layer of complexity
 * **parallel-ssh** is used to run remote ssh commands
   * `asyncssh` was a nice contender, however it had an incompatible license
   * `pyinfra` did not really offer much more than pre-implemented ssh commands and was using a considerably slower library for running the ssh commands
 * **toml** is used for maintaining infrastructure in code. It is (subjectively) easier to read than `yaml`
 
-### Open design questions
+## Open design questions
 
 * [ ] to database or not to database:
   * The collection of facts is pretty quick; you could just run a cron job to restart the app an re-colelct facts every 15 minutes
@@ -66,12 +66,11 @@ Below is a motivation of why they were chosen:
 * [ ] What things should be instantly visible?
   * When is something a "critical" issue?
 
-### Future plans
+## Future plans
 
-- [ ] Health checks on web-applications
-- [ ] Security advisories on server packages
-- [ ] Security advisories on application packages
-
+* [ ] Health checks on web-applications
+* [ ] Security advisories on server packages
+* [ ] Security advisories on application packages
 
 ## Development Setup
 
@@ -86,7 +85,8 @@ poetry install
 * To run a local development server, you can run `python entrypoint/demo.py`
 * The dev server uses fake data and requires no additional configuration.
 
-### Docker demo
+## Docker demo
+
 To run a demo version with docker:
 
 ```bash
@@ -98,4 +98,5 @@ The app is then available on `localhost:8000` with generated data.
 It does not interface with any external servers at this point.
 
 ## Production setup
+
 *In progress of figuring out...*
