@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from humitifier.models.host import Host
-from humitifier.filters import Filter as FilterProtocol
-from humitifier.meta_properties import MetaProp as MetaPropProtocol
+from humitifier.filters import Filter
+from humitifier.properties import MetadataProperty, FactProperty
 from humitifier.rules import Rule as RuleProtocol
 
 
@@ -12,7 +12,9 @@ class AppConfig:
     environment: str
     hosts: list[Host]
     rules: list[RuleProtocol]
-    filters: list[FilterProtocol]
-    meta_properties: list[MetaPropProtocol]
+    filters: list[Filter]
+    metadata_properties: list[MetadataProperty]
+    fact_properties: FactProperty
+    grid_properties: list[MetadataProperty | FactProperty]
     pssh_conf: dict[str, str]
     poll_interval: str
