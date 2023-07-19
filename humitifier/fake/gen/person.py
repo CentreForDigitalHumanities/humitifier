@@ -7,7 +7,7 @@ from typing import Iterable
 class FakePerson:
     name = FakeUtil.fullname
     email = FakeUtil.email
-    notes = FakeUtil.fullname
+    notes = FakeUtil.groupname
 
     @classmethod
     def generate(cls, **kwargs) -> Person:

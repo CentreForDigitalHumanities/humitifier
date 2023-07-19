@@ -8,7 +8,7 @@ from .person import PersonPool
 
 class FakeMeta:
     department = FakeUtil.department
-    owner = FakeUtil.fullname
+    owner = lambda: next(PersonPool)
     start_date = FakeUtil.start_date
     end_date = FakeUtil.end_date
     purpose = FakeUtil.purpose
@@ -19,7 +19,7 @@ class FakeMeta:
         start = cls.start_date()
         return {
             "department": cls.department(),
-            "owner": cls.owner(),
+            "owner": cls.owner().dict(),
             "start_date": start.isoformat(),
             "end_date": cls.end_date(start).isoformat(),
             "purpose": cls.purpose(),
