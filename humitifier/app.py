@@ -1,77 +1,69 @@
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.templating import Jinja2Templates
-from pydantic import BaseSettings
-from typing import Literal
-from humitifier.models.cluster import Cluster
+from humitifier.config import AppConfig
+from humitifier.filters import Filter
+from humitifier.infra.utils import init_client, collect_facts, parse_facts
+from humitifier.views.components.host_grid import HostGrid
+from humitifier.views.components.host_modal import HostModal
+from humitifier.views.pages.index import HostGridIndex
+from humitifier.views.utils import Wrapper
 
 
-class Settings(BaseSettings):
-    environment: Literal["dev", "prod"] = "dev"
-
-
-settings = Settings()
 router = APIRouter()
-templates = Jinja2Templates(directory="web")
 
 
 @router.get("/", response_class=HTMLResponse)
 async def index(request: Request):
-    server_list = request.app.state.cluster.servers
-    filters = request.app.state.cluster.opts(server_list)
-    return templates.TemplateResponse(
-        "pages/simple-grid.jinja",
-        {"request": request, "servers": server_list, "filters": filters},
+    host_grid = HostGridIndex.create(
+        host_states=list(request.app.state.host_states_kv.values()),
+        app_config=request.app.state.config
+    )
+    return HTMLResponse(
+            Wrapper.Base.render(html_content=host_grid.html)
+        )
+
+
+@router.get("/hx-host-modal/{fqdn}")
+async def host_details(request: Request, fqdn: str):
+    host_state = request.app.state.host_states_kv[fqdn]
+    target = "innerHTML:#hx-modal"
+    modal = HostModal.create(
+        host_state=host_state,
+        metadata_properties=request.app.state.config.metadata_properties,
+        fact_properties=request.app.state.config.fact_properties
+    )
+    return HTMLResponse(
+        Wrapper.HxOobSwap.render(html_content=modal.html, target=target)
     )
 
 
-@router.get("/hx-server-details/{server_name}")
-async def reload_server_details(request: Request, server_name: str):
-    server = request.app.state.cluster.get_server_by_hostname(server_name)
-    return templates.TemplateResponse("hx/simple-grid-details.jinja", {"request": request, "server": server})
+@router.get("/hx-filter-hosts")
+async def filter_hosts(request: Request):
+    filter_kv = {k: v for k, v in request.query_params.items() if v}
+    host_states = list(request.app.state.host_states_kv.values())
+    filtered_hosts = Filter.apply_from_kv(host_states, filter_kv)
+    hostgrid = HostGrid.create(host_states=filtered_hosts, grid_properties=request.app.state.config.grid_properties)
+    return HTMLResponse(
+        Wrapper.HxOobSwap.render(html_content=hostgrid.inner_html, target="innerHTML:.grid")
+    )
 
 
-@router.get("/hx-server-issues/{server_name}")
-async def get_server_issues(request: Request, server_name: str):
-    server = request.app.state.cluster.get_server_by_hostname(server_name)
-    return templates.TemplateResponse("hx/simple-grid-issues.jinja", {"request": request, "issues": server.issues})
+
+@router.get("/hx-clear-host-modal")
+async def clear_target(request: Request):
+    return HTMLResponse(
+        Wrapper.HxOobSwap.render(html_content="", target="innerHTML:#hx-modal")
+    )
 
 
-@router.get("/hx-filter-interactive-server-grid")
-async def filter_server_grid(
-    request: Request,
-    hostname: str | None = None,
-    package: str | None = None,
-    owner: str | None = None,
-    contact: str | None = None,
-    purpose: str | None = None,
-    os: str | None = None,
-    entity: str | None = None,
-    issue: str | None = None,
-):
-    filter_args = {
-        "hostname": hostname,
-        "package": package,
-        "owner": owner,
-        "contact": contact,
-        "purpose": purpose,
-        "os": os,
-        "entity": entity,
-        "issue": issue,
-    }
-    filtered = request.app.state.cluster.apply_filters(**filter_args)
-    return templates.TemplateResponse("hx/simple-grid-filtered.jinja", {"request": request, "servers": filtered})
-
-
-@router.get("/hx-clear/{target}")
-async def clear_target(request: Request, target: str):
-    return templates.TemplateResponse("hx/clear.jinja", {"request": request, "target": target})
-
-
-def create_app(cluster: Cluster) -> FastAPI:
-    app = FastAPI()
-    app.mount("/static", StaticFiles(directory="static"), name="static")
-    app.state.cluster = cluster
-    app.include_router(router)
-    return app
+# def create_app(config: AppConfig) -> FastAPI:
+#     app = FastAPI()
+#     app.mount("/static", StaticFiles(directory="static"), name="static")
+#     app.state.config = config
+#     app.state.pssh_client = init_client(config)
+#     outputs = collect_facts(app.state.pssh_client, config)
+#     fact_kv = parse_facts(outputs, config)
+#     app.state.hosts = [(host, fact_kv[host]) for host in config.hosts]
+#     app.include_router(router)
+#     return app
