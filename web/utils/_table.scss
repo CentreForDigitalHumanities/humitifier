@@ -1,7 +1,7 @@
 @use "colors";
 @use "../core/typography" as t;
 
-tr.table-pair {
+tr.kv-table-row {
     color: colors.$black;
     
     border-bottom: 2px solid colors.$black;

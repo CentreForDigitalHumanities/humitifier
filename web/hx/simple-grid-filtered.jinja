@@ -1,6 +1,0 @@
-{% import "components/server/interactive_grid.jinja" as grid %}
-<article hx-swap-oob="innerHTML:.server-grid">
-    {% for s in servers %}
-    {{ grid.render_item(s) }}
-    {% endfor %}
-</article>

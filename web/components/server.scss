@@ -6,7 +6,7 @@
 @use "../core/typography";
 @use "../core/inputs";
 
-.server-details-modal {
+.host-modal {
     @include modal.modal-box;
     
     display: grid;
@@ -73,13 +73,13 @@
     }
     
 }
-.server-grid {
+.grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     grid-gap: 1rem;
 }
 
-.server-grid-item {
+.grid-item {
     @include box.itembox;
     @include lists.block-list;
 
@@ -98,7 +98,7 @@
     }
 }
 
-.server-filters {
+.filterset {
     display: grid;
     grid-template-columns: repeat(5, 1fr);
     padding-bottom: 3em;
