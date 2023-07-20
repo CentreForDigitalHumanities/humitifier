@@ -12,7 +12,7 @@ from humitifier.models.host_state import HostState
 from humitifier.models.person import Person
 from humitifier.views.utils import Atom
 
-
+class PropertyReadError(Exception): ...
 
 class MetadataProperty(Enum):
     Department = auto()
@@ -24,22 +24,25 @@ class MetadataProperty(Enum):
     People = auto()
 
     def extract(self, host_state: HostState):
-        match self:
-            case MetadataProperty.Department:
-                return host_state.host.metadata["department"]
-            case MetadataProperty.Owner:
-                return Person(**host_state.host.metadata["owner"])
-            case MetadataProperty.StartDate:
-                return date.fromisoformat(host_state.host.metadata["start_date"])
-            case MetadataProperty.EndDate:
-                return date.fromisoformat(host_state.host.metadata["end_date"])
-            case MetadataProperty.RetireIn:
-                end_date = date.fromisoformat(host_state.host.metadata["end_date"])
-                return (end_date - date.today()).days
-            case MetadataProperty.Purpose:
-                return host_state.host.metadata["purpose"]
-            case MetadataProperty.People:
-                return [Person(**p) for p in host_state.host.metadata["people"]]
+        try:
+            match self:
+                case MetadataProperty.Department:
+                    return host_state.host.metadata["department"]
+                case MetadataProperty.Owner:
+                    return Person(**host_state.host.metadata["owner"])
+                case MetadataProperty.StartDate:
+                    return date.fromisoformat(host_state.host.metadata["start_date"])
+                case MetadataProperty.EndDate:
+                    return date.fromisoformat(host_state.host.metadata["end_date"])
+                case MetadataProperty.RetireIn:
+                    end_date = date.fromisoformat(host_state.host.metadata["end_date"])
+                    return (end_date - date.today()).days
+                case MetadataProperty.Purpose:
+                    return host_state.host.metadata["purpose"]
+                case MetadataProperty.People:
+                    return [Person(**p) for p in host_state.host.metadata["people"]]
+        except KeyError as e:
+            raise PropertyReadError(f"The {self.name} property could not be accessed from the metadata. Make sure the metadata has the corresponding key") from e
             
     @property
     def kv_atom(self) -> Atom:
@@ -75,25 +78,28 @@ class FactProperty(Enum):
     UptimeDays = auto()
 
     def extract(self, host_state: HostState):
-        match self:
-            case FactProperty.Hostname:
-                return host_state.facts.hostnamectl.hostname
-            case FactProperty.Os:
-                return host_state.facts.hostnamectl.os
-            case FactProperty.Packages:
-                return host_state.facts.packages
-            case FactProperty.MemoryTotal:
-                return host_state.facts.memory.total_mb
-            case FactProperty.MemoryUsage:
-                return host_state.facts.memory.used_mb
-            case FactProperty.LocalStorageTotal:
-                return host_state.facts.blocks[0].size_mb
-            case FactProperty.LocalStorageUsage:
-                return host_state.facts.blocks[0].used_mb
-            case FactProperty.IsVirtual:
-                return host_state.facts.hostnamectl.virtualization == "vmware"
-            case FactProperty.UptimeDays:
-                return host_state.facts.uptime.days
+        try:
+            match self:
+                case FactProperty.Hostname:
+                    return host_state.facts.hostnamectl.hostname
+                case FactProperty.Os:
+                    return host_state.facts.hostnamectl.os
+                case FactProperty.Packages:
+                    return host_state.facts.packages
+                case FactProperty.MemoryTotal:
+                    return host_state.facts.memory.total_mb
+                case FactProperty.MemoryUsage:
+                    return host_state.facts.memory.used_mb
+                case FactProperty.LocalStorageTotal:
+                    return host_state.facts.blocks[0].size_mb
+                case FactProperty.LocalStorageUsage:
+                    return host_state.facts.blocks[0].used_mb
+                case FactProperty.IsVirtual:
+                    return host_state.facts.hostnamectl.virtualization == "vmware"
+                case FactProperty.UptimeDays:
+                    return host_state.facts.uptime.days
+        except AttributeError as e:
+            raise PropertyReadError(f"The {self.name} property could not be accessed from the facts. Make sure the fact is being queried") from e
             
     @property
     def kv_label(self) -> str:
