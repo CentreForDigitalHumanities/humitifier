@@ -7,5 +7,5 @@ services:
     environment:
       - SSH_AUTH_SOCK=/ssh-agent
     volumes:
-      - ./data:/data
+      - {YOUR USER CONFIG MODULE}:/code/user_config
       - $SSH_AUTH_SOCK:/ssh-agent

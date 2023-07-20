@@ -6,11 +6,10 @@ WORKDIR /code
 COPY pyproject.toml .
 COPY readme.md .
 
-COPY web/ ./web
 COPY static/ ./static
 COPY humitifier/ ./humitifier
 
-RUN poetry install -n --all-extras
+RUN poetry install --without dev
 
 COPY entrypoint/main.py /code/app.py
 
