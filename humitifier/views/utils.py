@@ -2,7 +2,7 @@ from enum import Enum, auto
 from jinja2 import Template
 
 from humitifier.models.person import Person
-from humitifier.infra.facts import Package
+from humitifier.facts import Package
 
 
 BASE = Template("""

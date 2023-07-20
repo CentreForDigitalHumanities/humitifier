@@ -1,5 +1,5 @@
 from .utils import gen_fake, FakeUtil
-from humitifier.infra import facts as infra_facts
+from humitifier import facts as infra_facts
 from typing import Iterable
 from itertools import cycle
 

@@ -1,4 +1,4 @@
-from humitifier.infra import facts as infra_facts
+from humitifier import facts as infra_facts
 from pydantic import BaseModel
 
 
@@ -12,7 +12,7 @@ class FactPing(BaseModel):
     packages: list[infra_facts.Package] | None
 
     @classmethod
-    def from_facts(cls, facts=list[infra_facts.Fact]) -> "FactPing":
+    def from_facts(cls, facts=list[infra_facts.FactData]) -> "FactPing":
         kwargs = {
             "users": None,
             "groups": None,
@@ -47,5 +47,9 @@ class FactPing(BaseModel):
                                 kwargs["blocks"].append(f)
         return cls(**kwargs)
 
+    @classmethod
+    def factping_kv(cls, facts=list[tuple[str, infra_facts.FactData]]) -> dict[str, "FactPing"]:
+        unique_hosts = {fact[0] for fact in facts}
+        return {host_fqdn: cls.from_facts([fact_data for fact_fqdn, fact_data in facts if fact_fqdn == host_fqdn]) for host_fqdn in unique_hosts}
     
 

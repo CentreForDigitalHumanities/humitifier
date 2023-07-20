@@ -1,9 +1,9 @@
 from fastapi import APIRouter, FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
+from pssh.clients import ParallelSSHClient
 from humitifier.config import AppConfig
 from humitifier.filters import Filter
-from humitifier.infra.utils import init_client, collect_facts, parse_facts
 from humitifier.views.components.host_grid import HostGrid
 from humitifier.views.components.host_modal import HostModal
 from humitifier.views.pages.index import HostGridIndex
@@ -49,7 +49,6 @@ async def filter_hosts(request: Request):
     )
 
 
-
 @router.get("/hx-clear-host-modal")
 async def clear_target(request: Request):
     return HTMLResponse(
@@ -57,13 +56,12 @@ async def clear_target(request: Request):
     )
 
 
-# def create_app(config: AppConfig) -> FastAPI:
-#     app = FastAPI()
-#     app.mount("/static", StaticFiles(directory="static"), name="static")
-#     app.state.config = config
-#     app.state.pssh_client = init_client(config)
-#     outputs = collect_facts(app.state.pssh_client, config)
-#     fact_kv = parse_facts(outputs, config)
-#     app.state.hosts = [(host, fact_kv[host]) for host in config.hosts]
-#     app.include_router(router)
-#     return app
+def create_base_app(config: AppConfig) -> FastAPI:
+    app = FastAPI()
+    app.mount("/static", StaticFiles(directory="static"), name="static")
+    app.state.config = config
+    app.state.pssh_client = ParallelSSHClient([h.fqdn for h in config.hosts], **config.pssh_conf)
+    app.state.host_states_kv = {}
+    app.include_router(router)
+    return app
+

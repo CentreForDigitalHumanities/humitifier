@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from humitifier.models.host import Host
+from humitifier.facts import Fact
 from humitifier.filters import Filter
 from humitifier.properties import MetadataProperty, FactProperty
 from humitifier.rules import Rule as RuleProtocol
@@ -12,6 +13,7 @@ class AppConfig:
     environment: str
     hosts: list[Host]
     rules: list[RuleProtocol]
+    facts: list[Fact]
     filters: list[Filter]
     metadata_properties: list[MetadataProperty]
     fact_properties: list[FactProperty]
@@ -25,6 +27,7 @@ class AppConfig:
             environment="demo",
             hosts=hosts,
             rules=[],
+            facts=list(Fact),
             filters=list(Filter),
             metadata_properties=list(MetadataProperty),
             fact_properties=list(FactProperty),

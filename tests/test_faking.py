@@ -2,7 +2,7 @@ from pydantic import BaseModel
 from humitifier.fake.gen.utils import gen_fake
 from humitifier.fake.gen.person import FakePerson
 from humitifier.fake.gen import facts as fake_facts
-from humitifier.infra import facts as infra_facts
+from humitifier import facts as infra_facts
 from humitifier.fake.gen.factping import FakeFactPing, FactPing
 
 

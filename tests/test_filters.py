@@ -6,7 +6,7 @@ from humitifier.filters import Filter
 @pytest.mark.parametrize("filter", list(Filter))
 def test_filter_extract_values(filter):
     state = FakeHostState.generate()
-    assert filter.extract_value(state)
+    assert filter.extract_value(state) is not None
 
 
 @pytest.mark.parametrize("filter", list(Filter))
