@@ -2,6 +2,7 @@ from enum import Enum, auto
 from jinja2 import Template
 
 from humitifier.models.person import Person
+from humitifier.infra.facts import Package
 
 
 BASE = Template("""
@@ -50,6 +51,7 @@ class Atom(Enum):
     MailToPerson = auto()
     MailToPeopleList = auto()
     InlineListStrings = auto()
+    InlineListPackages = auto()
     DaysString = auto()
     MegaBytesString = auto()
 
@@ -74,7 +76,7 @@ class Atom(Enum):
                     {% endif %}
                     """).render(person=properties)
             case Atom.MailToPeopleList:
-                if not isinstance(properties, list) and  not all(isinstance(p, Person) for p in properties):
+                if not isinstance(properties, list) or not all(isinstance(p, Person) for p in properties):
                     raise ValueError("MailToPerson atom requires a list of Person objects")
                 return Template("""<ul>
                     {% for person_html in people %}
@@ -83,7 +85,7 @@ class Atom(Enum):
                     </ul>"""
                 ).render(people=[Atom.MailToPerson.render(p) for p in properties])
             case Atom.InlineListStrings:
-                if not isinstance(properties, list):
+                if not isinstance(properties, list) or not all(isinstance(s, str) for s in properties):
                     raise ValueError("InlineList atom requires a list")
                 return Template("""
                     <ul class=inline-list>
@@ -91,6 +93,10 @@ class Atom(Enum):
                         <li>{{ item }}</li>
                         {% endfor %}
                     </ul>""").render(items=properties)
+            case Atom.InlineListPackages:
+                if not isinstance(properties, list) or not all(isinstance(s, Package) for s in properties):
+                    raise ValueError("InlineList atom requires a list of Package objects")
+                return Atom.InlineListStrings.render([str(p) for p in properties])
             case Atom.DaysString:
                 if not isinstance(properties, int):
                     raise ValueError("DaysString atom requires an int")

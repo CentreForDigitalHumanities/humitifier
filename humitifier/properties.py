@@ -113,5 +113,5 @@ class FactProperty(Enum):
             case FactProperty.UptimeDays:
                 return Atom.DaysString
             case FactProperty.Packages:
-                return Atom.InlineListStrings
+                return Atom.InlineListPackages
             case _: return Atom.String

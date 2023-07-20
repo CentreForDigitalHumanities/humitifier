@@ -76,6 +76,5 @@ class HostGrid:
 
     @classmethod
     def create(cls, host_states: list[HostState], grid_properties: list[MetadataProperty]) -> "HostGrid":
-        # TODO: change properties to grid properties
         items = [_GridItem.create(host_state, grid_properties) for host_state in host_states]
         return cls(items=items)

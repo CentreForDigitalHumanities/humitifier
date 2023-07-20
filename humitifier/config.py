@@ -14,7 +14,25 @@ class AppConfig:
     rules: list[RuleProtocol]
     filters: list[Filter]
     metadata_properties: list[MetadataProperty]
-    fact_properties: FactProperty
+    fact_properties: list[FactProperty]
     grid_properties: list[MetadataProperty | FactProperty]
     pssh_conf: dict[str, str]
     poll_interval: str
+
+    @classmethod
+    def default(cls, hosts: list[Host]) -> "AppConfig":
+        return cls(
+            environment="demo",
+            hosts=hosts,
+            rules=[],
+            filters=list(Filter),
+            metadata_properties=list(MetadataProperty),
+            fact_properties=list(FactProperty),
+            grid_properties=[
+                FactProperty.Hostname,
+                FactProperty.Os,
+                FactProperty.UptimeDays
+            ],
+            pssh_conf={},
+            poll_interval="every 20 minutes",
+        )
