@@ -1,16 +1,12 @@
 import uvicorn
 import asyncio
-from humitifier.app import AppConfig,  router
+from humitifier.app import create_base_app
 from humitifier.fake.gen.host import FakeHost
 from humitifier.fake.gen.factping import FakeFactPing
 
-from fastapi import FastAPI
-from fastapi.staticfiles import StaticFiles
-
 from humitifier.models.host_state import HostState
 from humitifier.config import AppConfig
-from humitifier.filters import Filter
-from humitifier.properties import MetadataProperty, FactProperty
+
 from rocketry import Rocketry
 
 host_pool = FakeHost.create_pool()
@@ -18,51 +14,9 @@ hosts = [next(host_pool) for _ in range(100)]
 states = [HostState(host=h, facts=FakeFactPing.generate()) for h in hosts]
 
 
-
-app = FastAPI()
-app.mount("/static", StaticFiles(directory="static"), name="static")
-app.state.config = AppConfig(
-    hosts=hosts,
-    rules=[],
-    filters=[
-        Filter.Hostname,
-        Filter.Os,
-        Filter.Department,
-        Filter.Owner,
-        Filter.Purpose,
-        Filter.Person,
-        Filter.Package
-    ],
-    metadata_properties=[
-        MetadataProperty.Department,
-        MetadataProperty.Owner,
-        MetadataProperty.Purpose,
-        MetadataProperty.StartDate,
-        MetadataProperty.EndDate,
-        MetadataProperty.RetireIn,
-        MetadataProperty.People
-
-    ],
-    fact_properties=[
-        FactProperty.Hostname,
-        FactProperty.Os,
-        FactProperty.IsVirtual,
-        FactProperty.UptimeDays,
-        FactProperty.Packages
-    ],
-    grid_properties=[
-        MetadataProperty.Department,
-        FactProperty.Os,
-        FactProperty.UptimeDays
-    ],
-    pssh_conf={},
-    poll_interval="every 5 seconds",
-    environment="demo"
-)
+cfg = AppConfig.default(hosts=hosts)
+app = create_base_app(cfg)
 app.state.host_states_kv = {s.host.fqdn: s for s in states}
-app.include_router(router)
-
-
 
 
 task_app = Rocketry(execution="async")
