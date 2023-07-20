@@ -21,10 +21,9 @@ app.state.host_states_kv = {s.host.fqdn: s for s in states}
 
 task_app = Rocketry(execution="async")
 
-@task_app.task('every 15 seconds')
-def do_stuff():
-    app.state.host_states_kv = {h.fqdn: HostState(host=h, facts=FakeFactPing.generate()) for h in hosts}
-
+@task_app.task(app.state.config.poll_interval)
+def update_host_states():
+    app.state.host_states_kv = {s.host.fqdn: HostState(host=s.host, facts=FakeFactPing.generate()) for s in states}
 
 class Server(uvicorn.Server):
     """Customized uvicorn.Server
