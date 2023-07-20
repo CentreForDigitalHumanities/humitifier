@@ -99,4 +99,13 @@ It does not interface with any external servers at this point.
 
 ## Production setup
 
-*In progress of figuring out...*
+A production environment of this app at current exists of 2 parts:
+
+* A `user_config` python module that exposes an `app` of `FastAPI`
+* A `docker-compose` referencing a non-demo version of `humitifier`
+
+The `user_config`` module allows you to specify your host configurations programmatically.
+Meaning you can yourself introduce custom facts, properties, rules, and metadata formats.
+
+The `docker-compose` file mounts an ssh configuration to the docker container so it can communicate with your hosts.
+You must mount your `user_config` module from within the `docker-compose` file.
