@@ -3,10 +3,11 @@ from humitifier.properties import MetadataProperty, FactProperty, PropertyReadEr
 from humitifier.fake.gen.host_state import FakeHostState
 
 
-def test_metadata_properties_extract():
+@pytest.mark.parametrize("prop", list(MetadataProperty))
+def test_metadata_properties_extract(prop):
     state = FakeHostState.generate()
-    for prop in MetadataProperty:
-        assert prop.extract(state) is not None
+    assert prop.extract(state) is not None
+
 
 def test_metadata_extract_raises_error_on_invalid_property():
     state = FakeHostState.generate()
@@ -15,10 +16,11 @@ def test_metadata_extract_raises_error_on_invalid_property():
         MetadataProperty.Department.extract(state)
 
 
-def test_fact_properties_extract():
+@pytest.mark.parametrize("prop", list(FactProperty))
+def test_fact_properties_extract(prop):
     state = FakeHostState.generate()
-    for prop in FactProperty:
-        assert prop.extract(state) is not None
+    assert prop.extract(state) is not None
+
 
 def test_fact_extract_raises_error_on_invalid_property():
     state = FakeHostState.generate()

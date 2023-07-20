@@ -17,11 +17,13 @@ class PropertyReadError(Exception): ...
 class MetadataProperty(Enum):
     Department = auto()
     Owner = auto()
+    OwnerName = auto()
     StartDate = auto()
     EndDate = auto()
     RetireIn = auto()
     Purpose = auto()
     People = auto()
+    PeopleNames = auto()
 
     def extract(self, host_state: HostState):
         try:
@@ -30,6 +32,8 @@ class MetadataProperty(Enum):
                     return host_state.host.metadata["department"]
                 case MetadataProperty.Owner:
                     return Person(**host_state.host.metadata["owner"])
+                case MetadataProperty.OwnerName:
+                    return MetadataProperty.Owner.extract(host_state).name
                 case MetadataProperty.StartDate:
                     return date.fromisoformat(host_state.host.metadata["start_date"])
                 case MetadataProperty.EndDate:
@@ -41,6 +45,8 @@ class MetadataProperty(Enum):
                     return host_state.host.metadata["purpose"]
                 case MetadataProperty.People:
                     return [Person(**p) for p in host_state.host.metadata["people"]]
+                case MetadataProperty.PeopleNames:
+                    return [p.name for p in MetadataProperty.People.extract(host_state)]
         except KeyError as e:
             raise PropertyReadError(f"The {self.name} property could not be accessed from the metadata. Make sure the metadata has the corresponding key") from e
             
@@ -70,6 +76,7 @@ class FactProperty(Enum):
     Hostname = auto()
     Os = auto()
     Packages = auto()
+    PackagesNames = auto()
     MemoryTotal = auto()
     MemoryUsage = auto()
     LocalStorageTotal = auto()
@@ -86,6 +93,8 @@ class FactProperty(Enum):
                     return host_state.facts.hostnamectl.os
                 case FactProperty.Packages:
                     return host_state.facts.packages
+                case FactProperty.PackagesNames:
+                    return [p.name for p in host_state.facts.packages]
                 case FactProperty.MemoryTotal:
                     return host_state.facts.memory.total_mb
                 case FactProperty.MemoryUsage:
@@ -98,6 +107,8 @@ class FactProperty(Enum):
                     return host_state.facts.hostnamectl.virtualization == "vmware"
                 case FactProperty.UptimeDays:
                     return host_state.facts.uptime.days
+                case _:
+                    return None
         except AttributeError as e:
             raise PropertyReadError(f"The {self.name} property could not be accessed from the facts. Make sure the fact is being queried") from e
             

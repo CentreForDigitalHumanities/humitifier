@@ -10,8 +10,9 @@ The filters can be extend so long as they provide the same interface as the curr
 
 from enum import Enum, auto
 
-from humitifier.models.host_state import HostState
 from humitifier.utils import partial_match, flatten_list
+from humitifier.models.host_state import HostState
+from humitifier.properties import MetadataProperty, FactProperty
 
 from typing import Literal
 
@@ -40,64 +41,52 @@ class Filter(Enum):
     @property
     def slug(self) -> str:
         return self.name.lower()
-            
-
-    def options(self, hosts: list[HostState]) -> list[str]:
+    
+    @classmethod
+    def from_key(cls, key: str) -> "Filter":
+        return cls[key.capitalize()]
+    
+    @property
+    def _property_extractor(self) -> MetadataProperty | FactProperty:
         match self:
             case Filter.Hostname:
-                options = [h.facts.hostname for h in hosts if h.facts.hostname]
+                return FactProperty.Hostname
             case Filter.Os:
-                options = [h.facts.os for h in hosts if h.facts.os]
+                return FactProperty.Os
             case Filter.Package:
-                packages = flatten_list([h.facts.packages for h in hosts])
-                options = [p.name for p in packages]
+                return FactProperty.PackagesNames
             case Filter.Department:
-                options = [h.host.metadata["department"] for h in hosts if h.host.metadata["department"]]
+                return MetadataProperty.Department
             case Filter.Owner:
-                options = [h.host.metadata["owner"]["name"] for h in hosts if h.host.metadata["owner"]["name"]]
+                return MetadataProperty.OwnerName
             case Filter.Purpose:
-                options = [h.host.metadata["purpose"] for h in hosts if h.host.metadata["purpose"]]
+                return MetadataProperty.Purpose
             case Filter.Person:
-                person_lists = [h.host.metadata["people"] for h in hosts if h.host.metadata and h.host.metadata.get("people")]
-                all_people = flatten_list(person_lists)
-                options = [p["name"] for p in all_people]
+                return MetadataProperty.PeopleNames
+
+    def extract_value(self, host_state: HostState):
+        return self._property_extractor.extract(host_state)
+
+    def options(self, hosts: list[HostState]) -> list[str]:
+        values = [self.extract_value(h) for h in hosts]
+        if all(isinstance(v, list) for v in values):
+            options = flatten_list(values)
+        else:
+            options = values
         return list(sorted(set(options)))
 
 
     def apply(self, host_state: HostState, query: str) -> bool:
         match self:
-            case Filter.Hostname:
-                return host_state.facts.hostname and query in host_state.facts.hostname
-            case Filter.Os:
-                return host_state.facts.os and query in host_state.facts.os
-            case Filter.Package:
-                return host_state.facts.packages and partial_match([p.name for p in host_state.facts.packages], query)
-            case Filter.Department:
-                if not host_state.host.metadata or not host_state.host.metadata["department"]:
-                    return False
-                return query in host_state.host.metadata["department"]
-            case Filter.Owner:
-                if not host_state.host.metadata or not getattr(host_state.host.metadata, "owner", None):
-                    return False
-                return query in host_state.host.metadata["owner"]["name"]
-            case Filter.Purpose:
-                if not host_state.host.metadata or not host_state.host.metadata.get("purpose"):
-                    return False
-                return query in host_state.host.metadata["purpose"]
-            case Filter.Person:
-                if not host_state.host.metadata or not host_state.host.metadata.get("people"):
-                    return False
-                return partial_match([p["name"] for p in host_state.host.metadata["people"]], query)
-
-    @classmethod
-    def from_key(cls, key: str) -> "Filter":
-        return cls[key.capitalize()]
+            case Filter.Person | Filter.Package:
+                return partial_match(self.extract_value(host_state), query)
+            case Filter.Hostname | Filter.Owner:
+                return query in self.extract_value(host_state)
+            case Filter.Os | Filter.Department | Filter.Purpose:
+                return self.extract_value(host_state) == query    
     
     
     @staticmethod
     def apply_from_kv(host_states: list[HostState], filter_kv: dict[str, str]) -> list[HostState]:
-        filtered = host_states
-        for filter_key, query in filter_kv.items():
-            filter = Filter.from_key(filter_key)
-            filtered = [h for h in filtered if filter.apply(h, query)]
-        return filtered
+        filters = [(Filter.from_key(k), query) for k, query in filter_kv.items()]
+        return [h for h in host_states if all(f.apply(h, query) for f, query in filters)]
