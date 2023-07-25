@@ -85,4 +85,4 @@ class AppConfig:
 
     @property
     def filter_kv(self) -> dict[str, Type[IFilter]]:
-        return {f.slug: f for f in self.filters}
+        return {f.filter_key: f for f in self.filters}

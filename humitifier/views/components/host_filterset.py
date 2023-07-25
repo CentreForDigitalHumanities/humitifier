@@ -54,7 +54,7 @@ class _Filter:
     @classmethod
     def create(cls, filter: Type[IFilter], host_states: list[HostState]) -> "_Filter":
         options = filter_options(filter.options(host_states))
-        return cls(slug=filter.slug, label=filter.label, options=options, widget=filter.widget)
+        return cls(slug=filter.filter_key, label=filter.label, options=options, widget=filter.widget)
     
 
 @dataclass

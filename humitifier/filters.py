@@ -5,7 +5,7 @@ from humitifier.protocols import IFilter
 from typing import Type
 
 class HostnameFilter:
-    slug = "hostname"
+    filter_key = "hostname"
     label = "Hostname"
     widget = "search"
 
@@ -19,7 +19,7 @@ class HostnameFilter:
 
 
 class OsFilter:
-    slug = "os"
+    filter_key = "os"
     label = "Operating System"
     widget = "select"
 
@@ -33,7 +33,7 @@ class OsFilter:
 
 
 class PackageFilter:
-    slug = "package"
+    filter_key = "package"
     label = "Package"
     widget = "search"
 
@@ -49,7 +49,7 @@ class PackageFilter:
         return partial_match(package_names, query)
     
 class DepartmentFilter:
-    slug = "department"
+    filter_key = "department"
     label = "Department"
     widget = "select"
 
@@ -62,7 +62,7 @@ class DepartmentFilter:
         return query == metadata.Department.from_host_state(host_state).value
     
 class OwnerFilter:
-    slug = "owner"
+    filter_key = "owner"
     label = "Owner"
     widget = "search"
 
@@ -75,7 +75,7 @@ class OwnerFilter:
         return query in metadata.Owner.from_host_state(host_state).value.name
     
 class PurposeFilter:
-    slug = "purpose"
+    filter_key = "purpose"
     label = "Purpose"
     widget = "select"
 
@@ -88,7 +88,7 @@ class PurposeFilter:
         return query == metadata.Purpose.from_host_state(host_state).value
     
 class PersonFilter:
-    slug = "person"
+    filter_key = "person"
     label = "Person"
     widget = "search"
 

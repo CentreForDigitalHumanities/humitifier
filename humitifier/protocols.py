@@ -2,9 +2,8 @@
 """
 from jinja2 import Template
 
-from typing import Literal, Protocol, TypeVar
+from typing import Literal, Protocol
 
-ExtractedProperty = TypeVar("ExtractedProperty")
 
 class IAtom(Protocol):
     template: Template
@@ -14,7 +13,6 @@ class IAtom(Protocol):
 
 class IProperty(Protocol):
     """Protocol for a readable property to be extracted from a HostState."""
-    value: ExtractedProperty
     kv_label: str
     
     @classmethod
@@ -47,7 +45,7 @@ class IFact(Protocol):
 
 class IFilter(Protocol):
     """Protocol for a filter to be applied to a list of HostStates."""
-    slug: str
+    filter_key: str
     widget: Literal["search", "select"]
     label: str
 
