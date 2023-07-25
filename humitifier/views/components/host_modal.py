@@ -2,8 +2,9 @@ from dataclasses import dataclass
 from jinja2 import Template
 from humitifier.models.host_state import HostState
 
-from humitifier.properties import MetadataProperty, FactProperty
+from humitifier.protocols import IProperty
 
+from typing import Type
 
 
 
@@ -29,11 +30,10 @@ class _KvTable:
         return KV_TABLE_TEMPLATE.render(items=self.items)
     
     @classmethod
-    def create(cls, host_state: HostState, properties: list[MetadataProperty | FactProperty]) -> "_KvTable":
-        def _item(prop: MetadataProperty | FactProperty) -> tuple[str, str]:
-            atom = prop.kv_atom
-            return (prop.kv_label, atom.render(prop.extract(host_state)))
-        return cls(items=[_item(p) for p in properties])
+    def create(cls, host_state: HostState, properties: list[Type[IProperty]]) -> "_KvTable":
+        props = [prop.from_host_state(host_state) for prop in properties]
+        items = ((prop.kv_label, prop.render_kv_value()) for prop in props)
+        return cls(items=items)
 
 
 
@@ -59,7 +59,7 @@ class HostModal:
         return HOST_MODAL_TEMPLATE.render(meta_kv=self.meta_kv, fact_kv=self.fact_kv)
     
     @classmethod
-    def create(cls, host_state: HostState, metadata_properties: list[MetadataProperty], fact_properties: list[FactProperty]) -> "HostModal":
+    def create(cls, host_state: HostState, metadata_properties: list[Type[IProperty]], fact_properties: list[Type[IProperty]]) -> "HostModal":
         meta_kv = _KvTable.create(host_state, metadata_properties)
         fact_kv = _KvTable.create(host_state, fact_properties)
         return cls(meta_kv=meta_kv, fact_kv=fact_kv)

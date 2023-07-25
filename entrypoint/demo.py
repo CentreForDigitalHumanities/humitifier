@@ -2,16 +2,14 @@ import uvicorn
 import asyncio
 from humitifier.app import create_base_app
 from humitifier.fake.gen.host import FakeHost
-from humitifier.fake.gen.factping import FakeFactPing
-
-from humitifier.models.host_state import HostState
+from humitifier.fake.gen.host_state import FakeHostState
 from humitifier.config import AppConfig
 
 from rocketry import Rocketry
 
 host_pool = FakeHost.create_pool()
 hosts = [next(host_pool) for _ in range(100)]
-states = [HostState(host=h, facts=FakeFactPing.generate()) for h in hosts]
+states = [FakeHostState.generate(host=h) for h in hosts]
 
 
 cfg = AppConfig.default(hosts=hosts)
@@ -23,7 +21,7 @@ task_app = Rocketry(execution="async")
 
 @task_app.task(app.state.config.poll_interval)
 def update_host_states():
-    app.state.host_states_kv = {s.host.fqdn: HostState(host=s.host, facts=FakeFactPing.generate()) for s in states}
+    app.state.host_states_kv = {h.host.fqdn: FakeHostState.generate(host=h) for h in hosts}
 
 class Server(uvicorn.Server):
     """Customized uvicorn.Server

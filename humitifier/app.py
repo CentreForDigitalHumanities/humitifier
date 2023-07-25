@@ -3,7 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pssh.clients import ParallelSSHClient
 from humitifier.config import AppConfig
-from humitifier.filters import Filter
+from humitifier.filters import apply_from_query_params
 from humitifier.views.components.host_grid import HostGrid
 from humitifier.views.components.host_modal import HostModal
 from humitifier.views.pages.index import HostGridIndex
@@ -40,9 +40,9 @@ async def host_details(request: Request, fqdn: str):
 
 @router.get("/hx-filter-hosts")
 async def filter_hosts(request: Request):
-    filter_kv = {k: v for k, v in request.query_params.items() if v}
+    params = {k: v for k, v in request.query_params.items() if v}
     host_states = list(request.app.state.host_states_kv.values())
-    filtered_hosts = Filter.apply_from_kv(host_states, filter_kv)
+    filtered_hosts = apply_from_query_params(host_states, query_params=params, filter_kv=request.app.state.config.filter_kv)
     hostgrid = HostGrid.create(host_states=filtered_hosts, grid_properties=request.app.state.config.grid_properties)
     return HTMLResponse(
         Wrapper.HxOobSwap.render(html_content=hostgrid.inner_html, target="innerHTML:.grid")

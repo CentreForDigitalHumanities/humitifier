@@ -1,10 +1,11 @@
+from jinja2 import Template
 from dataclasses import dataclass
 from datetime import timedelta
-from enum import Enum, auto
 from pssh.clients import ParallelSSHClient
 from pssh.output import HostOutput
 from humitifier.models.host import Host
-
+from humitifier.protocols import IFact
+from typing import Type
 
 @dataclass
 class HostnameCtl:
@@ -13,6 +14,8 @@ class HostnameCtl:
     cpe_os_name: str | None
     kernel: str
     virtualization: str | None
+    alias = "hostnamectl"
+    template = "hostnamectl"
 
     @classmethod
     def from_stdout(cls, output: list[str]) -> "HostnameCtl":
@@ -44,7 +47,6 @@ class HostnameCtl:
                 case "Virtualization", _, value:
                     create_args["virtualization"] = value.strip()
         return cls(**create_args)
-    
 
 
 @dataclass
@@ -67,6 +69,20 @@ class Package:
     def __str__(self) -> str:
         return f"{self.name}=={self.version}"
 
+@dataclass
+class Packages:
+    items: list[Package]
+    alias = "packages"
+    template = (
+        "command -v dpkg-query >/dev/null 2>&1 && "
+        "dpkg-query -W -f='${Package}\t${Version}\n' || "
+        "rpm -qa --queryformat '%{NAME}\t%{VERSION}\n'"
+    )
+
+    @classmethod
+    def from_stdout(cls, output: list[str]) -> "Packages":
+        return cls(items=Package.from_stdout(output))
+    
 
 @dataclass
 class Memory:
@@ -76,6 +92,8 @@ class Memory:
     swap_total_mb: int
     swap_used_mb: int
     swap_free_mb: int
+    alias = "memory"
+    template = "free -m"
 
     @classmethod
     def from_stdout(cls, output: list[str]) -> "Memory":
@@ -103,6 +121,7 @@ class Memory:
             swap_used_mb=swap[1],
             swap_free_mb=swap[2],
         )
+    
     
 
 
@@ -139,8 +158,21 @@ class Block:
         ]
     
 
+@dataclass
+class Blocks:
+    items: list[Block]
+    alias = "blocks"
+
+    @classmethod
+    def from_stdout(cls, output: list[str]) -> "Blocks":
+        return cls(items=Block.from_stdout(output))
+    
+    def command(self, _): return "df -m"
 
 class Uptime(timedelta):
+    alias = "uptime"
+    template = "uptime -p"
+
     @classmethod
     def from_stdout(cls, output: list[str]) -> "Uptime":
         """Parse output of `uptime -p`
@@ -190,6 +222,16 @@ class Group:
 
 
 @dataclass
+class Groups:
+    items: list[Group]
+    alias = "groups"
+    template = "cat /etc/group"
+
+    @classmethod
+    def from_stdout(cls, output: list[str]) -> "Groups":
+        return cls(items=Group.from_stdout(output))
+    
+@dataclass
 class User:
     name: str
     uid: int
@@ -217,67 +259,36 @@ class User:
 
         return [_parse_line(userline) for userline in output]
     
-    
-FactData = HostnameCtl | Memory | Block | Uptime | Group | User
+@dataclass
+class Users:
+    items: list[User]
+    alias = "users"
+    template = "cat /etc/passwd"
 
-class Fact(Enum):
-    HostnameCtl = auto()
-    Package = auto()
-    Memory = auto()
-    Block = auto()
-    Uptime = auto()
-    Group = auto()
-    User = auto()
-
-
-    @property
-    def _fact_data(self) -> FactData:
-        match self:
-            case Fact.HostnameCtl: return HostnameCtl
-            case Fact.Package: return Package
-            case Fact.Memory: return Memory
-            case Fact.Block: return Block
-            case Fact.Uptime: return Uptime
-            case Fact.Group: return Group
-            case Fact.User: return User
-
-            
-    def _wrap_descriptor(self, cmd: str) -> str:
-        return f"echo '{self.name}' && {cmd}"
-    
-    def _parse_stdout(self, output: list[str]) -> FactData:
-        return self._fact_data.from_stdout(output)
-    
     @classmethod
-    def parse_hostoutput(cls, host_output: HostOutput) -> tuple[str, FactData]:
-        key, *stdout = list(host_output.stdout)
-        return (host_output.host, cls[key]._parse_stdout(stdout))
-
-
-    def _host_cmd(self, host: Host | None) -> str:
-        match self:
-            case Fact.HostnameCtl: return "hostnamectl"
-            case Fact.Package:
-                return (
-                    "command -v dpkg-query >/dev/null 2>&1 && "
-                    "dpkg-query -W -f='${Package}\t${Version}\n' || "
-                    "rpm -qa --queryformat '%{NAME}\t%{VERSION}\n'"
-                )
-            case Fact.Memory: return "free -m"
-            case Fact.Block: return "df -m"
-            case Fact.Uptime: return "uptime -p"
-            case Fact.Group: return "cat /etc/group"
-            case Fact.User: return "cat /etc/passwd"
-
-    def cmd(self, host: Host | None) -> str:    
-        return self._wrap_descriptor(self._host_cmd(host))
+    def from_stdout(cls, output: list[str]) -> "Users":
+        return cls(items=User.from_stdout(output))
     
 
-    @staticmethod
-    def collect_fact_data(client: ParallelSSHClient, facts: list["Fact"]) -> list[tuple[str, FactData]]:
-        host_outputs = []
-        for fact in facts:
-            commands = [fact.cmd(None) for _ in range(len(client.hosts))]
-            host_outputs += client.run_command("%s", host_args=commands)
-        client.join()
-        return [Fact.parse_hostoutput(host_output) for host_output in host_outputs]
+def create_command(fact_type: Type[IFact], host: Host | None) -> str:
+    if isinstance(fact_type.template, Template):
+        cmd = fact_type.template.render(host=host)
+    else:
+        cmd = fact_type.template
+    return f"echo '{fact_type.alias}' && {cmd}"
+
+
+def parse_host_output(fact_type_kv: dict[str, Type[IFact]], host_output: HostOutput) -> tuple[str, IFact]:
+    fact_alias, *stdout = list(host_output.stdout)
+    fact_type = fact_type_kv[fact_alias]
+    return (host_output.host, fact_type.from_stdout(stdout))
+
+
+def collect_facts(client: ParallelSSHClient, facts: list[Type[IFact]]) -> list[tuple[str, IFact]]:
+    host_outputs = []
+    for fact in facts:
+        commands = [create_command(fact, None) for _ in range(len(client.hosts))]
+        host_outputs += client.run_command("%s", host_args=commands)
+    client.join()
+    fact_type_kv = {fact.alias: fact for fact in facts}
+    return [parse_host_output(fact_type_kv, host_output) for host_output in host_outputs]

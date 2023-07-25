@@ -3,7 +3,6 @@ from humitifier.fake.gen.utils import gen_fake
 from humitifier.fake.gen.person import FakePerson
 from humitifier.fake.gen import facts as fake_facts
 from humitifier import facts as infra_facts
-from humitifier.fake.gen.factping import FakeFactPing, FactPing
 
 
 def test_gen_fake_correctly_generates_generic_class_without_kwargs():
@@ -108,7 +107,3 @@ def test_fake_group_correctly_generates_group():
     generated = fake_facts.FakeGroup.generate()
     assert isinstance(generated, infra_facts.Group)
 
-
-def test_fake_factping_correctly_generates_factping():
-    generated = FakeFactPing.generate()
-    assert isinstance(generated, FactPing)

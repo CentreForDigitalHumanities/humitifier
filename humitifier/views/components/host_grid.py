@@ -2,7 +2,9 @@ from dataclasses import dataclass
 from jinja2 import Template
 
 from humitifier.models.host_state import HostState
-from humitifier.properties import MetadataProperty
+from humitifier.protocols import IProperty
+
+from typing import Type
 
 GRIDITEM_TEMPLATE = Template("""
 <article class = "grid-item">
@@ -36,10 +38,11 @@ class _GridItem:
     issue_count: int
 
     @classmethod
-    def create(cls, host_state: HostState, properties: list[MetadataProperty]) -> "_GridItem":
+    def create(cls, host_state: HostState, properties: list[Type[IProperty]]) -> "_GridItem":
+        props = [prop.from_host_state(host_state) for prop in properties]
         return cls(
             fqdn=host_state.host.fqdn,
-            props=[p.kv_atom.render(p.extract(host_state)) for p in properties],
+            props=[p.render_kv_value() for p in props],
             issue_count=0
         )
 
@@ -75,6 +78,6 @@ class HostGrid:
 
 
     @classmethod
-    def create(cls, host_states: list[HostState], grid_properties: list[MetadataProperty]) -> "HostGrid":
+    def create(cls, host_states: list[HostState], grid_properties: list[type[IProperty]]) -> "HostGrid":
         items = [_GridItem.create(host_state, grid_properties) for host_state in host_states]
         return cls(items=items)

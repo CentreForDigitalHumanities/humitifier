@@ -9,7 +9,7 @@ class FakeHostnameCtl:
     kernel: str = FakeUtil.kernel
     os: str = FakeUtil.os
     cpe_os_name: str = FakeUtil.os
-    virtualization: str | None = lambda: FakeUtil.faker.random_element(elements=["vmware", None])
+    virtualization: str = lambda: FakeUtil.faker.random_element(elements=["vmware", "otherware"])
 
     @classmethod
     def generate(cls, **kwargs) -> infra_facts.HostnameCtl:
@@ -99,6 +99,31 @@ class FakeUser:
             yield user
 
 
+
 HostnameCtlPool = FakeHostnameCtl.create_pool()
 PackagePool = FakePackage.create_pool()
 UserPool = FakeUser.create_pool()
+
+class FakePackages:
+    @classmethod
+    def generate(cls, **kwargs) -> infra_facts.Packages:
+        return infra_facts.Packages(items=[next(PackagePool) for _ in range(FakeUtil.faker.pyint(min_value=1, max_value=10))])
+    
+class FakeBlocks:
+    @classmethod
+    def generate(cls, **kwargs) -> infra_facts.Blocks:
+        return infra_facts.Blocks(items=[FakeBlock.generate() for _ in range(FakeUtil.faker.pyint(min_value=1, max_value=10))])
+
+class FactKV:
+
+    @classmethod
+    def generate(cls, **kwargs) -> dict:
+        return {
+            "hostnamectl": next(HostnameCtlPool),
+            "packages": FakePackages.generate(),
+            "memory": FakeMemory.generate(),
+            "blocks": FakeBlocks.generate(),
+            "uptime": FakeUptime.generate(),
+            "groups": [FakeGroup.generate() for _ in range(FakeUtil.faker.pyint(min_value=1, max_value=10))],
+            "users": [next(UserPool) for _ in range(FakeUtil.faker.pyint(min_value=1, max_value=10))],
+        }

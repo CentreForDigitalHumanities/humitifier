@@ -1,51 +1,63 @@
 """Protocols for implementing custom Atom, Properties, Facts, and Rules.
 """
+from jinja2 import Template
 
-from humitifier.models.host import Host
-from humitifier.models.host_state import HostState
-
-from typing import Protocol, TypeVar
+from typing import Literal, Protocol, TypeVar
 
 ExtractedProperty = TypeVar("ExtractedProperty")
 
+class IAtom(Protocol):
+    template: Template
+
+    def render(self) -> str:
+        ...
+
 class IProperty(Protocol):
     """Protocol for a readable property to be extracted from a HostState."""
-    slug: str
+    value: ExtractedProperty
+    kv_label: str
     
+    @classmethod
+    def slug(cls) -> str:
+        """Return the slug of the property."""
+        ...
 
-    def extract(self, host_state: HostState) -> ExtractedProperty:
+    @classmethod
+    def from_host_state(cls, host_state) -> "IProperty":
         """Extract the property from the given HostState."""
         ...
 
-    def kv_table_row(self, properties: ExtractedProperty) -> str:
+    @property
+    def kv_value_html(self) -> str:
         """Return a string representation of the property for a KV table row."""
         ...
 
 
 class IFact(Protocol):
     """Protocol for a fact to be extracted from a host over ssh."""
-    slug: str
+    alias: str
+    template: Template | str
 
     @classmethod
     def from_stdout(cls, stdout: list[str]) -> "IFact":
         """Create a Fact from the stdout of a command."""
         ...
 
-    def command(self, host: Host | None) -> str:
-        """Return the command to be run on the host."""
-        ...
 
 
 class IFilter(Protocol):
     """Protocol for a filter to be applied to a list of HostStates."""
     slug: str
+    widget: Literal["search", "select"]
+    label: str
 
-
-    def apply(self, host_state: HostState, query: str) -> bool:
+    @classmethod
+    def apply(cls, host_state, query: str) -> bool:
         """Apply the filter to a HostState."""
         ...
 
-    def options(self, host_states: list[HostState]) -> list[str]:
+    @classmethod
+    def options(cls, host_states) -> list[str]:
         """Return a list of options for the filter."""
         ...
 

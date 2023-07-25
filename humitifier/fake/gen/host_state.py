@@ -1,12 +1,12 @@
 from humitifier.models.host_state import HostState
 from .utils import gen_fake
+from .facts import FactKV
 from .host import FakeHost
-from .factping import FakeFactPing
 
 
 class FakeHostState:
     host = lambda: FakeHost.generate()
-    facts = lambda: FakeFactPing.generate()
+    facts = lambda: FactKV.generate()
 
     @classmethod
     def generate(cls, **kwargs) -> HostState:
