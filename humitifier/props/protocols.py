@@ -3,8 +3,6 @@ from typing import Protocol, runtime_checkable
 
 @runtime_checkable
 class Property(Protocol):
-    """A property is a component that can be rendered to HTML."""
-
     @classmethod
     @property
     @abstractmethod
@@ -16,3 +14,11 @@ class Property(Protocol):
 
     @abstractmethod
     def component(self, html_cls): ...
+
+
+@runtime_checkable
+class Filterable(Protocol):
+
+    @abstractmethod
+    def filter(self, query: str) -> bool: ...
+

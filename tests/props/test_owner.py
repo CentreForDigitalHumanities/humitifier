@@ -1,12 +1,16 @@
 import pytest
 from humitifier.html import MailTo, KvRow
 from humitifier.props import Owner
-from humitifier.props.protocols import Property
+from humitifier.props.protocols import Property, Filterable
 from unittest.mock import patch
 
 
 def test_owner_implements_prop_protocol():
     assert isinstance(Owner, Property)
+
+
+def test_owner_implements_filterable_protocol():
+    assert isinstance(Owner, Filterable)
 
 
 def test_owner_from_host_state():

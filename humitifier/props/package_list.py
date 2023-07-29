@@ -25,3 +25,6 @@ class PackageList(PackageListFact):
                 return HtmlString(f"{len(self)} packages installed")
             case _:
                 raise TypeError(f"Unsupported html component type: {html_cls}")
+    
+    def filter(self, query: str) -> bool:
+        return any(query in pkg.name for pkg in self)

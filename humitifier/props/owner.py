@@ -35,3 +35,6 @@ class Owner:
                 )
             case _:
                 raise TypeError(f"Unsupported html component type: {html_cls}")
+    
+    def filter(self, query: str) -> bool:
+        return query in self.name or query in self.email

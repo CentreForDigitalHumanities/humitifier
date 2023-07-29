@@ -2,12 +2,14 @@ import pytest
 from humitifier.html import HtmlString, KvRow
 from humitifier.facts import HostnameCtl
 from humitifier.props import Hostname
-from humitifier.props.protocols import Property
+from humitifier.props.protocols import Property, Filterable
 from unittest.mock import patch
 
 def test_hostname_implements_prop_protocol():
     assert isinstance(Hostname, Property)
 
+def test_hostname_implements_filterable_protocol():
+    assert isinstance(Hostname, Filterable)
 
 def test_hostname_from_host_state():
     with (

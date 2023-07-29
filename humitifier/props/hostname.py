@@ -33,3 +33,6 @@ class Hostname(str):
                 )
             case _:
                 raise TypeError(f"Unsupported html component type: {html_cls}")
+            
+    def filter(self, query: str) -> bool:
+        return query in self

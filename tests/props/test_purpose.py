@@ -1,12 +1,16 @@
 import pytest
 from humitifier.html import HtmlString, KvRow
 from humitifier.props import Purpose
-from humitifier.props.protocols import Property
+from humitifier.props.protocols import Property, Filterable
 from unittest.mock import patch
 
 
 def test_purpose_implements_prop_protocol():
     assert isinstance(Purpose, Property)
+
+
+def test_purpose_implements_filterable_protocol():
+    assert isinstance(Purpose, Filterable)
 
 
 def test_purpose_from_host_state():
