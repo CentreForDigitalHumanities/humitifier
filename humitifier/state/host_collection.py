@@ -23,8 +23,8 @@ class HostCollectionState(dict[str, HostState]):
             hostcfg.fqdn: HostState.initialize(
                 cfg=hostcfg,
                 outputs=[o for o in all_outputs if o.host == hostcfg.fqdn],
-                fact_cfg=default_fact_cfg,
-                view_cfg=default_view_cfg
+                fact_cfg=default_fact_cfg, # TODO: host-specific fact config
+                view_cfg=hostcfg.view_cfg or default_view_cfg
             ) for hostcfg in hosts
         }
         return cls(data)

@@ -9,7 +9,7 @@ from .host_view import HostViewConfig
 class HostConfig:
     fqdn: Fqdn
     metadata: list[Property]
-    view_cfg: HostViewConfig | None
+    view_cfg: HostViewConfig | None = None
 
 
     @property

@@ -21,18 +21,17 @@ class AppConfig:
     def host_kv(self):
         return {host.fqdn: host for host in self.hosts}
 
-    @cached_property
-    def pssh_client(self) -> ParallelSSHClient:
-        return ParallelSSHClient(
+    
+    def collect_outputs(self) -> list[HostOutput]:
+        client = ParallelSSHClient(
             hosts=[host.fqdn for host in self.hosts],
             **self.pssh_conf
         )
-    
-    def collect_outputs(self) -> list[HostOutput]:
         outputs = []
         for cmdset in self.facts.command_set(self.hosts):
-            outputs += self.pssh_client.run_command("%s", host_args=cmdset)
-        self.pssh_client.join()
+            print(cmdset)
+            outputs += client.run_command("%s", host_args=cmdset)
+        client.join()
         return outputs
     
     
