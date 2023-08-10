@@ -9,8 +9,7 @@ from .kvtable import KvTable
 from .progress_bar import ProgressBar
 from .mail_to import MailTo
 from .inline_list import InlineList
+from .unordered_list import UnorderedList
 from .filterset import FilterSet
-from .wrappers import (
-    Base,
-    HxSwap
-)
+from .page import Page
+from .hx_swap import HxSwap

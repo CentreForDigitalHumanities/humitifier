@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from jinja2 import Template
 
+from humitifier.urls import Url
 from .input_search import SearchInput
 from .input_select import SelectInput
 
@@ -11,7 +12,6 @@ _hx_triggers = Template("""
 
 @dataclass
 class FilterSet:
-    url: str
     widgets: list[SearchInput | SelectInput]
     template = Template("""
         <form class="filterset" hx-get="{{url}}" hx-swap="none"
@@ -28,5 +28,5 @@ class FilterSet:
         return self.template.render(
             widgets=self.widgets,
             trigger_html=trigger_html,
-            url=self.url
+            url=Url.Index.value
         )

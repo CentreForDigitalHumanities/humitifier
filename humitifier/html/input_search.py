@@ -11,7 +11,7 @@ class SearchInput:
     template = Template("""
         <input list="{{ name }}-suggestions" id="{{ name }}-input" type="text" name="{{ name }}"
             placeholder="search {{ label }}..." />
-        datalist id="{{ name }}-suggestions">
+        <datalist id="{{ name }}-suggestions">
             {% for opt in options %}
             <option value="{{ opt }}">{{ opt }}</option>
             {% endfor %}

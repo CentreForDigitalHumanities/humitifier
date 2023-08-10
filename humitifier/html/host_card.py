@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from jinja2 import Template
+from humitifier.urls import Url
 
 from .unordered_list import UnorderedList
 
@@ -10,17 +11,14 @@ class HostCard:
     title: str
     properties: UnorderedList
     issue_count: int
-    issue_base_url: str
-    modal_base_url: str
 
     @property
     def modal_url(self) -> str:
-        return f"{self.modal_base_url}/{self.fqdn}"
+        return f"{Url.HostDetailsBase.value}/{self.fqdn}"
     
     @property
     def issue_url(self) -> str:
-        return f"{self.issue_base_url}/{self.fqdn}"
-
+        return f"{Url.HostIssuesBase.value}/{self.fqdn}"
     
     template = Template(
         """<article class="grid-item">

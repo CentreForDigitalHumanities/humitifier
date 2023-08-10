@@ -1,11 +1,12 @@
 from dataclasses import dataclass
 from jinja2 import Template
+from humitifier.urls import Url
+
 from .kvtable import KvTable
 
  
 @dataclass
 class HostModal:
-    close_url: str
     table: KvTable
     template = Template("""
         <div class="modal-wrap">
@@ -17,8 +18,8 @@ class HostModal:
         </div>
     """)
 
-    def __str__(self) -> str:
+    def render(self) -> str:
         return self.template.render(
             table=self.table,
-            close_url=self.close_url
+            close_url=Url.CloseModal.value
         )
