@@ -1,8 +1,9 @@
 from datetime import date
-from humitifier.models.host_state import HostState
 from humitifier.html import HtmlString, KvRow
 
-_HtmlComponent = HtmlString | KvRow
+from typing import TypeVar
+
+_Component = TypeVar("_Component", HtmlString, KvRow)
 
 
 class EndDate(date):
@@ -13,10 +14,10 @@ class EndDate(date):
         return "end_date"
     
     @classmethod
-    def from_host_state(cls, host_state: HostState) -> "EndDate":
-        return cls.fromisoformat(host_state.metadata[cls.alias])
+    def from_host_state(cls, host_state) -> "EndDate":
+        return host_state[cls]
     
-    def component(self, html_cls: type[_HtmlComponent]) -> _HtmlComponent:
+    def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:
             case HtmlString.__name__:
                 return HtmlString(self.isoformat())

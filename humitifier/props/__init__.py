@@ -1,6 +1,6 @@
+from .fqdn import Fqdn
 from .department import Department
 from .end_date import EndDate
-from .fqdn import Fqdn
 from .hostname import Hostname
 from .local_storage import LocalStorage
 from .memory_use import MemoryUse

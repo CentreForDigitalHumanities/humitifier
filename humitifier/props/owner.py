@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from humitifier.models.host_state import HostState
 from humitifier.html import MailTo, KvRow
 
-_HtmlComponent = MailTo | KvRow
+from typing import TypeVar
+
+_Component = TypeVar("_Component", MailTo, KvRow)
 
 
 @dataclass
@@ -17,10 +18,14 @@ class Owner:
         return "owner"
     
     @classmethod
-    def from_host_state(cls, host_state: HostState) -> "Owner":
-        return cls(**host_state.metadata[cls.alias])
+    def from_host_state(cls, host_state) -> "Owner":
+        return host_state[cls]
     
-    def component(self, html_cls: type[_HtmlComponent]) -> _HtmlComponent:
+    @staticmethod
+    def query_option_set(items=list["Owner"]) -> set[str]:
+        return set([o.name for o in items])
+    
+    def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:
             case MailTo.__name__:
                 return MailTo(

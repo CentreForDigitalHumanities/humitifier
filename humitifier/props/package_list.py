@@ -1,17 +1,22 @@
-from humitifier.models.host_state import HostState
 from humitifier.facts.package_list import PackageList as PackageListFact
 from humitifier.html import HtmlString, KvRow, InlineList
 
-_HtmlComponent = KvRow | InlineList | HtmlString
+from typing import TypeVar
+
+_Component = TypeVar("_Component", HtmlString, KvRow, InlineList)
+
 
 class PackageList(PackageListFact):
+
+    @staticmethod
+    def query_option_set(items=list["PackageList"]) -> set[str]:
+        return set(pkg.name for host_pkgs in items for pkg in host_pkgs)
     
     @classmethod
-    def from_host_state(cls, host_state: HostState) -> "PackageList":
-        out = host_state[PackageListFact.alias]
-        return cls.from_stdout(out)
+    def from_host_state(cls, host_state) -> "PackageList":
+        return cls(host_state[PackageListFact])
     
-    def component(self, html_cls: type[_HtmlComponent]) -> _HtmlComponent:
+    def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:
             case KvRow.__name__:
                 return KvRow(

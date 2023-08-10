@@ -1,7 +1,9 @@
 from humitifier.html import HtmlString, KvRow
 from humitifier.facts.hostnamectl import HostnameCtl
 
-_HtmlComponent = HtmlString | KvRow
+from typing import TypeVar
+
+_Component = TypeVar("_Component", HtmlString, KvRow)
 
 
 class Os(str):
@@ -10,17 +12,16 @@ class Os(str):
     @property
     def alias(cls) -> str:
         return "os"
-    
+
     @staticmethod
-    def _get_ctl(host_state) -> str:
-        out = host_state[HostnameCtl.alias]
-        return HostnameCtl.from_stdout(out)
+    def query_option_set(items=list["Os"]) -> set[str]:
+        return set(items)
     
     @classmethod
     def from_host_state(cls, host_state) -> "Os":
-        return cls(cls._get_ctl(host_state).os)
+        return cls(host_state[HostnameCtl].os)
     
-    def component(self, html_cls: type[_HtmlComponent]) -> _HtmlComponent:
+    def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:
             case HtmlString.__name__:
                 return HtmlString(self)

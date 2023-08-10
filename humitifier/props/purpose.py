@@ -1,7 +1,8 @@
-from humitifier.models.host_state import HostState
 from humitifier.html import HtmlString, KvRow
 
-_HtmlComponent = HtmlString | KvRow
+from typing import TypeVar
+
+_Component = TypeVar("_Component", HtmlString, KvRow)
 
 
 class Purpose(str):
@@ -11,11 +12,15 @@ class Purpose(str):
     def alias(cls) -> str:
         return "purpose"
     
-    @classmethod
-    def from_host_state(cls, host_state: HostState) -> "Purpose":
-        return cls(host_state.metadata[cls.alias])
+    @staticmethod
+    def query_option_set(items=list["Purpose"]) -> set[str]:
+        return set(items)
     
-    def component(self, html_cls: type[_HtmlComponent]) -> _HtmlComponent:
+    @classmethod
+    def from_host_state(cls, host_state) -> "Purpose":
+        return host_state[cls]
+    
+    def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:
             case HtmlString.__name__:
                 return HtmlString(self)

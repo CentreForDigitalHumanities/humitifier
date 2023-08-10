@@ -1,8 +1,11 @@
 from dataclasses import dataclass
-from humitifier.facts.blocks import Blocks
+from humitifier.facts.blocks import Blocks, Block
 from humitifier.html import KvRow, HtmlString, ProgressBar
 
-_HtmlComponent = KvRow | HtmlString | ProgressBar
+from typing import TypeVar
+
+_Component = TypeVar("_Component", HtmlString, KvRow, ProgressBar)
+
 
 @dataclass
 class LocalStorage:
@@ -23,21 +26,16 @@ class LocalStorage:
     def label(self) -> str:
         return f"{self.used_mb} MB / {self.size_mb} MB"
     
-    @staticmethod
-    def _get_blocks(host_state) -> Blocks:
-        stdout = host_state[Blocks.alias]
-        return Blocks.from_stdout(stdout)
-    
     @classmethod
     def from_host_state(cls, host_state) -> "LocalStorage":
-        block = cls._get_blocks(host_state)[0]
+        block: Block = host_state[Blocks][0]
         return cls(
             name=block.name,
             size_mb=block.size_mb,
             used_mb=block.used_mb,
         )
     
-    def component(self, html_cls: type[_HtmlComponent]) -> _HtmlComponent:
+    def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:
             case HtmlString.__name__:
                 return HtmlString(f"Disk: {self.label}")
