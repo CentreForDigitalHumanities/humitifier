@@ -1,61 +1,80 @@
-"""Protocols for implementing custom Atom, Properties, Facts, and Rules.
-"""
-from jinja2 import Template
-
-from typing import Literal, Protocol
+from abc import abstractmethod
+from typing import runtime_checkable, Protocol
 
 
-class IAtom(Protocol):
-    template: Template
+@runtime_checkable
+class HtmlComponent(Protocol):
+    """A HtmlComponent can be rendered into a string to be served as html"""
 
-    def render(self) -> str:
-        ...
+    @abstractmethod
+    def render(self) -> str: ...
 
-class IProperty(Protocol):
-    """Protocol for a readable property to be extracted from a HostState."""
-    kv_label: str
-    
+@runtime_checkable
+class Renderable(Protocol):
+    """A Renderable can translate its data into a html component that can be displayed"""
+
+    @abstractmethod
+    def component(self, html_cls: type[HtmlComponent]) -> HtmlComponent: ...
+
+
+@runtime_checkable
+class PsshOp(Protocol):
+    """A PsshOp can both produce a command to run over ssh and parse its output"""
+
     @classmethod
-    def slug(cls) -> str:
-        """Return the slug of the property."""
-        ...
+    @abstractmethod
+    def from_stdout(cls, stdout: list[str]): ...
+
+    @abstractmethod
+    def ssh_command(self, host_config) -> str: ...
+
+
+@runtime_checkable
+class WithAlias(Protocol):
+    """A WithAlias has a unique alias describing the data or property it represents"""
 
     @classmethod
-    def from_host_state(cls, host_state) -> "IProperty":
-        """Extract the property from the given HostState."""
-        ...
-
     @property
-    def kv_value_html(self) -> str:
-        """Return a string representation of the property for a KV table row."""
-        ...
+    @abstractmethod
+    def alias(self) -> str: ...
 
 
-class IFact(Protocol):
-    """Protocol for a fact to be extracted from a host over ssh."""
-    alias: str
-    template: Template | str
+@runtime_checkable
+class Filterable(Protocol):
+    """A Filterable can be filtered by a query string"""
 
-    @classmethod
-    def from_stdout(cls, stdout: list[str]) -> "IFact":
-        """Create a Fact from the stdout of a command."""
-        ...
+    @abstractmethod
+    def filter(self, query: str) -> bool: ...
 
 
+@runtime_checkable
+class WithQueryOptions(Protocol):
+    """A QuerySuggestions can provide a set of suggestions for a query string"""
 
-class IFilter(Protocol):
-    """Protocol for a filter to be applied to a list of HostStates."""
-    filter_key: str
-    widget: Literal["search", "select"]
-    label: str
+    @staticmethod
+    @abstractmethod
+    def query_option_set(items=list["WithQueryOptions"]) -> set[str]: ...
 
-    @classmethod
-    def apply(cls, host_state, query: str) -> bool:
-        """Apply the filter to a HostState."""
-        ...
+
+@runtime_checkable
+class FromState(Protocol):
+    """A FromState can be constructed from a HostState"""
 
     @classmethod
-    def options(cls, host_states) -> list[str]:
-        """Return a list of options for the filter."""
-        ...
+    @abstractmethod
+    def from_host_state(cls, host_state) -> 'FromState': ...
 
+
+@runtime_checkable
+class HostFact(WithAlias, PsshOp, Protocol):
+    """A HostFact can create data for a HostState by parsing stdout from a ssh command"""
+
+
+@runtime_checkable
+class StateProperty(WithAlias, FromState, Renderable, Protocol):
+    """A StateProperty can be constructed from a HostState and rendered into a HtmlComponent"""
+
+
+@runtime_checkable
+class FilterProperty(StateProperty, Filterable, Protocol):
+    """A FilterProperty can be constructed from a HostState, rendered into a HtmlComponent, and filtered by a query string"""
