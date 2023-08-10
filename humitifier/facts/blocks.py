@@ -37,4 +37,4 @@ class Blocks(list[Block]):
     
     @staticmethod
     def ssh_command(_) -> str:
-        return "df -m"
+        return "df | egrep '^/'"
