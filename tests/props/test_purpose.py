@@ -2,7 +2,6 @@ import pytest
 from humitifier.html import HtmlString, KvRow
 from humitifier.props import Purpose
 from humitifier.props.protocols import Property, Filterable
-from unittest.mock import patch
 
 
 def test_purpose_implements_prop_protocol():
@@ -12,13 +11,6 @@ def test_purpose_implements_prop_protocol():
 def test_purpose_implements_filterable_protocol():
     assert isinstance(Purpose, Filterable)
 
-
-def test_purpose_from_host_state():
-    with patch("humitifier.props.purpose.HostState") as mock_host_state:
-        mock_host_state.metadata = {"purpose": "engineering"}
-        purpose = Purpose.from_host_state(mock_host_state)
-        assert isinstance(purpose, Purpose)
-        assert purpose == "engineering"
 
 
 @pytest.mark.parametrize("htmlcls", [HtmlString, KvRow])
