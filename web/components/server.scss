@@ -6,21 +6,20 @@
 @use "../core/typography";
 @use "../core/inputs";
 
-.host-modal {
+.details-modal {
     @include modal.modal-box;
     
     display: grid;
     grid-template-areas:
-        "info contract"
-        "exit exit";
+        ". table ."
+        ". . exit";
     
-    grid-template-columns: 1fr 1fr;
-    grid-template-rows: 8fr 1fr;
+    grid-template-columns: 1fr 8fr 1fr;
     border-radius: 2em;
 
 
     main {
-        grid-area: info;
+        grid-area: table;
         padding: 2em;
         overflow: scroll;
 
@@ -31,48 +30,16 @@
         }
     }
 
-    aside {
-        grid-area: contract;
-        padding: 2em;
-        overflow: scroll;
-    }
-
-
     button {
         @include button.hx-button;
         @include button.with-border;
         grid-area: exit;
         height: 3em;
-        width: 20%;
         margin: 0 auto;
     }
 }
 
-.issues-modal {
-    @include modal.modal-box;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: 8fr 1fr;
 
-    table {
-        max-width: 80%;
-        margin: 0 auto;
-        table-layout: fixed;
-        max-height: 75%;
-        overflow: scroll;
-
-    }
-
-    button {
-        @include button.hx-button;
-        @include button.with-border;
-        display: block;
-        height: 3em;
-        width: 20%;
-        margin: 0 auto;
-    }
-    
-}
 .grid {
     display: grid;
     grid-template-columns: repeat(3, 1fr);

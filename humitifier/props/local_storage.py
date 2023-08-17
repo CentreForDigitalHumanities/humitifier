@@ -23,8 +23,16 @@ class LocalStorage:
         return int(self.used_mb / self.size_mb * 100)
     
     @property
+    def size_gb(self) -> float:
+        return round(self.size_mb / 1024, 2)
+    
+    @property
+    def used_gb(self) -> float:
+        return round(self.used_mb / 1024, 2)
+    
+    @property
     def label(self) -> str:
-        return f"{self.used_mb} MB / {self.size_mb} MB"
+        return f"{self.used_gb} GB / {self.size_gb} GB"
     
     @classmethod
     def from_host_state(cls, host_state) -> "LocalStorage":

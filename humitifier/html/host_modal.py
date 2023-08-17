@@ -10,7 +10,7 @@ class HostModal:
     table: KvTable
     template = Template("""
         <div class="modal-wrap">
-            <article class="host-modal">
+            <article class="details-modal">
             <main>{{ table.render()|safe }}</main>
             <button hx-swap="none" hx-get="{{ close_url }}"
                     hx-trigger="click, keyup[key=='Escape'] from:body">Close</button>
