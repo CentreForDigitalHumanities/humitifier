@@ -5,6 +5,8 @@ from typing import TypeVar
 
 _Component = TypeVar("_Component", HtmlString, KvRow)
 
+from .unknown import Unknown
+
 class StartDate(date):
 
     @classmethod
@@ -14,7 +16,14 @@ class StartDate(date):
     
     @classmethod
     def from_host_state(cls, host_state) -> "StartDate":
-        return host_state[cls]
+        try:
+            return host_state[cls]
+        except KeyError:
+            return Unknown(
+                prop_cls=cls,
+                label="Start Date",
+                value="No start date known"
+            )
     
     def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:

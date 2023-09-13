@@ -4,7 +4,7 @@ from humitifier.facts.hostnamectl import HostnameCtl
 from typing import TypeVar
 
 _Component = TypeVar("_Component", HtmlString, KvRow)
-
+from .unknown import Unknown
 
 class Os(str):
 
@@ -19,7 +19,14 @@ class Os(str):
     
     @classmethod
     def from_host_state(cls, host_state) -> "Os":
-        return cls(host_state[HostnameCtl].os)
+        try:
+            return cls(host_state[HostnameCtl].os)
+        except KeyError:
+            return Unknown(
+                prop_cls=cls,
+                label="Operating System",
+                value="Unknown"
+            )
     
     def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:

@@ -13,7 +13,7 @@ class Fqdn(str):
     
     @classmethod
     def from_host_state(cls, host_state) -> "Fqdn":
-        return host_state.fqdn
+        return host_state.config.fqdn
     
     def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:

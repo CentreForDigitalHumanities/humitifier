@@ -5,6 +5,7 @@ from typing import TypeVar
 
 _Component = TypeVar("_Component", MailTo, KvRow)
 
+from .unknown import Unknown
 
 @dataclass
 class Owner:
@@ -19,7 +20,15 @@ class Owner:
     
     @classmethod
     def from_host_state(cls, host_state) -> "Owner":
-        return host_state[cls]
+        try:
+            return host_state[cls]
+        except KeyError:
+            return Unknown(
+                prop_cls=cls,
+                label="Owner",
+                value="Unknown"
+            )
+
     
     @staticmethod
     def query_option_set(items=list["Owner"]) -> set[str]:

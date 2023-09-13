@@ -4,7 +4,7 @@ from humitifier.html import HtmlString, KvRow
 from typing import TypeVar
 
 _Component = TypeVar("_Component", HtmlString, KvRow)
-
+from .unknown import Unknown
 class Virtualization(str):
 
     @classmethod
@@ -14,8 +14,15 @@ class Virtualization(str):
     
     @classmethod
     def from_host_state(cls, host_state) -> "Virtualization":
-        ctl: HostnameCtl = host_state[HostnameCtl]
-        return cls(ctl.virtualization)
+        try:
+            return cls(host_state[HostnameCtl].virtualization)
+        except KeyError:
+            return Unknown(
+                prop_cls=cls,
+                label="Department",
+                value="Unknown"
+            )
+
     
     def component(self, html_cls: type[_Component]) -> _Component:
         match html_cls.__name__:

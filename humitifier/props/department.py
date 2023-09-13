@@ -1,7 +1,7 @@
 from humitifier.html import HtmlString, KvRow
 
 from typing import TypeVar
-
+from .unknown import Unknown
 
 _Component = TypeVar("_Component", HtmlString, KvRow)
 
@@ -14,7 +14,15 @@ class Department(str):
     
     @classmethod
     def from_host_state(cls, host_state) -> "Department":
-        return host_state[cls]
+        try:
+            return host_state[cls]
+        except KeyError:
+            return Unknown(
+                prop_cls=cls,
+                label="Department",
+                value="Unknown"
+            )
+    
     
     @staticmethod
     def query_option_set(items=list["Department"]) -> set[str]:
