@@ -2,7 +2,6 @@ from pssh.output import HostOutput
 from humitifier.html import HostCard, HostGrid, HostGridItems
 from humitifier.config.host import HostConfig
 from humitifier.config.facts import FactConfig
-from humitifier.config.host_view import HostViewConfig
 from .host import HostState
 
 from typing import TypeVar
@@ -16,15 +15,14 @@ class HostCollectionState(dict[str, HostState]):
         cls, 
         hosts: list[HostConfig], 
         all_outputs: list[HostOutput], 
-        default_fact_cfg: FactConfig, 
-        default_view_cfg: HostViewConfig
+        fact_cfg: FactConfig, 
     ) -> "HostCollectionState":
         data = {
-            hostcfg.fqdn: HostState.initialize(
-                cfg=hostcfg,
-                outputs=[o for o in all_outputs if o.host == hostcfg.fqdn],
-                fact_cfg=default_fact_cfg, # TODO: host-specific fact config
-                view_cfg=hostcfg.view_cfg or default_view_cfg
+            hostcfg.fqdn: HostState(
+                config=hostcfg,
+                fact_data=fact_cfg.initialize_host_fact_data(
+                    [o for o in all_outputs if o.host == hostcfg.fqdn]
+                )
             ) for hostcfg in hosts
         }
         return cls(data)

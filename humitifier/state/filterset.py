@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from humitifier.html import SelectInput, SearchInput, FilterSet
 from humitifier.config.filterset import FiltersetConfig, FilterConfig
 from .host import HostState
+from humitifier.props.unknown import Unknown
 
 Widget = SelectInput | SearchInput
 
@@ -14,10 +15,12 @@ class HostStateFilterset:
     @staticmethod
     def _filter_widget(hosts: list[HostState], cfg: FilterConfig) -> Widget:
         f_prop, html_cls = cfg
+        values = [f_prop.from_host_state(h) for h in hosts]
+        known_values = [v for v in values if not isinstance(v, Unknown)]
         return html_cls(
             name=f_prop.alias,
             label=f_prop.alias,
-            options=f_prop.query_option_set([f_prop.from_host_state(h) for h in hosts])
+            options=list(f_prop.query_option_set(known_values)) + ["unknown"]
         )
     
 
