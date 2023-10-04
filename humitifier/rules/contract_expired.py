@@ -11,6 +11,11 @@ class ContractExpiration:
     severity: Literal[0, 1, 2, 3]
 
     @classmethod
+    @property
+    def alias(cls) -> str:
+        return "contract_expiration_rule"
+
+    @classmethod
     def from_host_state(cls, host_state) -> "ContractExpiration":
         end_date = host_state[EndDate]
         if isinstance(end_date, Unknown):

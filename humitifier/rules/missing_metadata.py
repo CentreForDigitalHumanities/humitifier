@@ -10,6 +10,11 @@ class MissingMetadata:
     severity: Literal[0, 2]
 
     @classmethod
+    @property
+    def alias(cls) -> str:
+        return "missing_metadata_rule"
+
+    @classmethod
     def from_host_state(cls, host_state) -> "MissingMetadata":
         value_map = {
             Department.alias: host_state[Department],
