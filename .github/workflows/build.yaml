@@ -30,14 +30,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push demo image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ${{ env.DOCKERFILE_DEMO_PATH }}
-          push: true
-          tags: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.IMAGE_NAME }}:demo
       
       - name: Build and push main image
         uses: docker/build-push-action@v4
