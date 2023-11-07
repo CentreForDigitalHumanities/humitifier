@@ -8,3 +8,4 @@ static/out*
 data/
 .hypothesis/
 docker-compose.yaml
+.local/

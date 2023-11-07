@@ -1,3 +1,91 @@
 @use "table";
 @use "typography";
 @use "inputs";
+@use "page_header";
+@use "../utils/colors" as colors;
+
+body {
+    max-width: 80%;
+    margin: 0 auto;
+}
+
+#infra {
+    display: grid;
+    grid-template-columns: 1fr 3fr;
+    grid-template-rows: 200px auto;
+    grid-gap: 1rem;
+    grid-template-areas: "host-filters host-summary" "host-filters host-table";
+
+    #hosts-summary {
+        grid-area: host-summary;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: center;
+
+        article {
+            width: 200px;
+            text-align: center;
+            border: 2px solid;
+            border-radius: 0.5em;
+            margin: 2em;
+            padding: 1em;
+
+            &.ok {
+                border-color: colors.$green;
+                color: colors.$green;
+            }
+        
+            &.info{
+                border-color: colors.$blue;
+                color: colors.$blue;
+            }
+        
+            &.warning {
+                border-color: colors.$yellow;
+                color: colors.$yellow;
+            }
+        
+            &.critical {
+                border-color: colors.$red;
+                color: colors.$red;
+            }
+            
+            strong {
+                display: block;
+                font-size: 2em;
+                font-weight: bold;
+            }
+        }
+    }
+
+    #host-filters {
+        grid-area: host-filters;
+
+        form {
+            padding: 2em;
+            margin: 2em;
+            display: flex;
+            gap: 1em;
+            flex-direction: column;
+            justify-content: center;
+            border: 2px solid;
+            border-color: colors.$yellow;
+            border-radius: 0.5em;
+
+            button {
+                width: {
+                    min: 100px;
+                    max: 200px;
+                }
+            }
+        }
+        
+    }
+
+    #hosts-table {
+        grid-area: host-table;
+        
+
+    }
+}

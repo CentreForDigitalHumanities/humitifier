@@ -7,6 +7,43 @@ table {
 }
 
 td {
-    border: 1px solid colors.$black; 
+    border-bottom: 1px solid colors.$black;
+    margin: 2px; 
+    height: 40px;
+
+    &.center {
+        text-align: center;
+    }
+
+    &.vtop {
+        vertical-align: top;
+        padding-top: 1em;
+    
+    }
 }
 
+
+.host-details {
+    width: 100%;
+    margin: 1em;
+
+    td {
+        border: none;
+
+    }
+
+    ul {
+        padding: 0;
+    }
+
+    li {
+        list-style: none;
+        margin: 0.5em;
+
+        .badge {
+            padding: 0.2em;
+            margin-right: 0.5em;
+
+        }
+    }
+}

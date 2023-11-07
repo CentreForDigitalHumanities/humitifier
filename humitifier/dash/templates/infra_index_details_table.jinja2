@@ -1,0 +1,96 @@
+<table class="host-details">
+    <col style="width:20%">
+    <col style="width:80%">
+    <tbody>
+        {# Hostname #}
+        <tr>
+            <td>Hostname</td>
+            <td>{{ host.facts.hostname }}</td>
+        </tr>
+
+        {# Department #}
+        <tr>
+            <td>Department</td>
+            <td>{% if host.department %}{{ host.department }}{% else %}Unknown{% endif %}</td>
+        </tr>
+
+        {# Last Scan #}
+        <tr>
+            <td>Last Scan</td>
+            <td>{{ host.last_scan_dt.isoformat(' ') }}</td>
+        </tr>
+
+        {# Contact #}
+        <tr>
+            <td>Contact</td>
+            <td>
+                {% if host.contact %}
+                <a href="mailto:{{ host.contact.1 }}">{{ host.contact.0 }}</a> | {{ host.contact.1 }}
+                {% else %}
+                Unknown
+                {% endif %}
+            </td>
+        </tr>
+
+        {# OS #}
+        {% if host.facts.os != None %}
+        <tr>
+            <td>Operating System</td>
+            <td>{{ host.facts.os }}</td>
+        </tr>
+        {% endif %}
+
+        {# Uptime #}
+        {% if host.facts.uptime_days %}
+        <tr>
+            <td>Uptime</td>
+            <td>{{ host.facts.uptime_days }} Day(s)</td>
+        </tr>
+        {% endif %}
+
+        {# Memory #}
+        {% if host.facts.memory_label %}
+        <tr>
+            <td>Memory</td>
+            <td>
+                <div class="progress" data-label="{{host.facts.memory_label}}">
+                    <span class="value" style="width:{{host.facts.memory_percentage}}%;"></span>
+                </div>
+            </td>
+        </tr>
+        {% endif %}
+
+        {# Alerts #}
+        <tr>
+            <td>Alerts</td>
+            <td>
+                {% if host.alerts|length > 0 %}
+                <ul>
+                    {% for _, severity, alert in host.alerts %}
+                    <li>
+                        <span class="badge {{severity}}">{{ severity }}</span>{{ alert }}
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                No alerts
+                {% endif %}
+            </td>
+        </tr>
+
+        {# Packages #}
+        {% if host.facts.packages %}
+        <tr>
+            <td>Packages</td>
+            <td>
+                <details>
+                    <summary>Expand...</summary>
+                    {% for pkg in host.facts.packages %}
+                    <span class="badge small">{{ pkg.name }}=={{ pkg.version }}</span>
+                    {% endfor %}
+                </details>
+            </td>
+        </tr>
+        {% endif %}
+    </tbody>
+</table>

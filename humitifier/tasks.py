@@ -1,14 +1,15 @@
 from rocketry import Rocketry
-from humitifier.facts import collect_facts
-from humitifier.models.host_state import HostState
+from humitifier.infra import update_fact_db
+from humitifier.config import CONFIG
 
 
-def create_scheduler(app):
+def create_scheduler():
     task_app = Rocketry(execution="async")
 
-    @task_app.task(app.state.config.poll_interval)
-    def update_host_states():
-        fact_data = collect_facts(client=app.state.pssh_client, facts=app.state.config.facts)
-        app.state.host_states_kv = {h.fqdn: HostState.from_host_facts(h, fact_data) for h in app.state.config.hosts}
+    @task_app.task(CONFIG.tasks["infra_update"])
+    async def infra_update():
+        print("Updating facts")
+        await update_fact_db()
+        print("Fact Update Complete")
 
     return task_app
