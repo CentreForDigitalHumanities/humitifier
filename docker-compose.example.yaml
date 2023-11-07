@@ -6,6 +6,8 @@ services:
       - "8000:8000"
     environment:
       - SSH_AUTH_SOCK=/ssh-agent
+      - HUMITIFIER_CONFIG=/code/app_config.toml
     volumes:
-      - {YOUR USER CONFIG MODULE}:/code/user_config
+      - .local/app_config_compose.toml:/code/app_config.toml # Reference your configuration
+      - .local/data:/data # Persistent volume for data
       - $SSH_AUTH_SOCK:/ssh-agent

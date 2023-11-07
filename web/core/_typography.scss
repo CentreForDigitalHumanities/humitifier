@@ -18,14 +18,50 @@ h2, h4, h6 {
     font-family: $subheading;
 }
 
-a {
-    text-decoration: none;
-    @include animations.onhover-left-to-right(colors.$yellow, colors.$black);
-    color: colors.$black;
-    padding-left: 0.5em;
-    padding-right: 0.5em;
-    border-bottom: 1px solid colors.$black;
-    &:hover {
-        color : colors.$yellow;
+// a {
+//     text-decoration: none;
+//     @include animations.onhover-left-to-right(colors.$yellow, colors.$black);
+//     color: colors.$black;
+//     padding-left: 0.5em;
+//     padding-right: 0.5em;
+//     border-bottom: 1px solid colors.$black;
+//     &:hover {
+//         color : colors.$yellow;
+//     }
+// }
+
+.badge {
+    border: 2px solid;
+    padding: 0.5em;
+    border-radius: 0.5em;
+    font-size: 0.8em;
+    font-weight: bold;
+    text-transform: uppercase;
+
+    &.ok {
+        border-color: colors.$green;
+        color: colors.$green;
+    }
+
+    &.info{
+        border-color: colors.$blue;
+        color: colors.$blue;
+    }
+
+    &.warning {
+        border-color: colors.$yellow;
+        color: colors.$yellow;
+    }
+
+    &.critical {
+        border-color: colors.$red;
+        color: colors.$red;
+    }
+
+    &.small { 
+        display: inline-block;
+        font-size: 0.6em;
+        padding: 0.1em;
+        border: 1px solid;
     }
 }

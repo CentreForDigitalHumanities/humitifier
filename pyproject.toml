@@ -14,6 +14,8 @@ jinja2 = "^3.1.2"
 toml = "^0.10.2"
 parallel-ssh = "^2.12.0"
 rocketry = "^2.5.1"
+aiosqlite = "^0.19.0"
+aiosql = "^9.0"
 
 
 [tool.poetry.group.dev.dependencies]

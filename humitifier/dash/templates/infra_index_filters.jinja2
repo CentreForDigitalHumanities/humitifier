@@ -1,0 +1,59 @@
+<section id="host-filters">
+    <form get="/infra">
+        <h2>Filters</h2>
+
+        <label for="fqdn">Search Host</label>
+        <input list="fqdn-suggestions" id="fqdn" type="text" name="fqdn" placeholder="Hostname..." {% if
+            params.fqdn%}value="{{ params.fqdn}}" {%endif%} />
+        <datalist id="fqdn-suggestions">
+            {% for opt in filters.fqdn_options %}
+            <option value="{{opt}}">{{ opt }}</option>
+            {% endfor %}
+        </datalist>
+
+        <label for="os">Select OS</label>
+        <select id="os" name="os">
+            <option value="" {% if not params.os %}selected{% endif %}>Select OS...</option>
+            {% for opt in filters.os_options %}
+            <option value="{{ opt }}" {% if opt==params.os%}selected{%endif%}>{{ opt }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="alert">Select Alert</label>
+        <select id="alert" name="alert">
+            <option value="" selected>Select Alert...</option>
+            {% for opt in filters.alerts_options %}
+            <option value="{{ opt }}" {% if opt==params.alert%}selected{%endif%}>{{ opt }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="package">Search Package</label>
+        <input list="package-suggestions" id="package" type="text" name="package" placeholder="Package..." {% if
+            params.package%}value="{{ params.package}}" {%endif%} />
+        <datalist id="package-suggestions">
+            {% for opt in filters.package_options %}
+            <option value="{{opt}}">{{ opt }}</option>
+            {% endfor %}
+        </datalist>
+
+        <label for="department">Select department</label>
+        <select id="department" name="department">
+            <option value="" selected>Select department...</option>
+            {% for opt in filters.department_options %}
+            <option value="{{ opt }}" {% if opt==params.department%}selected{%endif%}>{{ opt }}</option>
+            {% endfor %}
+        </select>
+
+        <label for="contact">Select contact</label>
+        <select id="contact" name="contact">
+            <option value="" selected>Select contact...</option>
+            {% for opt in filters.contact_options %}
+            <option value="{{ opt }}" {% if opt==params.contact%}selected{%endif%}>{{ opt }}</option>
+            {% endfor %}
+        </select>
+
+        <button type="submit">Filter</button>
+        <a href="/infra"><button type="button">Clear filters</button></a>
+
+    </form>
+</section>

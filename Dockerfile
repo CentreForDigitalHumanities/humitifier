@@ -11,6 +11,5 @@ COPY humitifier/ ./humitifier
 
 RUN poetry install --without dev
 
-COPY entrypoint/main.py /code/app.py
-
-CMD ["poetry", "run", "python", "/code/app.py"]
+COPY entrypoint/main.py entrypoint.py
+CMD ["poetry", "run", "python", "entrypoint.py"]
