@@ -72,7 +72,7 @@ department = "Humanities"
 contact.name = "Don"
 contact.email = "blah@uu.nl"
 
-...
+# any other metadata
 ```
 
 ## Development Setup
@@ -92,4 +92,19 @@ To override this, specify a `HUMITIFER_CONFIG` env var.
 
 The suggested production setup uses `docker-compose`.
 Refer to the example file for a configuration.
+
+### Running without `docker-compose`
+
+Since `humitifier` uses `sqlite` and no other services, you can also run it with docker.
+An example command: 
+
+```bash
+docker run -d -p 8000:8000 \
+  -e SSH_AUTH_SOCK=/ssh-agent \
+  -e HUMITIFIER_CONFIG=/code/app_config.toml \
+  -v $(pwd)/app_config.toml:/code/app_config.toml \
+  -v $(pwd)/data:/data \
+  -v $SSH_AUTH_SOCK:/ssh-agent \
+  ghcr.io/centrefordigitalhumanities/humitifier/humitifier:latest
+```
 
