@@ -69,3 +69,8 @@ class Host:
     @property
     def last_scan_dt(self) -> datetime:
         return datetime.fromtimestamp(self.facts.timestamp)
+
+    @property
+    def meta_props(self) -> list[tuple[str, str]]:
+        ignore = ["department"]
+        return [(k, v) for k, v in self.metadata.items() if isinstance(v, str) and k not in ignore]
