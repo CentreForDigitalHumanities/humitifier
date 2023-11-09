@@ -10,8 +10,7 @@ template_env = Environment(loader=FileSystemLoader("humitifier/dash/templates"))
 
 
 class Url(Enum):
-    Index = "/"
-    InfraIndex = "/infra"
+    InfraIndex = "/"
 
 
 router = APIRouter()

@@ -14,6 +14,13 @@
             <td>{% if host.department %}{{ host.department }}{% else %}Unknown{% endif %}</td>
         </tr>
 
+        {% for metakey, metavalue in host.meta_props %}
+        <tr>
+            <td>{{ metakey }}</td>
+            <td>{{ metavalue }}</td>
+        </tr>
+        {% endfor %}
+
         {# Last Scan #}
         <tr>
             <td>Last Scan</td>
