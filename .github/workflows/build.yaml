@@ -8,7 +8,6 @@ on:
 
 env:
   IMAGE_NAME: humitifier
-  DOCKERFILE_DEMO_PATH: ./Dockerfile.demo
   DOCKERFILE_PATH: ./Dockerfile
 
 jobs:
