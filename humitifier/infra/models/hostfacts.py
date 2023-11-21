@@ -1,6 +1,7 @@
 import asyncio
 import time
 import json
+from pssh.output import HostOutput
 from datetime import datetime
 from humitifier.infra.facts import FACT_TABLE, DIVIDER, element_to_fact, HostnameCtl, Memory, Uptime, PackageList
 from dataclasses import dataclass
@@ -10,11 +11,12 @@ from dataclasses import dataclass
 class HostFacts:
     fqdn: str
     timestamp: int
+    raw_output: str
     facts: dict
     exceptions: list[str] | None = None
 
     @classmethod
-    async def from_output(cls, output, ts) -> "HostFacts":
+    async def from_output(cls, output: HostOutput, ts: int) -> "HostFacts":
         if output.exception:
             return cls(output.host, ts, {}, [str(output.exception)])
         stdout = "\n".join(list(output.stdout)).strip()
@@ -23,7 +25,7 @@ class HostFacts:
         parsed = await asyncio.gather(*tasks)
         facts = [f for f in parsed if not isinstance(f, str)]
         excpetions = [f for f in parsed if isinstance(f, str)]
-        return cls(output.host, ts, {f.alias: f for f in facts}, excpetions or None)
+        return cls(output.host, ts, stdout, {f.alias: f for f in facts}, excpetions or None)
 
     @property
     async def sql_row(self) -> str:
@@ -31,15 +33,16 @@ class HostFacts:
         return (
             self.fqdn,
             self.timestamp,
+            self.raw_output,
             json.dumps(fact_data),
             json.dumps(self.exceptions),
         )
 
     @classmethod
     async def from_sql_row(cls, row) -> "HostFacts":
-        fqdn, timestamp, facts, exceptions = row
+        fqdn, timestamp, raw_output, facts, exceptions = row
         fact_data = {k: FACT_TABLE[k].from_sql(v) for k, v in json.loads(facts).items()}
-        return cls(fqdn, timestamp, fact_data, json.loads(exceptions))
+        return cls(fqdn, timestamp, raw_output, fact_data, json.loads(exceptions))
 
     @property
     def last_scan(self) -> str:
