@@ -8,8 +8,6 @@ def create_scheduler():
 
     @task_app.task(CONFIG.tasks["infra_update"])
     async def infra_update():
-        print("Updating facts")
         await update_fact_db()
-        print("Fact Update Complete")
 
     return task_app
