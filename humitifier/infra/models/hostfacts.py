@@ -1,6 +1,7 @@
 import asyncio
 import time
 import json
+from pssh.output import HostOutput
 from datetime import datetime
 from humitifier.infra.facts import FACT_TABLE, DIVIDER, element_to_fact, HostnameCtl, Memory, Uptime, PackageList
 from dataclasses import dataclass
@@ -14,7 +15,7 @@ class HostFacts:
     exceptions: list[str] | None = None
 
     @classmethod
-    async def from_output(cls, output, ts) -> "HostFacts":
+    async def from_output(cls, output: HostOutput, ts) -> "HostFacts":
         if output.exception:
             return cls(output.host, ts, {}, [str(output.exception)])
         stdout = "\n".join(list(output.stdout)).strip()
