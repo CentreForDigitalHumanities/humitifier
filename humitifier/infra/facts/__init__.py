@@ -1,5 +1,4 @@
 import asyncio
-import time
 from .blocks import Blocks
 from .groups import Groups
 from .hostnamectl import HostnameCtl
@@ -66,11 +65,11 @@ async def element_to_fact(el: str) -> Fact:
     try:
         fact = FACT_TABLE[alias]
     except KeyError as e:
-        return str(e)
+        return f"ParseError(KeyError): {str(e)}"
     try:
         return fact.from_stdout(stdout)
     except Exception as e:
-        return str(e)
+        return f"ParseError: {str(e)}"
 
 
 async def query_inventory_outputs(hosts) -> list[HostOutput]:
