@@ -8,6 +8,7 @@ from .uptime import Uptime
 from .users import Users
 from pssh.clients.native import ParallelSSHClient
 from pssh.output import HostOutput
+from pssh.exceptions import Timeout
 from typing import Union
 from humitifier.config import CONFIG
 
@@ -75,4 +76,9 @@ async def element_to_fact(el: str) -> Fact:
 async def query_inventory_outputs(hosts) -> list[HostOutput]:
     cmdset = await host_cmd_set(hosts)
     client = ParallelSSHClient([h.fqdn for h in hosts], **CONFIG.pssh)
-    return client.run_command("%s", host_args=cmdset, stop_on_errors=False, read_timeout=10)
+    output = client.run_command("%s", host_args=cmdset, stop_on_errors=False, read_timeout=10)
+    try:
+        client.join(output, timeout=10)
+    except Timeout:
+        pass
+    return output
