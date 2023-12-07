@@ -18,7 +18,7 @@ class HostFacts:
     @classmethod
     async def from_output(cls, output: HostOutput, ts: int) -> "HostFacts":
         if output.exception:
-            return cls(output.host, ts, {}, [str(output.exception)])
+            return cls(output.host, ts, None, {}, [str(output.exception)])
         stdout = "\n".join(list(output.stdout)).strip()
         elements = stdout.split(DIVIDER)
         tasks = [element_to_fact(el) for el in elements]
