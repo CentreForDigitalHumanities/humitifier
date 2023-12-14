@@ -49,6 +49,8 @@ class InfraFilterCtx(list[Host]):
             hosts = [h for h in hosts if h.contact[0] == contact]
         if package := query_params.get("package"):
             hosts = [h for h in hosts if any([package in pkgname for pkgname in h.package_names or []])]
+        if severity := query_params.get("severity"):
+            hosts = [h for h in hosts if h.alert_severity == severity]
         return InfraIndexCtx(hosts)
 
     @property
