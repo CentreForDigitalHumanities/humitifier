@@ -28,3 +28,15 @@ where
     )
 order by
     host;
+
+-- name: clear_old_facts#
+delete from host_facts
+where (host, date(timestamp)) not in (
+    select host, date(timestamp)
+    from (
+        select host, date(timestamp), max(timestamp) as max_timestamp
+        from host_facts
+        group by host, date(timestamp)
+    ) as subquery
+    where timestamp = max_timestamp
+) and date(timestamp) < date("now", "-1 day");

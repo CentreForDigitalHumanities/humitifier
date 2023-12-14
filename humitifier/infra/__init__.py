@@ -26,6 +26,7 @@ async def update_fact_db():
         await queries.create_facts_table(db)
         logger.info("Inserting %s rows into %s", len(rows), CONFIG.db)
         await queries.bulk_insert_host_facts(db, rows)
+        await queries.clear_old_facts(db)
         await db.commit()
 
 
