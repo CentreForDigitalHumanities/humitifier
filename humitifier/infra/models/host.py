@@ -54,12 +54,12 @@ class Host:
 
     @property
     def department(self) -> str | None:
-        return self.metadata.get("department")
+        return self.facts.hostmeta.department
 
     @property
     def contact(self) -> str | None:
-        if contact := self.metadata.get("contact"):
-            return contact.get("name"), contact.get("email")
+        if contact := self.hostmeta.contact:
+            return contact, contact
 
     @property
     def package_names(self) -> list[str]:

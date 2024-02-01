@@ -3,7 +3,16 @@ import time
 import json
 from pssh.output import HostOutput
 from datetime import datetime
-from humitifier.infra.facts import FACT_TABLE, DIVIDER, element_to_fact, HostnameCtl, Memory, Uptime, PackageList
+from humitifier.infra.facts import (
+    FACT_TABLE,
+    DIVIDER,
+    element_to_fact,
+    HostnameCtl,
+    Memory,
+    Uptime,
+    PackageList,
+    HostMeta,
+)
 from dataclasses import dataclass
 
 
@@ -94,3 +103,7 @@ class HostFacts:
     @property
     def packages(self) -> PackageList | None:
         return self.facts.get(PackageList.alias)
+
+    @property
+    def hostmeta(self) -> HostMeta | None:
+        return self.facts.get(HostMeta.alias)

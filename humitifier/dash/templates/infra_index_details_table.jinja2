@@ -47,6 +47,62 @@
         </tr>
         {% endif %}
 
+        {# WebDav #}
+        {% if host.facts.hostmeta.webdav %}
+        <tr>
+            <td>WebDav</td>
+            <td>
+                <a href="{{ host.facts.hostmeta.webdav }}">{{ host.facts.hostmeta.webdav }}</a>
+            </td>
+        </tr>
+        {% endif %}
+
+        {# VHosts #}
+        {% if host.facts.hostmeta.vhosts %}
+        <tr>
+            <td>VHosts</td>
+            <td>
+                {% for vhost in host.facts.hostmeta.vhosts %}
+                <code>{{vhost}}</code>
+                <br>
+                {% endfor %}
+            </td>
+        </tr>
+        {% endif %}
+
+        {# File Servers #}
+        {% if host.facts.hostmeta.fileservers %}
+        <tr>
+            <td>File Servers</td>
+            <td>
+                {% for fileserver in host.facts.hostmeta.fileservers %}
+                <ul>
+                    <li><code>{{fileserver}}</code></li>
+                </ul>
+
+                {% endfor %}
+            </td>
+        </tr>
+        {% endif %}
+
+        {# Databases #}
+        {% if host.facts.hostmeta.databases %}
+        <tr>
+            <td>Databases</td>
+            <td>
+                {% for dbtype, dbs in host.facts.hostmeta.databases.items() %}
+                <ul>
+                    <li><span class="badge info">{{dbtype}}</span>
+                        <code>{{ ', '.join(dbs) }}</code>
+                    </li>
+                </ul>
+                {% endfor %}
+            </td>
+        </tr>
+        {% endif %}
+
+
+
         {# Uptime #}
         {% if host.facts.uptime_days %}
         <tr>
