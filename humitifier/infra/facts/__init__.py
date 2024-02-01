@@ -1,6 +1,7 @@
 import asyncio
 from .blocks import Blocks
 from .groups import Groups
+from .hostmeta import HostMeta
 from .hostnamectl import HostnameCtl
 from .memory import Memory
 from .package_list import PackageList
@@ -17,6 +18,7 @@ ALL_FACTS = [
     Blocks,
     Groups,
     HostnameCtl,
+    HostMeta,
     Memory,
     PackageList,
     Uptime,
@@ -27,6 +29,7 @@ Fact = Union[
     Blocks,
     Groups,
     HostnameCtl,
+    HostMeta,
     Memory,
     PackageList,
     Uptime,
@@ -37,6 +40,7 @@ FACT_TABLE = {
     Blocks.alias: Blocks,
     Groups.alias: Groups,
     HostnameCtl.alias: HostnameCtl,
+    HostMeta.alias: HostMeta,
     Memory.alias: Memory,
     PackageList.alias: PackageList,
     Uptime.alias: Uptime,
