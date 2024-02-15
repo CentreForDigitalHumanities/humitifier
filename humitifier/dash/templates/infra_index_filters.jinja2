@@ -47,7 +47,7 @@
         <label for="contact">Select contact</label>
         <select id="contact" name="contact">
             <option value="" selected>Select contact...</option>
-            {% for opt in filters.contact_options %}
+            {% for opt in filters.contacts_options %}
             <option value="{{ opt }}" {% if opt==params.contact%}selected{%endif%}>{{ opt }}</option>
             {% endfor %}
         </select>
