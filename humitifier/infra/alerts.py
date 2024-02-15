@@ -4,14 +4,15 @@ SEVERITY = Literal["info", "warning", "critical"]
 
 
 def missing_metadata(host) -> tuple[SEVERITY, str] | None:
-    if host.metadata == {} or host.metadata is None:
+    if host.facts.hostmeta == {} or host.facts.hostmeta is None:
         return "warning", "No metadata defined for host"
 
 
 def missing_contact(host) -> tuple[SEVERITY, str] | None:
     if missing_metadata(host):
         return None
-    if host.metadata.get("contact") is None:
+    metadata = host.facts.hostmeta
+    if metadata is None:
         return "info", "No contact defined for host"
 
 
