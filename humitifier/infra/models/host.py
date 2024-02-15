@@ -58,7 +58,7 @@ class Host:
 
     @property
     def contact(self) -> str | None:
-        if contact := self.hostmeta.contact:
+        if contact := self.facts.hostmeta.contact:
             return contact, contact
 
     @property
