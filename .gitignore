@@ -9,3 +9,9 @@ data/
 .hypothesis/
 docker-compose.yaml
 .local/
+.envrc
+
+# Supabase
+.branches
+.temp
+.env

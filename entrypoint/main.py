@@ -1,13 +1,8 @@
 import uvicorn
 import asyncio
-from humitifier.dash.app import create_base_app
-from humitifier.tasks import create_scheduler
-
-
-app = create_base_app()
-
-
-task_app = create_scheduler()
+from humitifier.dashboard import app as dashboard
+from humitifier.tasks import app as task_app
+from humitifier.logging import logging
 
 
 class Server(uvicorn.Server):
@@ -23,7 +18,8 @@ class Server(uvicorn.Server):
 
 async def main():
     "Run scheduler and the API"
-    server = Server(config=uvicorn.Config(app, workers=1, loop="asyncio", host="0.0.0.0", port=8000))
+    logging.info("Starting scheduler and API")
+    server = Server(config=uvicorn.Config(dashboard, workers=1, loop="asyncio", host="0.0.0.0", port=8000))
 
     dash = asyncio.create_task(server.serve())
     sched = asyncio.create_task(task_app.serve())
