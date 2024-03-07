@@ -1,5 +1,6 @@
 import asyncpg
 import json
+import time
 from datetime import datetime
 from rocketry import Rocketry
 from rocketry.conds import after_success, hourly
@@ -45,6 +46,7 @@ def parse_row_data(row) -> facts.SshFact | FactError:
 
 @app.task(hourly)
 async def sync_hosts():
+    time.sleep(5)
     logging.info("Syncing hosts")
     conn = await asyncpg.connect(CONFIG.db)
     await conn.execute("""SELECT sync_hosts($1)""", CONFIG.inventory)

@@ -9,5 +9,13 @@ services:
       - HUMITIFIER_CONFIG=/code/app_config.toml
     volumes:
       - .local/app_config_compose.toml:/code/app_config.toml # Reference your configuration
-      - .local/data:/data # Persistent volume for data
       - $SSH_AUTH_SOCK:/ssh-agent
+    
+  db:
+    image: postgres:15
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres

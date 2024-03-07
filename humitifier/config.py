@@ -10,6 +10,7 @@ CONF_FILE = os.environ.get("HUMITIFIER_CONFIG", ".local/app_config.toml")
 @dataclass
 class Config:
     db: str
+    migrations_dir: str
     inventory: list[str]
     pssh: dict
     tasks: dict[str, str]

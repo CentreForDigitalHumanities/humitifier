@@ -8,6 +8,7 @@ COPY readme.md .
 
 COPY static/ ./static
 COPY humitifier/ ./humitifier
+COPY supabase/migrations /migrations
 
 RUN poetry install --without dev
 

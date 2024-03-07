@@ -1,11 +1,15 @@
+import asyncpg
+import os
 from dataclasses import dataclass
 from typing import Callable, Literal
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from jinja2 import Environment, FileSystemLoader
-from humitifier.models import Host, get_hosts
 from humitifier.alerts import ALERTS
+from humitifier.config import CONFIG
+from humitifier.models import Host, get_hosts
+from humitifier.logging import logging
 
 template_env = Environment(loader=FileSystemLoader("humitifier/templates"))
 app = FastAPI()
@@ -95,3 +99,13 @@ async def index(request: Request):
             filters=filters,
         )
     )
+
+
+@app.on_event("startup")
+async def run_migrations():
+    logging.info("Applying migrations...")
+    conn = await asyncpg.connect(CONFIG.db)
+    for f in os.listdir(CONFIG.migrations_dir):
+        logging.info(f"Applying {f}")
+        with open(f"{CONFIG.migrations_dir}/{f}") as sql_file:
+            await conn.execute(sql_file.read())
