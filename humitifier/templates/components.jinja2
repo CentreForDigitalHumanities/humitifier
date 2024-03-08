@@ -61,7 +61,7 @@
     <td>{{ label }}</td>
     <td>
         {% if code %}
-        <code>{{ code }}</code>
+        <pre><code class="language-json">{{ code }}</code></pre>
         {% else %}
         Unknown
         {% endif %}
@@ -136,8 +136,8 @@
         {{ table_kv_contact(host.contact) }}
         {{ table_kv_text("OS", host.os) }}
         {{ table_kv_code("WebDAV", host.webdav) }}
-        {{ table_kv_code("VHosts", host.vhosts|string) }}
-        {{ table_kv_code("File Servers", host.fileservers|string) }}
+        {{ table_kv_code("VHosts", host.vhosts|json) }}
+        {{ table_kv_code("File Servers", host.fileservers|json) }}
         {{ table_kv_db(host.databases) }}
         {{ table_kv_alerts(host.alerts) }}
         {{ table_kv_packages(host.packages) }}
