@@ -18,14 +18,14 @@ def serialize_output(output: HostOutput) -> dict:
         "host": output.host,
         "exception": str(output.exception) if output.exception else None,
         "exit_code": output.exit_code,
-        "stdout": "\n".join(list(output.stdout)),
-        "stderr": "\n".join(list(output.stderr)),
+        "stdout": "\n".join(list(output.stdout)) if output.stdout else None,
+        "stderr": "\n".join(list(output.stderr)) if output.stderr else None,
     }
 
 
 def collect_outputs(fact_name: str, ts: datetime, cmd: str) -> list[dict]:
     fact_meta = {"name": fact_name, "scan": ts}
-    outs = PSSH_CLIENT.run_command(cmd)
+    outs = PSSH_CLIENT.run_command(cmd, stop_on_errors=False, read_timeout=10)
     PSSH_CLIENT.join(outs)
     return [{**fact_meta, **serialize_output(out)} for out in outs]
 
@@ -35,6 +35,7 @@ def parse_row_data(row) -> facts.SshFact | FactError:
     try:
         return cls.from_stdout(row["stdout"].split("\n"))
     except Exception as e:
+        logging.error(f"Error parsing {row['name']}: {e}\nData: {row}")
         return FactError(
             stdout=row["stdout"],
             stderr=row["stderr"],

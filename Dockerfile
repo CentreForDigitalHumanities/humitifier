@@ -6,11 +6,12 @@ WORKDIR /code
 COPY pyproject.toml .
 COPY readme.md .
 
+RUN poetry install --without dev
+
 COPY static/ ./static
 COPY humitifier/ ./humitifier
 COPY supabase/migrations /migrations
 
-RUN poetry install --without dev
 
 COPY entrypoint/main.py entrypoint.py
 CMD ["poetry", "run", "python", "entrypoint.py"]

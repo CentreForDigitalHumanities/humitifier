@@ -6,6 +6,7 @@ from itertools import groupby
 from humitifier import facts
 from humitifier.alerts import ALERTS
 from humitifier.config import CONFIG
+from humitifier.logging import logging
 from humitifier.utils import FactError
 
 
@@ -24,18 +25,14 @@ class Facts:
     def from_sql_rows(cls, rows):
         create_args = {}
         for row in rows:
+            name = row["name"]
             data = json.loads(row["data"])
-            if isinstance(data, dict) and set(data.keys()) == {
-                "stdout",
-                "stderr",
-                "exception",
-                "exit_code",
-                "py_exception",
-            }:
-                create_args[row["name"]] = FactError(**data)
-            else:
-                parser = getattr(facts, row["name"])
-                create_args[row["name"]] = parser.from_sql(data)
+            try:
+                parser = getattr(facts, name)
+                create_args[name] = parser.from_sql(data)
+            except Exception as e:
+                logging.error(f"Error parsing {name}: {e}")
+                create_args[name] = FactError(**data)
         return cls(**create_args)
 
 

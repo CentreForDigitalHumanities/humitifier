@@ -290,6 +290,7 @@ class Users(list[User]):
 
     @classmethod
     def from_sql(cls, sql_data) -> "Users":
+        print(sql_data)
         return cls([User(**user) for user in sql_data])
 
     def to_sql(self):
