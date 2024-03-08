@@ -1,0 +1,19 @@
+{% import "components.jinja2" as comp %}
+{% extends "base.jinja2" %}
+{% block content %}
+
+<section id="host-filters">
+    {{ comp.host_filter_form(filters) }}
+</section>
+
+<section id="hosts-summary">
+    {{ comp.stat_box("Hosts", current_hosts|length, "ok") }}
+    {{ comp.stat_box("Critical", critical_count, "critical", "severity=critical") }}
+    {{ comp.stat_box("Warning", warning_count, "warning", "severity=warning") }}
+    {{ comp.stat_box("Info", info_count, "info", "severity=info")}}
+</section>
+
+<section id="host-table">
+    {{ comp.table_host_list(current_hosts) }}
+</section>
+{% endblock %}
