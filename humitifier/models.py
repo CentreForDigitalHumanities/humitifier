@@ -20,6 +20,7 @@ class Facts:
     PackageList: facts.PackageList | FactError
     Uptime: facts.Uptime | FactError
     Users: facts.Users | FactError
+    PuppetAgentStatus: facts.PuppetAgentStatus | FactError
 
     @classmethod
     def from_sql_rows(cls, rows):

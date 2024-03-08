@@ -2,7 +2,7 @@ import json
 from dataclasses import asdict, dataclass
 from datetime import timedelta
 
-from humitifier.utils import ssh_command, FactError
+from humitifier.utils import ssh_command
 
 
 @dataclass
@@ -290,12 +290,28 @@ class Users(list[User]):
 
     @classmethod
     def from_sql(cls, sql_data) -> "Users":
-        print(sql_data)
         return cls([User(**user) for user in sql_data])
 
     def to_sql(self):
         return [asdict(user) for user in self]
 
 
-SshFact = Blocks | Groups | HostMeta | HostnameCtl | Memory | PackageList | Uptime | Users
-SSH_FACTS = [Blocks, Groups, HostMeta, HostnameCtl, Memory, PackageList, Uptime, Users]
+@ssh_command("test -f /opt/puppetlabs/puppet/cache/state/agent_disabled.lock && echo true || echo false")
+@dataclass
+class PuppetAgentStatus:
+    disabled: bool
+
+    @classmethod
+    def from_stdout(cls, output: list[str]) -> "PuppetAgentStatus":
+        return cls(disabled=output[0].strip() == "true")
+
+    @classmethod
+    def from_sql(cls, sql_data) -> "PuppetAgentStatus":
+        return cls(**sql_data)
+
+    def to_sql(self):
+        return asdict(self)
+
+
+SshFact = Blocks | Groups | HostMeta | HostnameCtl | Memory | PackageList | Uptime | Users | PuppetAgentStatus
+SSH_FACTS = [Blocks, Groups, HostMeta, HostnameCtl, Memory, PackageList, Uptime, Users, PuppetAgentStatus]
