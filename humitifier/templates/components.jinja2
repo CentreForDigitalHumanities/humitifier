@@ -25,8 +25,9 @@
     {% for f in filters%}
     {% if f.typ == 'search'%}
     {{ search_input(f.id, f.label, f.options, f.value) }}
-    {% else %}
+    {% elif f.typ == 'select' %}
     {{ select_input(f.id, f.label, f.options, f.value) }}
+    {% else %}
     {% endif %}
     {% endfor %}
     <button type="submit">Filter</button>

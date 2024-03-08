@@ -23,7 +23,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @dataclass
 class Filter:
-    typ: Literal["search", "select"]
+    typ: Literal["search", "select", "hidden"]
     id: str
     label: str
     options: set[str]
@@ -80,6 +80,14 @@ def _host_filters(request: Request, all_hosts: list[Host]) -> list[Filter]:
             options={pkg.name for h in all_hosts for pkg in h.packages or []},
             value=request.query_params.get("package"),
             fn=lambda h, p: not p.get("package") or p.get("package") in {pkg.name for pkg in h.packages},
+        ),
+        Filter(
+            typ="hidden",
+            id="severity",
+            label="Severity",
+            options={"info", "warning", "critical"},
+            value=request.query_params.get("severity"),
+            fn=lambda h, p: not p.get("severity") or p.get("severity") == h.severity,
         ),
     ]
 
