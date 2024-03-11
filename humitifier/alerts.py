@@ -1,6 +1,5 @@
 from typing import Literal
 from humitifier.facts import SSH_FACTS
-from humitifier.utils import FactError
 
 SEVERITY = Literal["info", "warning", "critical"]
 

@@ -7,6 +7,7 @@ from pssh.clients.native import ParallelSSHClient
 from humitifier.logging import logging
 
 CONF_FILE = os.environ.get("HUMITIFIER_CONFIG", ".local/app_config.toml")
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -24,7 +25,7 @@ class Config:
 
         inventory_set = set(data["inventory"])
         if len(inventory_set) != len(data["inventory"]):
-            logging.warning("Duplicate entries in inventory")
+            logger.warning("Duplicate entries in inventory")
         data["inventory"] = list(inventory_set)
         return cls(**data)
 

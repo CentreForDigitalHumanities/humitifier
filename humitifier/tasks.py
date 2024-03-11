@@ -10,6 +10,8 @@ from humitifier.config import CONFIG, PSSH_CLIENT
 from humitifier.logging import logging
 from humitifier.utils import FactError
 
+logger = logging.getLogger(__name__)
+
 app = Rocketry(execution="async")
 
 
@@ -35,7 +37,7 @@ def parse_row_data(row) -> facts.SshFact | FactError:
     try:
         return cls.from_stdout(row["stdout"].split("\n"))
     except Exception as e:
-        logging.error(f"Error parsing {row['name']}: {e}\nData: {row}")
+        logger.warning(f"Error parsing {row['name']}: {e}\nData: {row}")
         return FactError(
             stdout=row["stdout"],
             stderr=row["stderr"],
@@ -48,7 +50,7 @@ def parse_row_data(row) -> facts.SshFact | FactError:
 @app.task(hourly)
 async def sync_hosts():
     time.sleep(2)
-    logging.info("Syncing hosts")
+    logger.info("Syncing hosts")
     conn = await asyncpg.connect(CONFIG.db)
     await conn.execute("""SELECT sync_hosts($1)""", CONFIG.inventory)
     await conn.close()
@@ -56,7 +58,7 @@ async def sync_hosts():
 
 @app.task(after_success(sync_hosts))
 async def scan_hosts():
-    logging.info("Initiating scan of hosts")
+    logger.info("Initiating scan of hosts")
     ts = datetime.now()
     conn = await asyncpg.connect(CONFIG.db)
     await conn.execute("""INSERT INTO scans(ts) VALUES ($1)""", ts)
@@ -64,7 +66,7 @@ async def scan_hosts():
     fact_outputs = []
 
     for fact in facts.SSH_FACTS:
-        logging.info(f"Querying {fact.__name__}...")
+        logger.info(f"Querying {fact.__name__}...")
         fact_outputs.extend(collect_outputs(fact.__name__, ts, fact.cmd))
     await conn.executemany(
         """INSERT INTO host_outputs(name, host, scan, stdout, stderr, exception, exit_code) 
@@ -87,7 +89,7 @@ async def scan_hosts():
 
 @app.task(after_success(scan_hosts))
 async def parse_facts():
-    logging.info("Parsing facts")
+    logger.info("Parsing facts")
     conn = await asyncpg.connect(CONFIG.db)
     rows = await conn.fetch("""SELECT name, host, scan, stdout, stderr, exception, exit_code FROM host_outputs""")
     parsed_rows = [(row["name"], row["host"], row["scan"], parse_row_data(row)) for row in rows]

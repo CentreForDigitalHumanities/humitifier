@@ -9,6 +9,8 @@ from humitifier.config import CONFIG
 from humitifier.logging import logging
 from humitifier.utils import FactError
 
+logger = logging.getLogger(__name__)
+
 
 @dataclass
 class Facts:
@@ -32,7 +34,7 @@ class Facts:
                 parser = getattr(facts, name)
                 create_args[name] = parser.from_sql(data)
             except Exception as e:
-                logging.error(f"Error parsing {name}: {e}")
+                logger.info(f"Error parsing {name}: {e}")
                 create_args[name] = FactError(**data)
         return cls(**create_args)
 
