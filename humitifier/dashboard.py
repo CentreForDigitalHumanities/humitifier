@@ -34,12 +34,13 @@ class Filter:
 
 
 def _host_filters(request: Request, all_hosts: list[Host]) -> list[Filter]:
+
     return [
         Filter(
             typ="search",
             id="fqdn",
             label="Search Hosts",
-            options={h.fqdn for h in all_hosts},
+            options={str(h.fqdn) for h in all_hosts},
             value=request.query_params.get("fqdn"),
             fn=lambda h, p: not p.get("fqdn") or p.get("fqdn") in h.fqdn,
         ),
@@ -47,7 +48,7 @@ def _host_filters(request: Request, all_hosts: list[Host]) -> list[Filter]:
             typ="select",
             id="os",
             label="Operating System",
-            options={h.os for h in all_hosts},
+            options={str(h.os) for h in all_hosts},
             value=request.query_params.get("os"),
             fn=lambda h, p: not p.get("os") or p.get("os") == h.os,
         ),
@@ -63,7 +64,7 @@ def _host_filters(request: Request, all_hosts: list[Host]) -> list[Filter]:
             typ="select",
             id="department",
             label="Department",
-            options={h.department for h in all_hosts},
+            options={str(h.department) for h in all_hosts},
             value=request.query_params.get("department"),
             fn=lambda h, p: not p.get("department") or p.get("department") == h.department,
         ),
@@ -71,7 +72,7 @@ def _host_filters(request: Request, all_hosts: list[Host]) -> list[Filter]:
             typ="select",
             id="contact",
             label="Contact",
-            options={h.contact for h in all_hosts},
+            options={str(h.contact) for h in all_hosts},
             value=request.query_params.get("contact"),
             fn=lambda h, p: not p.get("contact") or p.get("contact") == h.contact,
         ),
