@@ -15,7 +15,7 @@ def has_fact_error(host):
 
 def puppet_agent_disabled(host):
     """Puppet agent is disabled"""
-    if getattr(host.facts.PuppetAgentStatus, "disabled"):
+    if getattr(host.facts.PuppetAgentStatus, "disabled", None):
         return "critical"
 
 
