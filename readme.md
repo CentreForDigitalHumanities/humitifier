@@ -49,8 +49,8 @@ In it you specify ssh configuration, inventory/database values, and task interva
 An example config:
 
 ```toml
-db = "/data/facts.db"
-inventory = "/data/inventory" # A directory with toml files with host configurations
+db = "postgresql:/..."
+inventory = ["example.com"]
 
 [pssh] # any pssh configuration to access your servers
 user = "don"
@@ -64,16 +64,8 @@ infra_update = "every 15 minutes"
 To use this config, set the environment varaible `HUMITIFIER_CONFIG` (e.g. `HUMITIFIER_CONFIG=local.toml python entrypoint/main.py`)
 
 ## Host configuration
-Host configurations are defined in `toml` as such:
+Host configurations are defined in the app config under the inventory key.
 
-```toml
-["gw-c-10yup.im.hum.uu.nl"]
-department = "Humanities"
-contact.name = "Don"
-contact.email = "blah@uu.nl"
-
-# any other metadata
-```
 
 ## Development Setup
 
@@ -95,7 +87,7 @@ Refer to the example file for a configuration.
 
 ### Running without `docker-compose`
 
-Since `humitifier` uses `sqlite` and no other services, you can also run it with docker.
+Since `humitifier` uses `postgres` and no other services, you can also run it with docker if you specify a database connection string in the config file.
 An example command: 
 
 ```bash
@@ -103,7 +95,6 @@ docker run -d -p 8000:8000 \
   -e SSH_AUTH_SOCK=/ssh-agent \
   -e HUMITIFIER_CONFIG=/code/app_config.toml \
   -v $(pwd)/app_config.toml:/code/app_config.toml \
-  -v $(pwd)/data:/data \
   -v $SSH_AUTH_SOCK:/ssh-agent \
   ghcr.io/centrefordigitalhumanities/humitifier/humitifier:latest
 ```
