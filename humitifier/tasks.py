@@ -4,7 +4,9 @@ import time
 from datetime import datetime
 from rocketry import Rocketry
 from rocketry.conds import after_success, hourly
+from pssh.clients import ParallelSSHClient
 from pssh.output import HostOutput
+from ssh2.exceptions import SocketRecvError
 from humitifier import facts
 from humitifier.config import CONFIG, PSSH_CLIENT
 from humitifier.logging import logging
@@ -13,6 +15,8 @@ from humitifier.utils import FactError
 logger = logging.getLogger(__name__)
 
 app = Rocketry(execution="async")
+
+ERR_SOCKET_RECV_ERROR = "SocketRecvError"
 
 
 def serialize_output(output: HostOutput) -> dict:
@@ -23,13 +27,6 @@ def serialize_output(output: HostOutput) -> dict:
         "stdout": "\n".join(list(output.stdout)) if output.stdout else None,
         "stderr": "\n".join(list(output.stderr)) if output.stderr else None,
     }
-
-
-def collect_outputs(fact_name: str, ts: datetime, cmd: str) -> list[dict]:
-    fact_meta = {"name": fact_name, "scan": ts}
-    outs = PSSH_CLIENT.run_command(cmd, stop_on_errors=False, read_timeout=10)
-    PSSH_CLIENT.join(outs)
-    return [{**fact_meta, **serialize_output(out)} for out in outs]
 
 
 def parse_row_data(row) -> facts.SshFact | FactError:
@@ -64,10 +61,18 @@ async def scan_hosts():
     await conn.execute("""INSERT INTO scans(ts) VALUES ($1)""", ts)
 
     fact_outputs = []
+    skip_hosts = set()
 
     for fact in facts.SSH_FACTS:
+        client = ParallelSSHClient([x for x in CONFIG.inventory if x not in skip_hosts], **CONFIG.pssh)
         logger.info(f"Querying {fact.__name__}...")
-        fact_outputs.extend(collect_outputs(fact.__name__, ts, fact.cmd))
+        fact_meta = {"name": fact.__name__, "scan": ts}
+        host_outputs = client.run_command(fact.cmd, stop_on_errors=False, read_timeout=10)
+        client.join(host_outputs)
+        for output in host_outputs:
+            if output.exception:
+                skip_hosts.add(output.host)
+            fact_outputs.append({**fact_meta, **serialize_output(output)})
     await conn.executemany(
         """INSERT INTO host_outputs(name, host, scan, stdout, stderr, exception, exit_code) 
                                 VALUES($1, $2, $3, $4, $5, $6, $7)""",
