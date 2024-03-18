@@ -34,7 +34,7 @@ def parse_row_data(row) -> facts.SshFact | FactError:
     try:
         return cls.from_stdout(row["stdout"].split("\n"))
     except Exception as e:
-        logger.warning(f"Error parsing {row['name']}: {e}\nData: {row}")
+        logger.info(f"Error parsing {row['name']}: {e}\nData: {row}")
         return FactError(
             stdout=row["stdout"],
             stderr=row["stderr"],
