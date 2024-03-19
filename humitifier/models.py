@@ -36,7 +36,19 @@ class Facts:
             except Exception as e:
                 logger.info(f"Error parsing {name}: {e}")
                 create_args[name] = FactError(**data)
-        return cls(**create_args)
+        try:
+            return cls(**create_args)
+        except TypeError:
+            not_collected_fact_err = FactError(
+                stdout="",
+                stderr="",
+                exception="",
+                exit_code=0,
+                py_excpetion="Fact Not Collected",
+            )
+            err_args_base = {k: not_collected_fact_err for k in cls.__annotations__}
+            err_args = {**err_args_base, **create_args}
+            return cls(**err_args)
 
 
 @dataclass
