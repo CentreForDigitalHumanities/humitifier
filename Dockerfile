@@ -1,17 +1,25 @@
-FROM python:3.10
-RUN pip install poetry
+FROM python:3.10 AS builder
 
-WORKDIR /code
+ENV PYTHONUNBUFFERED=1 \ 
+    PYTHONDONTWRITEBYTECODE=1 
 
-COPY pyproject.toml .
-COPY readme.md .
+RUN pip install poetry && poetry config virtualenvs.in-project true
+
+WORKDIR /app
+
+COPY pyproject.toml poetry.lock ./
+COPY humitifier/ ./humitifier
 
 RUN poetry install --without dev
 
-COPY static/ ./static
-COPY humitifier/ ./humitifier
+FROM python:3.10-slim
+
+WORKDIR /app
+
+COPY --from=builder /app .
+COPY static/ static
 COPY supabase/migrations /migrations
-
-
 COPY entrypoint/main.py entrypoint.py
-CMD ["poetry", "run", "python", "entrypoint.py"]
+
+CMD ["/app/.venv/bin/python", "entrypoint.py"]
+
