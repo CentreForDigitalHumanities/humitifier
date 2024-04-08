@@ -1,9 +1,9 @@
 [tool.poetry]
 name = "humitifier"
-version = "0.1.0"
+version = "2.0.5"
 description = "Tools and interfaces for displaying server resources"
 authors = ["Donatas Rasiukevicius <d.rasiukevicius@uu.nl>"]
-readme = "readme.md"
+
 
 [tool.poetry.dependencies]
 python = "^3.10"
@@ -14,7 +14,7 @@ toml = "^0.10.2"
 parallel-ssh = "^2.12.0"
 rocketry = "^2.5.1"
 asyncpg = "^0.29.0"
-sentry-sdk = {extras = ["fastapi"], version = "^1.41.0"}
+sentry-sdk = { extras = ["fastapi"], version = "^1.41.0" }
 
 
 [tool.poetry.group.dev.dependencies]
