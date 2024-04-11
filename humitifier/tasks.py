@@ -8,7 +8,7 @@ from pssh.clients import ParallelSSHClient
 from pssh.output import HostOutput
 from ssh2.exceptions import SocketRecvError
 from humitifier import facts
-from humitifier.config import CONFIG, PSSH_CLIENT
+from humitifier.config import CONFIG, PSSH_CLIENT, Config
 from humitifier.logging import logging
 from humitifier.utils import FactError
 
@@ -48,8 +48,9 @@ def parse_row_data(row) -> facts.SshFact | FactError:
 async def sync_hosts():
     time.sleep(2)
     logger.info("Syncing hosts")
+    cfg = Config.load()  # Reload the config with latest inventory
     conn = await asyncpg.connect(CONFIG.db)
-    await conn.execute("""SELECT sync_hosts($1)""", CONFIG.inventory)
+    await conn.execute("""SELECT sync_hosts($1)""", cfg.inventory)
     await conn.close()
 
 
@@ -62,9 +63,11 @@ async def scan_hosts():
 
     fact_outputs = []
     skip_hosts = set()
+    hosts = await conn.fetch("SELECT fqdn FROM hosts")
+    hosts = [host["fqdn"] for host in hosts]
 
     for fact in facts.SSH_FACTS:
-        client = ParallelSSHClient([x for x in CONFIG.inventory if x not in skip_hosts], **CONFIG.pssh)
+        client = ParallelSSHClient([x for x in hosts if x not in skip_hosts], **CONFIG.pssh)
         logger.info(f"Querying {fact.__name__}...")
         fact_meta = {"name": fact.__name__, "scan": ts}
         host_outputs = client.run_command(fact.cmd, stop_on_errors=False, read_timeout=10)
