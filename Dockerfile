@@ -1,4 +1,4 @@
-FROM python:3.10 AS builder
+FROM python:3.11.9 AS builder
 
 ENV PYTHONUNBUFFERED=1 \ 
     PYTHONDONTWRITEBYTECODE=1 
@@ -12,7 +12,7 @@ COPY humitifier/ ./humitifier
 
 RUN poetry install --without dev
 
-FROM python:3.10-slim
+FROM python:3.11.9-slim
 
 WORKDIR /app
 
