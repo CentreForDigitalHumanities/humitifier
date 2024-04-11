@@ -3,6 +3,7 @@
 .scribble/
 __pycache__/
 static/out*
+static/index_prerender.html
 .pytest_cache/
 data/
 .hypothesis/
