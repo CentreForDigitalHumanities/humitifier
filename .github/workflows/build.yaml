@@ -47,7 +47,7 @@ jobs:
           image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.IMAGE_NAME }}:${{ github.ref_name }}
           fail-build: false
 
-      - name: upload Grype scan SARIF report
-        uses: github/codeql-action/upload-sarif@v2
+      - name: upload Grype SARIF report
+        uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
