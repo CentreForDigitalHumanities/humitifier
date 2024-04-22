@@ -47,10 +47,15 @@ def parse_row_data(row) -> facts.SshFact | FactError:
 
 @app.task(hourly)
 async def sync_hosts():
-    time.sleep(2)
+    time.sleep(1)
     logger.info("Syncing hosts")
     cfg = Config.load()  # Reload the config with latest inventory
     conn = await asyncpg.connect(CONFIG.db)
+    current_hosts = [x["fqdn"] for x in await conn.fetch("SELECT fqdn FROM hosts")]
+    if new_hosts := set(cfg.inventory) - set(current_hosts):
+        logger.warning(f"Adding new hosts: {new_hosts}")
+    if removed_hosts := set(current_hosts) - set(cfg.inventory):
+        logger.warning(f"Removing hosts: {removed_hosts}")
     await conn.execute("""SELECT sync_hosts($1)""", cfg.inventory)
     await conn.close()
 
@@ -71,7 +76,7 @@ async def scan_hosts():
         client = ParallelSSHClient([x for x in hosts if x not in skip_hosts], **CONFIG.pssh)
         logger.info(f"Querying {fact.__name__}...")
         fact_meta = {"name": fact.__name__, "scan": ts}
-        host_outputs = client.run_command(fact.cmd, stop_on_errors=False, read_timeout=10)
+        host_outputs = client.run_command(fact.cmd, stop_on_errors=False, read_timeout=7)
         client.join(host_outputs)
         for output in host_outputs:
             if output.exception:

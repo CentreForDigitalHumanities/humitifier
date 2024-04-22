@@ -2,8 +2,6 @@ import os
 import toml
 from dataclasses import dataclass
 
-from pssh.clients.native import ParallelSSHClient
-
 from humitifier.logging import logging
 
 CONF_FILE = os.environ.get("HUMITIFIER_CONFIG", ".local/app_config.toml")
@@ -31,4 +29,3 @@ class Config:
 
 
 CONFIG = Config.load()
-PSSH_CLIENT = ParallelSSHClient(CONFIG.inventory, **CONFIG.pssh)
