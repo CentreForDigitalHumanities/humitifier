@@ -45,7 +45,7 @@ def parse_row_data(row) -> facts.SshFact | FactError:
         )
 
 
-@app.task(hourly)
+# TODO: convert to endpoint
 async def sync_hosts():
     time.sleep(1)
     logger.info("Syncing hosts")
@@ -60,7 +60,7 @@ async def sync_hosts():
     await conn.close()
 
 
-@app.task(after_success(sync_hosts))
+@app.task(hourly)
 async def scan_hosts():
     logger.info("Initiating scan of hosts")
     ts = datetime.now()
