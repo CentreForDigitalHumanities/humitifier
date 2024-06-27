@@ -23,6 +23,7 @@ class Facts:
     Uptime: facts.Uptime | FactError
     Users: facts.Users | FactError
     PuppetAgentStatus: facts.PuppetAgentStatus | FactError
+    IsWordpress: facts.IsWordpress | FactError
 
     @classmethod
     def from_sql_rows(cls, rows):
@@ -109,6 +110,12 @@ class Host:
         if isinstance(fact := self.facts.HostMeta, FactError):
             return None
         return fact.databases
+
+    @property
+    def is_wp(self):
+        if isinstance(fact := self.facts.IsWordpress, FactError):
+            return None
+        return fact.is_wp
 
     @property
     def alert_codes(self):
