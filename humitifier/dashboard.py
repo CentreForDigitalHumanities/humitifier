@@ -96,6 +96,14 @@ def host_filters(request: Request | None, all_hosts: list[Host]) -> list[Filter]
             value=request.query_params.get("severity") if request else None,
             fn=lambda h, p: not p.get("severity") or p.get("severity") == h.severity,
         ),
+        Filter(
+            typ="select",
+            label="Is Wordpress",
+            id="is_wp",
+            options={"true", "false"},
+            value=request.query_params.get("is_wp") if request else None,
+            fn=lambda h, p: not p.get("is_wp") or p.get("is_wp") == str(h.is_wp).lower(),
+        ),
     ]
 
 

@@ -313,5 +313,24 @@ class PuppetAgentStatus:
         return asdict(self)
 
 
-SshFact = Blocks | Groups | HostMeta | HostnameCtl | Memory | PackageList | Uptime | Users | PuppetAgentStatus
-SSH_FACTS = [Blocks, Groups, HostMeta, HostnameCtl, Memory, PackageList, Uptime, Users, PuppetAgentStatus]
+@ssh_command("find /hum/web/ -name 'wp-config.php' -print -quit")
+@dataclass
+class IsWordpress:
+    is_wp: bool
+
+    @classmethod
+    def from_stdout(cls, output: list[str]) -> "IsWordpress":
+        return cls(is_wp=output and output[0].strip() != "")
+
+    @classmethod
+    def from_sql(cls, sql_data) -> "IsWordpress":
+        return cls(**sql_data)
+
+    def to_sql(self):
+        return asdict(self)
+
+
+SshFact = (
+    Blocks | Groups | HostMeta | HostnameCtl | Memory | PackageList | Uptime | Users | PuppetAgentStatus | IsWordpress
+)
+SSH_FACTS = [Blocks, Groups, HostMeta, HostnameCtl, Memory, PackageList, Uptime, Users, PuppetAgentStatus, IsWordpress]
