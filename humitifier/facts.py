@@ -313,7 +313,7 @@ class PuppetAgentStatus:
         return asdict(self)
 
 
-@ssh_command("find /hum/web/ -name 'wp-config.php' -print -quit")
+@ssh_command("for path in $(jq -r '.vhosts[] | to_entries[] | .value.docroot' /hum/doc/server_facts.json); do find $path -maxdepth 1 -name wp-config.php -print -quit;done")
 @dataclass
 class IsWordpress:
     is_wp: bool
