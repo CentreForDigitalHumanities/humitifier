@@ -116,6 +116,34 @@ async def parse_facts():
 
 
 @app.task(after_success(parse_facts))
+async def cleanup_db():
+    logger.info("Cleaning up the db facts")
+    conn = await asyncpg.connect(CONFIG.db)
+
+    tr = conn.transaction()
+    await tr.start()
+
+    rows = await conn.fetch("""SELECT COUNT(*) as num_facts FROM facts""")
+    num_facts = rows[0]["num_facts"]
+
+    await conn.execute("DELETE FROM facts WHERE scan <= LOCALTIMESTAMP - "
+                       "INTERVAL '7 days';")
+
+    rows = await conn.fetch("""SELECT COUNT(*) as num_facts FROM facts""")
+    num_facts_after = rows[0]["num_facts"]
+
+    if num_facts_after != 0 and num_facts_after < num_facts:
+        tr.commit()
+        logger.info(f"Deleted {num_facts - num_facts_after} facts")
+    else:
+        tr.rollback()
+        logger.error("Failed to delete old facts, suspiciously number facts "
+                     "left")
+
+    await conn.close()
+
+
+@app.task(after_success(cleanup_db))
 async def pre_render_index():
     logger.info("Pre-rendering index")
     template = template_env.get_template("page_index.jinja2")
