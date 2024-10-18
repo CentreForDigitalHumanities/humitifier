@@ -13,9 +13,7 @@ from humitifier.logging import logging
 from humitifier.utils import FactError
 from humitifier.models import get_hosts
 
-logger = logging.getLogger(__name__)
-log_handler = logging.StreamHandler()
-logger.addHandler(log_handler)
+logger = logging.getLogger('rocketry.task')
 
 app = Rocketry(execution="async")
 
