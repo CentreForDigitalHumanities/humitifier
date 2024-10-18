@@ -14,6 +14,8 @@ from humitifier.utils import FactError
 from humitifier.models import get_hosts
 
 logger = logging.getLogger(__name__)
+log_handler = logging.StreamHandler()
+logger.addHandler(log_handler)
 
 app = Rocketry(execution="async")
 
@@ -133,10 +135,10 @@ async def cleanup_db():
     num_facts_after = rows[0]["num_facts"]
 
     if num_facts_after != 0 and num_facts_after < num_facts:
-        tr.commit()
+        await tr.commit()
         logger.info(f"Deleted {num_facts - num_facts_after} facts")
     else:
-        tr.rollback()
+        await tr.rollback()
         logger.error("Failed to delete old facts, suspiciously number facts "
                      "left")
 
