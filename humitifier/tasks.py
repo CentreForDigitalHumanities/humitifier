@@ -139,13 +139,16 @@ async def cleanup_db():
     rows = await conn.fetch("""SELECT COUNT(*) as num_facts FROM facts""")
     num_facts_after = rows[0]["num_facts"]
 
-    if num_facts_after != 0 and num_facts_after < num_facts:
+    if num_facts_after != 0:
         await tr.commit()
         logger.info(f"Deleted {num_facts - num_facts_after} facts")
     else:
         await tr.rollback()
-        logger.error("Failed to delete old facts, suspiciously number facts "
-                     "left")
+        logger.error(
+            "Failed to delete old facts, suspicious number of facts left"
+        )
+
+    await conn.execute("VACUUM;")
 
     await conn.close()
 
