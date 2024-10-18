@@ -1,3 +1,5 @@
+from sys import stdout
+
 import asyncpg
 import json
 import time
@@ -13,7 +15,11 @@ from humitifier.logging import logging
 from humitifier.utils import FactError
 from humitifier.models import get_hosts
 
-logger = logging.getLogger('rocketry.task')
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+log_handler = logging.StreamHandler(stdout)
+log_handler.setLevel(logging.INFO)
+logger.addHandler(log_handler)
 
 app = Rocketry(execution="async")
 
@@ -62,6 +68,7 @@ async def sync_hosts():
 
 @app.task(hourly)
 async def scan_hosts():
+    app.session
     logger.info("Initiating scan of hosts")
     ts = datetime.now()
     conn = await asyncpg.connect(CONFIG.db)
