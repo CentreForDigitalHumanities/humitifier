@@ -10,10 +10,8 @@ from pssh.clients import ParallelSSHClient
 from pssh.output import HostOutput
 from humitifier import facts
 from humitifier.config import CONFIG, Config
-from humitifier.dashboard import template_env, host_filters
 from humitifier.logging import logging
 from humitifier.utils import FactError
-from humitifier.models import get_hosts
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
@@ -68,7 +66,6 @@ async def sync_hosts():
 
 @app.task(hourly)
 async def scan_hosts():
-    app.session
     logger.info("Initiating scan of hosts")
     ts = datetime.now()
     conn = await asyncpg.connect(CONFIG.db)
@@ -151,20 +148,3 @@ async def cleanup_db():
     await conn.execute("VACUUM;")
 
     await conn.close()
-
-
-@app.task(after_success(cleanup_db))
-async def pre_render_index():
-    logger.info("Pre-rendering index")
-    template = template_env.get_template("page_index.jinja2")
-    hosts = await get_hosts()
-    filters = host_filters(None, hosts)
-    html = template.render(
-        current_hosts=hosts,
-        critical_count=len([h for h in hosts if h.severity == "critical"]),
-        warning_count=len([h for h in hosts if h.severity == "warning"]),
-        info_count=len([h for h in hosts if h.severity == "info"]),
-        filters=filters,
-    )
-    with open("static/index_prerender.html", "w") as out:
-        out.write(html)
