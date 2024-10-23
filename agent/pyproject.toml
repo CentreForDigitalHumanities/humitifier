@@ -6,7 +6,7 @@ authors = ["Donatas Rasiukevicius <d.rasiukevicius@uu.nl>"]
 
 
 [tool.poetry.dependencies]
-python = "^3.10"
+python = "~3.11"
 toml = "^0.10.2"
 parallel-ssh = "^2.12.0"
 rocketry = "^2.5.1"
