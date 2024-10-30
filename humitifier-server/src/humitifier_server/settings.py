@@ -124,7 +124,7 @@ _https_enabled = env.get_boolean("DJANGO_HTTPS", default=False)
 X_FRAME_OPTIONS = "DENY"
 SECURE_SSL_REDIRECT = _https_enabled
 SECURE_REDIRECT_EXEMPT = [
-    r'^api/upload-scans/$'
+    r'^api/upload_scans/$'
 ]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
