@@ -1,0 +1,30 @@
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DJANGO_DEBUG=true
+      - DJANGO_ALLOWED_HOSTS=localhost
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_HOST=server-db
+      - POSTGRES_PORT=5432
+      - DJANGO_HTTPS=false
+      - SESSION_COOKIE_DOMAIN=localhost
+    depends_on:
+      - server-db
+
+  server-db:
+    image: postgres:15
+    ports:
+      - "6432:5432"
+    expose:
+      - "5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
