@@ -9,7 +9,7 @@ on:
 env:
   IMAGE_NAME: humitifier
   DOCKERFILE_PATH: ./agent/Dockerfile
-  PATH: ./agent
+  CONTEXT_PATH: ./agent
 
 jobs:
   build-and-push:
@@ -28,7 +28,7 @@ jobs:
       - name: Build and push main image
         uses: docker/build-push-action@v6
         with:
-          context: ${{ env.PATH }}
+          context: ${{ env.CONTEXT_PATH }}
           file: ${{ env.DOCKERFILE_PATH }}
           push: true
           tags: |
