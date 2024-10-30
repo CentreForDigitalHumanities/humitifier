@@ -17,7 +17,6 @@ FROM python:3.11.9-slim
 WORKDIR /app
 
 COPY --from=builder /app .
-COPY static/ static
 COPY supabase/migrations /migrations
 COPY entrypoint/main.py entrypoint.py
 
