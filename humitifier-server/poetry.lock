@@ -413,13 +413,13 @@ django = ">=4.2"
 
 [[package]]
 name = "faker"
-version = "30.8.0"
+version = "30.8.1"
 description = "Faker is a Python package that generates fake data for you."
 optional = false
 python-versions = ">=3.8"
 files = [
-    {file = "Faker-30.8.0-py3-none-any.whl", hash = "sha256:4cd0c5ea4bc1e4c902967f6e662f5f5da69f1674d9a94f54e516d27f3c2a6a16"},
-    {file = "faker-30.8.0.tar.gz", hash = "sha256:3608c7fcac2acde0eaa6da28dae97628f18f14d54eaa2a92b96ae006f1621bd7"},
+    {file = "Faker-30.8.1-py3-none-any.whl", hash = "sha256:4f7f133560b9d4d2a915581f4ba86f9a6a83421b89e911f36c4c96cff58135a5"},
+    {file = "faker-30.8.1.tar.gz", hash = "sha256:93e8b70813f76d05d98951154681180cb795cfbcff3eced7680d963bcc0da2a9"},
 ]
 
 [package.dependencies]
@@ -511,6 +511,27 @@ files = [
 [package.extras]
 docs = ["Sphinx", "furo"]
 test = ["objgraph", "psutil"]
+
+[[package]]
+name = "gunicorn"
+version = "23.0.0"
+description = "WSGI HTTP Server for UNIX"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "gunicorn-23.0.0-py3-none-any.whl", hash = "sha256:ec400d38950de4dfd418cff8328b2c8faed0edb0d517d3394e457c317908ca4d"},
+    {file = "gunicorn-23.0.0.tar.gz", hash = "sha256:f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec"},
+]
+
+[package.dependencies]
+packaging = "*"
+
+[package.extras]
+eventlet = ["eventlet (>=0.24.1,!=0.36.0)"]
+gevent = ["gevent (>=1.4.0)"]
+setproctitle = ["setproctitle"]
+testing = ["coverage", "eventlet", "gevent", "pytest", "pytest-cov"]
+tornado = ["tornado (>=0.2)"]
 
 [[package]]
 name = "idna"
@@ -608,7 +629,7 @@ type = ["mypy (>=1.11.2)"]
 name = "psycopg2"
 version = "2.9.10"
 description = "psycopg2 - Python-PostgreSQL Database Adapter"
-optional = true
+optional = false
 python-versions = ">=3.8"
 files = [
     {file = "psycopg2-2.9.10-cp310-cp310-win32.whl", hash = "sha256:5df2b672140f95adb453af93a7d669d7a7bf0a56bcd26f1502329166f4a61716"},
@@ -834,7 +855,21 @@ files = [
     {file = "wcwidth-0.2.13.tar.gz", hash = "sha256:72ea0c06399eb286d978fdedb6923a9eb47e1c486ce63e9b4e64fc18303972b5"},
 ]
 
+[[package]]
+name = "whitenoise"
+version = "6.8.2"
+description = "Radically simplified static file serving for WSGI applications"
+optional = false
+python-versions = ">=3.9"
+files = [
+    {file = "whitenoise-6.8.2-py3-none-any.whl", hash = "sha256:df12dce147a043d1956d81d288c6f0044147c6d2ab9726e5772ac50fb45d2280"},
+    {file = "whitenoise-6.8.2.tar.gz", hash = "sha256:486bd7267a375fa9650b136daaec156ac572971acc8bf99add90817a530dd1d4"},
+]
+
+[package.extras]
+brotli = ["brotli"]
+
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "add815003ea81e8541d45420ec291a8e9a4d946acb4013db84acb90c897971e3"
+content-hash = "47c8c54a6d5ace32fb3719706a80127eaaa42914338ff460231a051701ae2655"

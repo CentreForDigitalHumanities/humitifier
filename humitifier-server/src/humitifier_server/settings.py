@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+from . import env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,17 +21,20 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = "django-insecure-ffdjavjsp%s%b069$aai#h7odtbd#!q8uu7=hn1tv&y$gdq17_"
+SECRET_KEY = env.get(
+    "DJANGO_SECRET_KEY",
+    "django-insecure-ffdjavjsp%s%b069$aai#h7odtbd#!q8uu7=hn1tv&y$gdq17_"
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = env.get_boolean("DJANGO_DEBUG", False)
 
 ALLOWED_HOSTS = []
-INTERNAL_IPS = [
-    # ...
-    "127.0.0.1",
-    # ...
-]
+INTERNAL_IPS = ["127.0.0.1",]
+
+_env_hosts = env.get("DJANGO_ALLOWED_HOSTS", default=None)
+if _env_hosts:
+    ALLOWED_HOSTS += _env_hosts.split(",")
 
 
 # Application definition
@@ -58,6 +62,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -103,14 +108,61 @@ AUTH_USER_MODEL = "main.User"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": "postgres",
-        "USER": "postgres",
-        "PASSWORD": "postgres",
-        "HOST": "127.0.0.1",
-        "PORT": "6432",
+        "NAME": env.get("POSTGRES_DB", default="postgres"),
+        "USER": env.get("POSTGRES_USER", default="postgres"),
+        "PASSWORD": env.get("POSTGRES_PASSWORD", default="postgres"),
+        "HOST": env.get("POSTGRES_HOST", default="127.0.0.1"),
+        "PORT": env.get("POSTGRES_PORT", default="5432"),
     }
 }
 
+
+# Security
+
+_https_enabled = env.get_boolean("DJANGO_HTTPS", default=False)
+
+X_FRAME_OPTIONS = "DENY"
+SECURE_SSL_REDIRECT = _https_enabled
+
+SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+
+SESSION_COOKIE_SECURE = _https_enabled
+CSRF_COOKIE_SECURE = _https_enabled
+# Needed to work in kubernetes, as the app may be behind a proxy/may not know it's
+# own domain
+SESSION_COOKIE_DOMAIN = env.get("SESSION_COOKIE_DOMAIN", default=None)
+CSRF_COOKIE_DOMAIN = env.get("CSRF_COOKIE_DOMAIN", default=None)
+SESSION_COOKIE_NAME = env.get("SESSION_COOKIE_NAME",
+                              default="humitifier_sessionid")
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 hours
+
+CSRF_TRUSTED_ORIGINS = [
+    f"http{'s' if _https_enabled else ''}://{host}" for host in ALLOWED_HOSTS
+]
+
+# Logging
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {
+            "class": "logging.StreamHandler",
+        },
+    },
+    "root": {
+        "handlers": ["console"],
+        "level": env.get("LOG_LEVEL", default="INFO"),
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console"],
+            "level": env.get("DJANGO_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+    },
+}
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -152,3 +204,13 @@ STATIC_URL = "static/"
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Whitenoise
+
+STATIC_ROOT = BASE_DIR / "static"
+
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
