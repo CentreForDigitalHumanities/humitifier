@@ -1,0 +1,80 @@
+{% load static %}
+{% load humanize %}
+{% load simple_menu %}
+
+<aside class="fixed top-0 left-0 z-40 w-72 h-screen transition-transform -translate-x-full md:translate-x-0 bg-black text-white" x-bind:class="show_sidebar ? 'translate-x-0' : ''">
+    <div class="md:hidden cursor-pointer p-4 flex justify-end" @click="show_sidebar = false">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+        </svg>
+    </div>
+
+    <section class="w-100 p-4 flex items-center gap-4">
+        {% if layout.wild_wasteland %}
+            <img src="https://upload.wikimedia.org/wikipedia/commons/9/95/Cat_python.png" alt="By Victor Alfredo Torres Ramirez, CC BY-SA 4.0 <https://creativecommons.org/licenses/by-sa/4.0>, via Wikimedia Commons" class="h-14">
+        {% else %}
+            <img src="{% static 'main/img/cm_hs_avatar_corporate.png' %}" alt="Utrecht University" class="h-14">
+        {% endif %}
+        <div>
+            <div class="text-2xl font-bold">Humitifier</div>
+            <div class="text-sm italic">{{ layout.tag_line }}</div>
+        </div>
+    </section>
+
+    {% if debug %}
+        <div class="bg-red-700 px-3 py-2 my-2 text-center text-white font-bold">
+            DEBUG MODE
+        </div>
+    {% endif %}
+
+    <div class="flex justify-between px-4 font-semibold">
+        <a class="text-green-600 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}">
+            {% with stroke="stroke-2" %}
+                {% include 'icons/host.html' %}
+            {% endwith %}
+            {{ layout.num_hosts|intcomma }}
+        </a>
+        <a class="text-blue-300 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_level=info">
+            {% include 'icons/info.html' %}
+            {{ layout.num_info_alerts|intcomma }}
+        </a>
+        <a class="text-orange-500 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_level=warning">
+            {% include 'icons/warning.html' %}
+            {{ layout.num_warning_alerts|intcomma }}
+        </a>
+        <a class="text-red-500 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_level=critical">
+            {% include 'icons/critical.html' %}
+            {{ layout.num_critical_alerts|intcomma }}
+        </a>
+    </div>
+    <section class="p-3 overflow-y-auto">
+        <ul class="space-y-2">
+            {% block menu %}
+            {% generate_menu %}
+                {% for item in menus.main %}
+                    {% if item.visible %}
+                        {% if item.separator %}
+                            <li class="px-3 py-2">
+                                <div class="border-t w-full border-gray-700"></div>
+                            </li>
+                        {% endif %}
+                        <li>
+                            <a
+                                href="{{ item.url }}"
+                                class="flex gap-3 py-2 px-3 text-white hover:bg-neutral-800 rounded transition ease-in-out duration-150 {% if item.selected %}bg-neutral-800{% endif %}"
+                            >
+                            {% if item.icon %}
+                                {% include item.icon %}
+                            {% endif %}
+                                <span>
+                                    {{ item.title }}
+                                </span>
+                            </a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            {% endblock %}
+        </ul>
+
+    </section>
+</aside>

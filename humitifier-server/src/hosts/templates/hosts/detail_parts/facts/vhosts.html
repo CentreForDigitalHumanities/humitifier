@@ -1,0 +1,13 @@
+{% load host_tags %}
+
+<div class="section">
+    <div class="font-bold text-xl mb-4">vHosts</div>
+    <div class="grid grid-cols-[1fr_2fr]">
+        {% for vhost in scan_data.HostMeta.vhosts %}
+            {% for label, data in vhost.items %}
+                <span>{{ label }}</span>
+                <span class="italic">{{ data.docroot }}</span>
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>

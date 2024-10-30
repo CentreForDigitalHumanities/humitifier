@@ -1,0 +1,151 @@
+{% load host_tags %}
+
+<div class="section">
+    <div class="font-bold text-xl mb-4">Host Metadata</div>
+
+    {# Begin HostnameCTL #}
+    <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2">
+
+        <div class="font-semibold">Hostname</div>
+        <div>
+            {% if scan_data.HostnameCtl.hostname %}
+                {{ scan_data.HostnameCtl.hostname }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        <div class="font-semibold">Operating system</div>
+        <div>
+            {% if scan_data.HostnameCtl.os %}
+                {{ scan_data.HostnameCtl.os }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        <div class="font-semibold">CPE OS Name</div>
+        <div>
+            {% if scan_data.HostnameCtl.cpe_os_name %}
+                {{ scan_data.HostnameCtl.cpe_os_name }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        <div class="font-semibold">Kernel</div>
+        <div>
+            {% if scan_data.HostnameCtl.kernel %}
+                {{ scan_data.HostnameCtl.kernel }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        <div class="font-semibold">Virtualization</div>
+        <div>
+            {% if scan_data.HostnameCtl.virtualization %}
+                {{ scan_data.HostnameCtl.virtualization }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        {# END HostnameCTL #}
+        {# BEGIN Puppet agent #}
+
+        <div class="font-semibold">Puppet agent status</div>
+        <div class="flex">
+            {% if scan_data.PuppetAgentStatus.disabled is not None %}
+                {% if scan_data.PuppetAgentStatus.disabled %}
+                    <div class="bg-red-400 dark:bg-red-700 py-0.5 px-2 rounded">Disabled</div>
+                {% else %}
+                    <div class="bg-green-400 dark:bg-green-700 py-0.5 px-2 rounded">Enabled</div>
+                {% endif %}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        {# END Puppet agent #}
+        {# BEGIN Uptime #}
+
+        <div class="font-semibold">Uptime</div>
+        <div class="flex">
+            {% if scan_data.Uptime is not None %}
+                {{ scan_data.Uptime|uptime:current_scan_date }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        {# END Uptime #}
+        {# BEGIN HostMeta #}
+
+        <div class="font-semibold">Department</div>
+        <div>
+            {% if scan_data.HostMeta.department %}
+                {{ scan_data.HostMeta.department }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        <div class="font-semibold">Contact</div>
+        <div>
+            {% if scan_data.HostMeta.contact %}
+                {{ scan_data.HostMeta.contact }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        <div class="font-semibold">Update policy</div>
+        <div class="flex gap-2">
+            {% if scan_data.HostMeta.update_policy %}
+                {% if scan_data.HostMeta.update_policy.enable %}
+                    <div class="bg-green-400 dark:bg-green-700 py-0.5 px-2 rounded">Enabled</div>
+                {% else %}
+                    <div class="bg-red-400 dark:bg-red-700 py-0.5 px-2 rounded">Not enabled</div>
+                {% endif %}
+                {% if scan_data.HostMeta.update_policy.apply_updates %}
+                    <div class="bg-green-400 dark:bg-green-700 py-0.5 px-2 rounded">Applied</div>
+                {% else %}
+                    <div class="bg-red-400 dark:bg-red-700 py-0.5 px-2 rounded">Not applied</div>
+                {% endif %}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+
+        <div class="font-semibold">WebDav</div>
+        <div>
+            {% if scan_data.HostMeta.webdav %}
+                {{ scan_data.HostMeta.webdav }}
+            {% else %}
+                <div class="text-gray-500">Unknown/none</div>
+            {% endif %}
+        </div>
+
+        <div class="font-semibold">Fileservers</div>
+        <div>
+            {% if scan_data.HostMeta.fileservers %}
+                <ul>
+                    {% for fileserver in scan_data.HostMeta.fileservers %}
+                        <li>{{ fileserver }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="text-gray-500">Unknown/none</div>
+            {% endif %}
+        </div>
+        <div class="font-semibold">Is wordpress?</div>
+        <div>
+            {% if scan_data.IsWordpress is not None %}
+                {{ scan_data.IsWordpress.is_wp|yesno:"Yes,No" }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+    </div>
+</div>

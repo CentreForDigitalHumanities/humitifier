@@ -1,0 +1,20 @@
+services:
+  web:
+    image: humitifier:dev
+#    ports:
+#      - "8000:8000"
+    environment:
+      - SSH_AUTH_SOCK=/ssh-agent
+      - HUMITIFIER_CONFIG=/code/app_config.toml
+    volumes:
+      - .local/app_config_compose.toml:/code/app_config.toml # Reference your configuration
+      - $SSH_AUTH_SOCK:/ssh-agent
+    
+  db:
+    image: postgres:15
+    expose:
+      - 5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=postgres
