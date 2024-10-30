@@ -1,0 +1,41 @@
+{% load strip_quotes %}
+<tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+    <td class="py-5 pl-7">
+        <a href="{% url 'hosts:detail' host.fqdn %}" class="underline">
+            {{ host.fqdn }}
+        </a>
+    </td>
+    <td class="hidden lg:table-cell">
+        {{ host.get_os_display }}
+    </td>
+    <td class="hidden xl:table-cell">
+        {{ host.last_scan_date|date:"Y-m-d H:i" }}
+    </td>
+    <td class="hidden 2xl:table-cell">
+        {{ host.created_at|date:"Y-m-d H:i" }}
+    </td>
+    <td class="hidden lg:table-cell">
+        {{ host.get_department_display }}
+    </td>
+    <td class="pr-7 py-3">
+        <div class="flex gap-3 font-bold">
+            {% if host.alerts.count %}
+                {% if host.num_info_alerts %}
+                    <div class="text-blue-600 dark:text-blue-300">
+                        {% include 'icons/info.html' %} {{ host.num_info_alerts }}
+                    </div>
+                {% endif %}
+                {% if host.num_warning_alerts %}
+                    <div class="text-orange-600 dark:text-orange-500">
+                        {% include 'icons/warning.html' %} {{ host.num_warning_alerts }}
+                    </div>
+                {% endif %}
+                {% if host.num_critical_alerts %}
+                    <div class="text-red-500">
+                        {% include 'icons/critical.html' %} {{ host.num_critical_alerts }}
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </td>
+</tr>

@@ -1,0 +1,15 @@
+{% load host_tags %}
+
+<div class="section">
+    <div class="font-bold text-xl mb-4">Storage</div>
+    <div class="grid grid-cols-[1fr_2fr_1fr]">
+        {% for block in scan_data.Blocks %}
+            <span>{{ block.mount }}</span>
+            <span class="italic">{{ block.name }}</span>
+            <span class="text-right">{{ block.used_mb|size_from_kb }} / {{ block.size_mb|size_from_kb }}</span>
+            <div class="bg-gray-200 dark:bg-gray-700 h-2 w-full rounded-full col-span-3 mt-1 mb-3 last:mb-0">
+                <div class="bg-blue-500 dark:bg-blue-300 h-2 rounded-full" style="width: {{ block.use_percent }}%;"></div>
+            </div>
+        {% endfor %}
+    </div>
+</div>

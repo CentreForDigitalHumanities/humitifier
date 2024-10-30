@@ -1,0 +1,181 @@
+{% extends "base/base_page_template.html" %}
+{% load strip_quotes %}
+
+{% load humanize %}
+{% load param_replace %}
+
+{% block page_title %}Hosts | {{ block.super }}{% endblock %}
+
+{% block head %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let alerts = document.getElementById('alertsChart');
+            new Chart(alerts, {
+                type: 'pie',
+                data: {
+                    labels: [
+                        'Info',
+                        'Warning',
+                        'Critical',
+                    ],
+                    datasets: [
+                        {
+                            label: 'Alert levels',
+                            data: [{{ layout.num_info_alerts }}, {{ layout.num_warning_alerts }}, {{ layout.num_critical_alerts }}],
+                        },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Alerts',
+                        },
+                    },
+                },
+            });
+            let os = document.getElementById('osChart');
+            new Chart(os, {
+                type: 'pie',
+                data: {
+                    labels: [
+                        {% for os in os_stats %}
+                            '{{ os.os|strip_quotes }}',
+                        {% endfor %}
+                    ],
+                    datasets: [{
+                        label: 'Operating Systems',
+                        data: [
+                            {% for os in os_stats %}
+                                {{ os.count }},
+                            {% endfor %}
+                        ],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Server OS distribution',
+                        }
+                    },
+                },
+            });
+            let department = document.getElementById('departmentChart');
+            new Chart(department, {
+                type: 'pie',
+                data: {
+                    labels: [
+                        {% for os in department_stats %}
+                            '{{ os.department|strip_quotes }}',
+                        {% endfor %}
+                    ],
+                    datasets: [{
+                        label: 'Operating Systems',
+                        data: [
+                            {% for os in department_stats %}
+                                {{ os.count }},
+                            {% endfor %}
+                        ],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Servers by department',
+                        }
+                    },
+                },
+            });
+        });
+    </script>
+{% endblock %}
+
+{% block content %}
+    <div class="p-3 pb-0 grid grid-cols-3 gap-3">
+        <div class="section">
+            <canvas id="alertsChart"></canvas>
+        </div>
+        <div class="section">
+            <canvas id="osChart"></canvas>
+        </div>
+        <div class="section">
+            <canvas id="departmentChart"></canvas>
+        </div>
+    </div>
+    <div class="p-3">
+        <div class="section transition ease-in-out duration-150">
+            <h2 class="text-2xl font-bold">
+                Alerts
+            </h2>
+            <div class="py-4">
+                {% include 'base/page_parts/paginator_top.html' %}
+            </div>
+            <table class="w-full table-auto">
+                <thead>
+                <tr class="text-left">
+                    <th class="pl-7 py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 rounded-tl">
+                        Hostname
+                    </th>
+                    <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                        Level
+                    </th>
+                    <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden lg:table-cell transition ease-in-out duration-150 rounded-tr">
+                        Message
+                    </th>
+                </tr>
+                </thead>
+                <tbody>
+                {% for alert in object_list %}
+                    <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+                        <td class="py-3 pl-7">
+                            <a href="{% url 'hosts:detail' alert.host.fqdn %}" class="underline">
+                                {{ alert.host.fqdn }}
+                            </a>
+                        </td>
+                        <td class="hidden xl:table-cell">
+                            {{ alert.level }}
+                        </td>
+                        <td class="hidden lg:table-cell">
+                            {{ alert.message }}
+                        </td>
+                    </tr>
+                {% endfor %}
+                {% if object_list.count == 0 %}
+                    <tr>
+                        <td colspan="3" class="text-center py-10">
+                            {% if layout.wild_wasteland %}
+                                No hosts found, have you looked under the rug?
+                            {% else %}
+                                No hosts found
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% endif %}
+                </tbody>
+            </table>
+
+            <div class="px-7 py-5">
+                {% include 'base/page_parts/paginator_bottom.html' %}
+            </div>
+        </div>
+    </div>
+
+{% endblock %}

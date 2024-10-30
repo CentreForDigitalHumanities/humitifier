@@ -1,0 +1,11 @@
+{% load host_tags %}
+
+<div class="section">
+    <div class="font-bold text-xl mb-4">Databases</div>
+    <div class="grid grid-cols-[1fr_2fr]">
+        {% for db_type, dbs in scan_data.HostMeta.databases.items %}
+            <span>{{ db_type }}</span>
+            <span class="italic">{{ dbs|join:", " }}</span>
+        {% endfor %}
+    </div>
+</div>

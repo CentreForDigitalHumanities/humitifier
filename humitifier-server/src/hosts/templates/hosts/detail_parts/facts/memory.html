@@ -1,0 +1,17 @@
+{% load host_tags %}
+
+<div class="section">
+    <div class="font-bold text-xl mb-4">Memory</div>
+    <div class="grid grid-cols-[1fr_1fr]">
+        <span>Memory</span>
+        <span class="text-right">{{ scan_data.Memory.used_mb|size_from_mb }} / {{ scan_data.Memory.total_mb|size_from_mb }}</span>
+        <div class="bg-gray-200 dark:bg-gray-700 h-2 w-full rounded-full col-span-2 mt-1 mb-3 last:mb-0">
+            <div class="bg-blue-500 dark:bg-blue-300 h-2 rounded-full" style="width: calc({{ scan_data.Memory.used_mb}} / {{scan_data.Memory.total_mb }} * 100%);"></div>
+        </div>
+        <span>Swap</span>
+        <span class="text-right">{{ scan_data.Memory.swap_used_mb|size_from_mb }} / {{ scan_data.Memory.swap_total_mb|size_from_mb }}</span>
+        <div class="bg-gray-200 dark:bg-gray-700 h-2 w-full rounded-full col-span-2 mt-1 mb-3 last:mb-0">
+            <div class="bg-blue-500 dark:bg-blue-300 h-2 rounded-full" style="width: calc({{ scan_data.Memory.swap_used_mb}} / {{scan_data.Memory.swap_total_mb }} * 100%);"></div>
+        </div>
+    </div>
+</div>

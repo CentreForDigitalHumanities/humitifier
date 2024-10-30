@@ -1,0 +1,19 @@
+{% load host_tags %}
+
+<div class="section" x-data="{search: ''}">
+    <div class="flex justify-between items-top mb-4">
+        <div class="font-bold text-xl">Groups</div>
+        <input placeholder="Search" class="input w-1/2" x-model="search">
+    </div>
+
+    <div class="max-h-[50vh] overflow-y-auto">
+        {% for group in scan_data.Groups %}
+            <div class="rounded bg-gray-200 dark:bg-gray-800 p-3 mb-3 last:mb-0" x-data="{searchValue: '{{ group.name }} {{ group.users|join:" " }}'}" x-bind:class="searchValue.includes(search) ? '' : 'hidden' ">
+                <div class="font-semibold">{{ group.name }}</div>
+                <div class="text-gray-700 dark:text-gray-400">
+                    {{ group.users|join:", " }}
+                </div>
+            </div>
+        {% endfor %}
+    </div>
+</div>

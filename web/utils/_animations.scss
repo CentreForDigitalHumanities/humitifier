@@ -1,8 +1,0 @@
-@mixin onhover-left-to-right($c1, $c2) {
-    background: linear-gradient(to left, $c1 50%, $c2 50%) right;
-    transition: .2s ease-out;
-    background-size: 200% 100%;
-    &:hover {
-        background-position: left;
-    }
-}

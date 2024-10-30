@@ -1,0 +1,15 @@
+{
+  "name": "humitifier-server",
+  "version": "1.0.0",
+  "repository": "https://github.com/CentreForDigitalHumanities/humitifier",
+  "author": "Ty mees",
+  "license": "GPL-3.0-or-later",
+  "devDependencies": {
+    "tailwindcss": "^3.4.14"
+  },
+  "scripts": {
+    "tw:build": "tailwindcss build -i src/main/static/main/css/tailwind.input.css -o src/main/static/main/css/tailwind.css",
+    "tw:watch": "yarn tw:build --watch",
+    "tw:prod": "yarn tw:build --minify"
+  }
+}
