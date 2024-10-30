@@ -11,6 +11,7 @@ docker-compose.yaml
 .local/
 .envrc
 .idea
+node_modules/
 
 # Supabase
 .branches
