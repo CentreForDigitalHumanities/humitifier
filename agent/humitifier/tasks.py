@@ -1,7 +1,9 @@
+import asyncio
 from sys import stdout
 
 import asyncpg
 import json
+import requests
 import time
 from datetime import datetime
 from rocketry import Rocketry
@@ -111,6 +113,29 @@ async def parse_facts():
     conn = await asyncpg.connect(CONFIG.db)
     rows = await conn.fetch("""SELECT name, host, scan, stdout, stderr, exception, exit_code FROM host_outputs""")
     parsed_rows = [(row["name"], row["host"], row["scan"], parse_row_data(row)) for row in rows]
+
+    hosts = {row["host"] for row in rows}
+    host_data = []
+
+    for host in hosts:
+        host_data.append(
+            {
+                "host": host,
+                "data": {
+                    name: parsed.to_sql()
+                    for name, this_host, scan, parsed in parsed_rows
+                    if this_host == host
+                },
+            }
+        )
+
+    await asyncio.to_thread(
+        requests.post,
+        CONFIG.upload_endpoint,
+        data=json.dumps(host_data),
+        headers={'Content-Type': 'application/json'}
+    )
+
     await conn.executemany(
         """INSERT INTO facts(name, host, scan, data) VALUES($1, $2, $3, $4)""",
         [(name, host, scan, json.dumps(parsed.to_sql())) for name, host, scan, parsed in parsed_rows],

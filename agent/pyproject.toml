@@ -12,6 +12,7 @@ parallel-ssh = "^2.12.0"
 rocketry = "^2.5.1"
 pydantic = "<2.0.0" # Needed to keep compatibility with rocketry
 asyncpg = "^0.29.0"
+requests = "^2.32.3"
 
 
 [tool.poetry.group.dev.dependencies]

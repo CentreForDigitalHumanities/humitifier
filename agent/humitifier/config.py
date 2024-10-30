@@ -15,6 +15,7 @@ class Config:
     inventory: list[str]
     pssh: dict
     tasks: dict[str, str]
+    upload_endpoint = str
 
     @classmethod
     def load(cls) -> "Config":
