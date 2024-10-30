@@ -214,3 +214,17 @@ STORAGES = {
         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
+
+# Sentry
+
+import sentry_sdk
+
+DSN = env.get("SENTRY_DSN", default=None)
+if DSN:
+    sentry_sdk.init(
+        dsn=DSN,
+        traces_sample_rate=1.0,
+        _experiments={
+            "continuous_profiling_auto_start": True,
+        },
+    )
