@@ -9,6 +9,7 @@ on:
 env:
   IMAGE_NAME: humitifier-server
   DOCKERFILE_PATH: ./humitifier-server/Dockerfile
+  PATH: ./humitifier-server
 
 jobs:
   build-and-push:
@@ -27,7 +28,7 @@ jobs:
       - name: Build and push main image
         uses: docker/build-push-action@v4
         with:
-          context: .
+          context: ${{ env.PATH }}
           file: ${{ env.DOCKERFILE_PATH }}
           push: true
           tags: |
