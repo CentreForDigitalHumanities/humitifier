@@ -10,4 +10,4 @@ class Command(BaseCommand):
         hosts = Host.objects.all()
 
         for host in hosts:
-            generate_alerts(host.last_scan_cache, host)
+            host.regenerate_alerts()

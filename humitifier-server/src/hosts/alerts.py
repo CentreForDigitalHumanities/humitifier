@@ -61,6 +61,9 @@ ALERTS = [outdated_os, has_fact_error, puppet_agent_disabled]
 def generate_alerts(scan_data: dict, host: Host, delete_old_alerts: bool = True):
     alerts = []
 
+    if host.archived:
+        return alerts
+
     if not scan_data:
         return host.alerts.get_or_create(
             level=AlertLevel.CRITICAL,

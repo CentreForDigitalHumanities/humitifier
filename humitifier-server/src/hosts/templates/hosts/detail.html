@@ -27,6 +27,13 @@
             <a class="btn btn-sm light:btn-primary dark:btn-outline hidden md:block" href="{% url 'hosts:download_raw' host.fqdn %}?{% param_replace %}">
                 Download raw data
             </a>
+            <a class="btn btn-sm light:btn-primary dark:btn-outline hidden md:block" href="{% url 'hosts:archive' host.fqdn %}">
+                {% if host.archived %}
+                    Un-archive
+                {% else %}
+                    Archive
+                {% endif %}
+            </a>
         </div>
     </div>
 
@@ -43,6 +50,12 @@
     {% else %}
         {% with alert="This is historical data, it does not reflect the current configuration." %}
             {% include 'hosts/detail_parts/alerts/warning.html' %}
+        {% endwith %}
+    {% endif %}
+
+    {% if host.archived %}
+        {% with alert=host.archived_string %}
+            {% include 'hosts/detail_parts/alerts/info.html' %}
         {% endwith %}
     {% endif %}
 

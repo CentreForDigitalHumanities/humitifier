@@ -77,6 +77,20 @@ class HostAlertTypeFilter(ChoiceFilter):
         return qs
 
 
+class IncludeArchivedFilter(ChoiceFilter):
+    def __init__(self, *args, **kwargs):
+        kwargs['choices'] = [
+            (True, "Include archived servers"),
+        ]
+        kwargs['field_name'] = 'archived'
+        super().__init__(*args, **kwargs)
+
+    def filter(self, qs, value):
+        if not value:
+            return qs.filter(archived=False)
+        return qs
+
+
 class FiltersForm(Form):
     template_name = 'base/page_parts/filters_form_template.html'
 
@@ -138,6 +152,10 @@ class HostFilters(django_filters.FilterSet):
             (True, "Yes"),
             (False, "No"),
         ]
+    )
+
+    archived = IncludeArchivedFilter(
+        empty_label="Exclude archived servers",
     )
 
 

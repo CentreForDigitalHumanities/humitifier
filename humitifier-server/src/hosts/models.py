@@ -65,6 +65,10 @@ class Host(models.Model):
 
     protected = models.BooleanField(default=False)
 
+    archived = models.BooleanField(default=False)
+
+    archival_date = models.DateTimeField(null=True)
+
     ##
     ## Generated fields
     ## These fields are derived from the last scan cache, and are generated
@@ -101,6 +105,9 @@ class Host(models.Model):
             cache_scan: bool = True,
             generate_alerts: bool = True
     ):
+        if self.archived:
+            return None
+
         scan = Scan(host=self, data=scan_data)
         scan.save()
 
@@ -115,6 +122,11 @@ class Host(models.Model):
             alerts.generate_alerts(scan_data, self)
 
         return scan
+
+    def regenerate_alerts(self):
+        from hosts import alerts
+
+        alerts.generate_alerts(self.last_scan_cache, self)
 
     ##
     ## Properties
@@ -150,6 +162,13 @@ class Host(models.Model):
         if not self.os:
             return mark_safe("<span class='italic'>Unknown</span>")
         return strip_quotes(self.os)
+
+    @property
+    def archived_string(self):
+        if self.archived:
+            date = self.archival_date.strftime("%Y-%m-%d %H:%M")
+            return f"This server was archived on {date}"
+        return ""
 
     def __str__(self):
         return self.fqdn

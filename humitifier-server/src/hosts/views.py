@@ -1,9 +1,15 @@
 import json
 
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
-from django.http import HttpResponse
+from django.forms import Form
+from django.http import HttpResponse, HttpResponseRedirect
+from django.urls import reverse
+from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView
+from django.views.generic.detail import BaseDetailView, \
+    SingleObjectTemplateResponseMixin
+from django.views.generic.edit import FormMixin
 
 from main.views import FilteredListView
 
@@ -104,6 +110,48 @@ class HostsRawDownloadView(View):
         )
 
         return response
+
+
+class ArchiveHostView(
+    SingleObjectTemplateResponseMixin,
+    FormMixin,
+    BaseDetailView
+):
+    model = Host
+    form_class = Form
+    template_name = 'hosts/archive.html'
+    slug_field = 'fqdn'
+    slug_url_kwarg = 'fqdn'
+
+    def get_queryset(self):
+        return Host.objects.get_for_user(self.request.user)
+
+    def get_success_url(self):
+        return reverse('hosts:detail', kwargs={'fqdn': self.object.fqdn})
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+
+        if self.object.archived:
+            self.object.archived = False
+            self.object.archival_date = None
+            self.object.save()
+            self.object.regenerate_alerts()
+        else:
+            self.object.archived = True
+            self.object.archival_date = timezone.now()
+            self.object.save()
+            self.object.alerts.all().delete()
+
+        return HttpResponseRedirect(success_url)
 
 
 class ExportView(TemplateView):

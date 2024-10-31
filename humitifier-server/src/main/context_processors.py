@@ -11,7 +11,7 @@ def layout_context(request):
     """
     user = request.user
 
-    hosts = Host.objects.get_for_user(user)
+    hosts = Host.objects.get_for_user(user).exclude(archived=True)
     all_alerts = Alert.objects.get_for_user(user)
 
     tag_line = "HumIT CMDB"
