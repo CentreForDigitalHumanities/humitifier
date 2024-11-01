@@ -20,6 +20,9 @@ def size_from_mb(value, **kwargs):
 @register.filter()
 def uptime(time_in_seconds: float, reference: datetime):
 
-    startup_datetime = reference - timedelta(seconds=time_in_seconds)
+    try:
+        startup_datetime = reference - timedelta(seconds=time_in_seconds)
+    except TypeError:
+        return "Failed to parse uptime"
 
     return timesince(startup_datetime, reference)
