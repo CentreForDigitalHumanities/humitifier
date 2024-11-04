@@ -16,7 +16,9 @@ def layout_context(request):
 
     tag_line = "HumIT CMDB"
 
-    wild_wasteland = settings.DEBUG  # TODO: user setting
+    wild_wasteland = False
+    if user.is_authenticated:
+        wild_wasteland = user.wild_wasteland_mode
 
     oidc_enabled = hasattr(settings, "OIDC_RP_CLIENT_ID")
 

@@ -47,9 +47,14 @@ class HostManager(models.Manager):
         if user.is_superuser:
             return self.get_queryset()
 
-        # TODO: access profile
+        if user.access_profile:
+            return self.get_queryset().filter(
+                department__in=user.access_profile.departments_for_filter
+            )
 
-        return self.get_queryset()
+        # When a non-superuser has no access profile, THEY GET NOTHING
+        # They lose! Good day sir!
+        return self.get_queryset().none()
 
 
 class Host(models.Model):
@@ -221,9 +226,14 @@ class AlertManager(models.Manager):
             if user.is_superuser:
                 return self.get_queryset()
 
-            # TODO: access profile
+            if user.access_profile:
+                return self.get_queryset().filter(
+                    host__department__in=user.access_profile.departments_for_filter
+                )
 
-            return self.get_queryset()
+            # When a non-superuser has no access profile, THEY GET NOTHING
+            # They lose! Good day sir!
+            return self.get_queryset().none()
 
 
 class Alert(models.Model):
