@@ -7,6 +7,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>{% block page_title %}Humitifier{% endblock %}</title>
     <script src="{% static 'main/js/alpine.min.js' %}" defer></script>
+
+    {% if layout.wild_wasteland %}
+        <link rel="icon" type="image/x-icon" href="{% static 'main/img/wild_wasteland_favicon.ico' %}">
+    {% else %}
+        <link rel="icon" type="image/x-icon" href="{% static 'main/img/favicon.ico' %}">
+    {% endif %}
+
     <link rel="stylesheet" href="{% static 'main/css/tailwind.css' %}">
     {% if debug %}
         <style>
