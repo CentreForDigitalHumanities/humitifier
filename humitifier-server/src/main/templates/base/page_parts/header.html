@@ -31,6 +31,14 @@
     </div>
 
     <div class="px-4 flex items-center h-full">
-        Humitifier User
+        {{ user.get_full_name }}
     </div>
+    {% if user.is_authenticated %}
+      <form action="{% url 'oidc_logout' %}" method="post">
+        {% csrf_token %}
+        <input type="submit" value="Logout" class="cursor-pointer">
+      </form>
+    {% else %}
+      <a href="{% url 'oidc_authentication_init' %}">Login</a>
+    {% endif %}
 </div>

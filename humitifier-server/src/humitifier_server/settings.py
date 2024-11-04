@@ -11,6 +11,11 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 from pathlib import Path
+import re
+
+from django.core.exceptions import ImproperlyConfigured
+from rest_framework.reverse import reverse_lazy
+
 from . import env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -115,6 +120,68 @@ DATABASES = {
         "PORT": env.get("POSTGRES_PORT", default="5432"),
     }
 }
+
+# OpenID Connect
+
+
+LOGIN_REDIRECT_URL = reverse_lazy("main:home")
+LOGOUT_REDIRECT_URL = reverse_lazy("main:home")
+
+
+if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
+    try:
+        index = INSTALLED_APPS.index('django.contrib.auth')
+        INSTALLED_APPS.insert(index + 1, "mozilla_django_oidc")
+    except ValueError:
+        raise ImproperlyConfigured(
+            "Cannot enable OIDC; django.contrib.auth is not enabled"
+        )
+
+    MIDDLEWARE.append("mozilla_django_oidc.middleware.SessionRefresh")
+
+    AUTHENTICATION_BACKENDS = [
+        "humitifier_server.oidc_backend.HumitifierOIDCAuthenticationBackend",
+        "django.contrib.auth.backends.ModelBackend",
+    ]
+
+    OIDC_EXEMPT_URLS = [
+        re.compile(r"^api/.*$"),
+    ]
+
+    OIDC_CREATE_USER = env.get_boolean("OIDC_CREATE_USER", default=False)
+    OIDC_RP_SCOPES = env.get("OIDC_RP_SCOPES", default="openid email profile")
+
+    OIDC_RP_SIGN_ALGO = env.get("OIDC_RP_SIGN_ALGO", default="RS256")
+
+    if client_id :=env.get("OIDC_RP_CLIENT_ID", default=None):
+        OIDC_RP_CLIENT_ID = client_id
+    else:
+        raise ImproperlyConfigured("OIDC_RP_CLIENT_ID is required")
+
+    if client_secret := env.get("OIDC_RP_CLIENT_SECRET", default=None):
+        OIDC_RP_CLIENT_SECRET = client_secret
+    else:
+        raise ImproperlyConfigured("OIDC_RP_CLIENT_SECRET is required")
+
+    if jwk_endpoint := env.get("OIDC_OP_JWKS_ENDPOINT", default=None):
+        OIDC_OP_JWKS_ENDPOINT = jwk_endpoint
+    else:
+        raise ImproperlyConfigured("OIDC_OP_JWKS_ENDPOINT is required")
+
+    if auth_endpoint := env.get("OIDC_OP_AUTHORIZATION_ENDPOINT", default=None):
+        OIDC_OP_AUTHORIZATION_ENDPOINT = auth_endpoint
+    else:
+        raise ImproperlyConfigured("OIDC_OP_AUTHORIZATION_ENDPOINT is required")
+
+    if token_endpoint := env.get("OIDC_OP_TOKEN_ENDPOINT", default=None):
+        OIDC_OP_TOKEN_ENDPOINT = token_endpoint
+    else:
+        raise ImproperlyConfigured("OIDC_OP_TOKEN_ENDPOINT is required")
+
+    if user_endpoint := env.get("OIDC_OP_USER_ENDPOINT", default=None):
+        OIDC_OP_USER_ENDPOINT = user_endpoint
+    else:
+        raise ImproperlyConfigured("OIDC_OP_USER_ENDPOINT is required")
 
 
 # Security
