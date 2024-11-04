@@ -137,7 +137,8 @@ if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
             "Cannot enable OIDC; django.contrib.auth is not enabled"
         )
 
-    MIDDLEWARE.append("mozilla_django_oidc.middleware.SessionRefresh")
+    if env.get_boolean("DJANGO_OIDC_SESSION_REFRESH", default=False):
+        MIDDLEWARE.append("mozilla_django_oidc.middleware.SessionRefresh")
 
     AUTHENTICATION_BACKENDS = [
         "humitifier_server.oidc_backend.HumitifierOIDCAuthenticationBackend",
