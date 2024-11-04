@@ -1,5 +1,6 @@
 import json
 
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.forms import Form
 from django.http import HttpResponse, HttpResponseRedirect
@@ -11,14 +12,14 @@ from django.views.generic.detail import BaseDetailView, \
     SingleObjectTemplateResponseMixin
 from django.views.generic.edit import FormMixin
 
-from main.views import FilteredListView
+from main.views import FilteredListView, SuperuserRequiredMixin
 
 from .filters import HostFilters
 from .models import Host
 
 # Create your views here.
 
-class HostsListView(FilteredListView):
+class HostsListView(LoginRequiredMixin, FilteredListView):
     model = Host
     filterset_class = HostFilters
     paginate_by = 50
@@ -49,7 +50,7 @@ class HostsListView(FilteredListView):
 
         return filtered_qs.distinct()
 
-class HostDetailView(TemplateView):
+class HostDetailView(LoginRequiredMixin, TemplateView):
     template_name = 'hosts/detail.html'
 
     LATEST_KEY = 'latest'
@@ -88,7 +89,7 @@ class HostDetailView(TemplateView):
         return context
 
 
-class HostsRawDownloadView(View):
+class HostsRawDownloadView(LoginRequiredMixin, View):
 
     def get(self, request, fqdn):
         host = Host.objects.get_for_user(request.user).get(fqdn=fqdn)
@@ -113,6 +114,8 @@ class HostsRawDownloadView(View):
 
 
 class ArchiveHostView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
     SingleObjectTemplateResponseMixin,
     FormMixin,
     BaseDetailView
@@ -154,14 +157,14 @@ class ArchiveHostView(
         return HttpResponseRedirect(success_url)
 
 
-class ExportView(TemplateView):
+class ExportView(LoginRequiredMixin, TemplateView):
     template_name = 'main/not_implemented.html'
 
-class TasksView(TemplateView):
+class TasksView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'main/not_implemented.html'
 
-class ScanProfilesView(TemplateView):
+class ScanProfilesView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'main/not_implemented.html'
 
-class DataSourcesView(TemplateView):
+class DataSourcesView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'main/not_implemented.html'

@@ -121,12 +121,13 @@ DATABASES = {
     }
 }
 
-# OpenID Connect
+# Authentication
 
-
+LOGIN_URL = reverse_lazy("main:login")
 LOGIN_REDIRECT_URL = reverse_lazy("main:home")
 LOGOUT_REDIRECT_URL = reverse_lazy("main:home")
 
+## OpenID Connect
 
 if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
     try:

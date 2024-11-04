@@ -41,7 +41,14 @@ def _json_value(field: str):
 class HostManager(models.Manager):
 
     def get_for_user(self, user):
-        # TODO: implement this when we have user support
+        if user.is_anonymous:
+            return self.get_queryset().none()
+
+        if user.is_superuser:
+            return self.get_queryset()
+
+        # TODO: access profile
+
         return self.get_queryset()
 
 
@@ -208,7 +215,14 @@ class Scan(models.Model):
 class AlertManager(models.Manager):
 
         def get_for_user(self, user):
-            # TODO: implement this when we have user support
+            if user.is_anonymous:
+                return self.get_queryset().none()
+
+            if user.is_superuser:
+                return self.get_queryset()
+
+            # TODO: access profile
+
             return self.get_queryset()
 
 

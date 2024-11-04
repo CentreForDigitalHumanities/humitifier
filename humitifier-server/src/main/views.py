@@ -1,9 +1,48 @@
+from urllib.parse import urlparse
+
+from django.contrib.auth.mixins import AccessMixin, LoginRequiredMixin
+from django.contrib.auth.views import redirect_to_login
 from django.db.models import Count
+from django.shortcuts import resolve_url
 from django.urls import reverse
 from django.views.generic import ListView, RedirectView, TemplateView
 
 from hosts.filters import AlertFilters
-from hosts.models import Alert, AlertType, Host
+from hosts.models import Alert, Host
+
+###
+### Mixins
+###
+
+class SuperuserRequiredMixin(AccessMixin):
+    """
+    Require users to be superusers to access the view.
+    """
+
+    def dispatch(self, request, *args, **kwargs):
+        """Call the appropriate handler if the user is a superuser"""
+        if not request.user.is_superuser:
+            return self.handle_no_permission()
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def handle_no_permission(self):
+        """Redirect to the login page if the user is not a superuser"""
+        path = self.request.build_absolute_uri()
+        resolved_login_url = resolve_url(self.get_login_url())
+        # If the login url is the same scheme and net location then use the
+        # path as the "next" url.
+        login_scheme, login_netloc = urlparse(resolved_login_url)[:2]
+        current_scheme, current_netloc = urlparse(path)[:2]
+        if (not login_scheme or login_scheme == current_scheme) and (
+                not login_netloc or login_netloc == current_netloc
+        ):
+            path = self.request.get_full_path()
+        return redirect_to_login(
+            path,
+            resolved_login_url,
+            self.get_redirect_field_name(),
+        )
 
 
 ###
@@ -70,14 +109,14 @@ class FilteredListView(ListView):
 ### Page views
 ###
 
-class HomeRedirectView(RedirectView):
+class HomeRedirectView(LoginRequiredMixin, RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
         # TODO: user preferences
         return reverse('hosts:list')
 
 
-class DashboardView(FilteredListView):
+class DashboardView(LoginRequiredMixin, FilteredListView):
     model = Alert
     filterset_class = AlertFilters
     paginate_by = 20
@@ -126,11 +165,19 @@ class DashboardView(FilteredListView):
 
         return context
 
-class UsersView(TemplateView):
+class UsersView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'main/not_implemented.html'
 
-class AccessProfilesView(TemplateView):
+class AccessProfilesView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    TemplateView
+):
     template_name = 'main/not_implemented.html'
 
-class OAuthApplicationsView(TemplateView):
+class OAuthApplicationsView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    TemplateView
+):
     template_name = 'main/not_implemented.html'
