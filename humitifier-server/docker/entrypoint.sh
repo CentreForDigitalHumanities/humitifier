@@ -7,4 +7,4 @@ source /app/.venv/bin/activate
 python src/manage.py migrate
 
 # Run da server
-gunicorn humitifier_server.wsgi:application -c gunicorn.conf.py "$@"
+exec gunicorn humitifier_server.wsgi:application -c gunicorn.conf.py "$@"
