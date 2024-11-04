@@ -134,15 +134,32 @@ class Host(models.Model):
 
     @property
     def num_critical_alerts(self):
-        return self.alerts.filter(level=AlertLevel.CRITICAL).count()
+        return self._get_alerts_for_level(AlertLevel.CRITICAL, count=True)
 
     @property
     def num_warning_alerts(self):
-        return self.alerts.filter(level=AlertLevel.WARNING).count()
+        return self._get_alerts_for_level(AlertLevel.WARNING, count=True)
 
     @property
     def num_info_alerts(self):
-        return self.alerts.filter(level=AlertLevel.INFO).count()
+        return self._get_alerts_for_level(AlertLevel.INFO, count=True)
+
+    def _get_alerts_for_level(self, level, count=False):
+        # Use the prefetched objects if they are available
+        # It's not quicker for a single query, but it is for multiple queries
+        # (Read: the list page)
+        if 'alerts' in self._prefetched_objects_cache:
+            alerts =  [alert for alert in self.alerts.all() if (alert.level ==
+                                                             level)]
+            if count:
+                return len(alerts)
+            return alerts
+
+        qs = self.alerts.filter(level=level)
+
+        if count:
+            return qs.count()
+        return qs
 
     ##
     ## Display methods
