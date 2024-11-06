@@ -155,6 +155,13 @@ if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
 
     OIDC_RP_SIGN_ALGO = env.get("OIDC_RP_SIGN_ALGO", default="RS256")
 
+    OIDC_AUTH_REQUEST_EXTRA_PARAMS = {}
+
+    _acr_values = env.get("OIDC_RP_ACR_VALUES", default=None)
+
+    if _acr_values:
+        OIDC_AUTH_REQUEST_EXTRA_PARAMS["acr_values"] = _acr_values
+
     if client_id :=env.get("OIDC_RP_CLIENT_ID", default=None):
         OIDC_RP_CLIENT_ID = client_id
     else:
