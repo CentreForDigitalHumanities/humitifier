@@ -19,54 +19,6 @@
             </div>
         </div>
 
-        <div class="px-7 py-4">
-            {% include 'base/page_parts/paginator_top.html' %}
-        </div>
-        <table class="w-full table-auto">
-            <thead>
-            <tr class="text-left">
-                <th class="pl-7 py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150">
-                    Hostname
-                </th>
-                <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden lg:table-cell transition ease-in-out duration-150">
-                    Operating System
-                </th>
-                <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
-                    Last scan
-                </th>
-                <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden 2xl:table-cell transition ease-in-out duration-150">
-                    Registered
-                </th>
-                <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden lg:table-cell transition ease-in-out duration-150">
-                    Department
-                </th>
-                <th class="pr-7 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150">
-                    Status
-                </th>
-            </tr>
-            </thead>
-            <tbody>
-            {% for host in object_list %}
-                {% with host=host %}
-                    {% include 'hosts/list_parts/host.html' %}
-                {% endwith %}
-            {% endfor %}
-            {% if object_list.count == 0 %}
-                <tr>
-                    <td colspan="5" class="text-center py-10">
-                        {% if layout.wild_wasteland %}
-                            No hosts found, have you looked under the rug?
-                        {% else %}
-                            No hosts found
-                        {% endif %}
-                    </td>
-                </tr>
-            {% endif %}
-            </tbody>
-        </table>
-
-        <div class="px-7 py-5">
-            {% include 'base/page_parts/paginator_bottom.html' %}
-        </div>
+        {{ table.render }}
     </div>
 {% endblock %}

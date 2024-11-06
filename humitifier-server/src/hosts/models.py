@@ -63,7 +63,10 @@ class Host(models.Model):
 
     objects = HostManager()
 
-    fqdn = models.CharField(max_length=255)
+    fqdn = models.CharField(
+        "Hostname",
+        max_length=255
+    )
 
     last_scan_cache = models.JSONField(
         null=True,
@@ -73,7 +76,10 @@ class Host(models.Model):
         null=True,
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        "Registered",
+        auto_now_add=True,
+    )
 
     protected = models.BooleanField(default=False)
 

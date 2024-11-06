@@ -12,15 +12,16 @@ from django.views.generic.detail import BaseDetailView, \
     SingleObjectTemplateResponseMixin
 from django.views.generic.edit import FormMixin
 
-from main.views import FilteredListView, SuperuserRequiredMixin
+from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 
 from .filters import HostFilters
 from .models import Host
+from .tables import HostsTable
 
-# Create your views here.
 
-class HostsListView(LoginRequiredMixin, FilteredListView):
+class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
     model = Host
+    table_class = HostsTable
     filterset_class = HostFilters
     paginate_by = 50
     template_name = 'hosts/list.html'

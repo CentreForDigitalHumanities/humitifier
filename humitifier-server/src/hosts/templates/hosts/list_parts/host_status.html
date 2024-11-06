@@ -1,0 +1,19 @@
+<div class="flex gap-3 font-bold">
+    {% if obj.alerts.count %}
+        {% if obj.num_info_alerts %}
+            <div class="text-blue-600 dark:text-blue-300">
+                {% include 'icons/info.html' %} {{ obj.num_info_alerts }}
+            </div>
+        {% endif %}
+        {% if obj.num_warning_alerts %}
+            <div class="text-orange-600 dark:text-orange-500">
+                {% include 'icons/warning.html' %} {{ obj.num_warning_alerts }}
+            </div>
+        {% endif %}
+        {% if obj.num_critical_alerts %}
+            <div class="text-red-500">
+                {% include 'icons/critical.html' %} {{ obj.num_critical_alerts }}
+            </div>
+        {% endif %}
+    {% endif %}
+</div>
