@@ -119,6 +119,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
         *args,
         data: Iterable | None = None,
         paginator=None,
+        page_object=None,
         ordering: str | None = None,
         ordering_fields: dict[str, str] | None =None,
         page_sizes: list[int] | None = None,
@@ -127,6 +128,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
         self.columns : dict[str, BaseColumn] = copy.deepcopy(self.declared_columns)
         self.data = data
         self.paginator = paginator
+        self.page_object = page_object
         self.ordering = ordering
         self.ordering_fields = ordering_fields
         self.page_sizes = page_sizes
@@ -150,6 +152,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
             'rows': rows,
             'has_pagination': paginator is not None,
             'paginator': paginator,
+            'page_obj': self.page_object,
             'page_sizes': self.page_sizes,
             'ordering': self.ordering,
             'ordering_fields': self.ordering_fields,

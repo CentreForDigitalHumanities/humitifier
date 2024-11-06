@@ -58,6 +58,7 @@ class TableMixin:
         context['table'] = table_class(
             data=context['object_list'],
             paginator=context['paginator'],
+            page_object=context['page_obj'],
             ordering=context['ordering'],
             ordering_fields=context['ordering_fields'],
             page_sizes=context['page_sizes'],
