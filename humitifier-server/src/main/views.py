@@ -59,6 +59,7 @@ class TableMixin:
             data=context['object_list'],
             paginator=context['paginator'],
             page_object=context['page_obj'],
+            filterset=context['filterset'],
             ordering=context['ordering'],
             ordering_fields=context['ordering_fields'],
             page_sizes=context['page_sizes'],

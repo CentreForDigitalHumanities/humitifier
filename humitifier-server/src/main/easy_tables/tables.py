@@ -123,6 +123,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
         ordering: str | None = None,
         ordering_fields: dict[str, str] | None =None,
         page_sizes: list[int] | None = None,
+        filterset=None,
         **kwargs
     ):
         self.columns : dict[str, BaseColumn] = copy.deepcopy(self.declared_columns)
@@ -132,6 +133,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
         self.ordering = ordering
         self.ordering_fields = ordering_fields
         self.page_sizes = page_sizes
+        self.filterset = filterset
 
         super().__init__(*args, **kwargs)
 
@@ -156,6 +158,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
             'page_sizes': self.page_sizes,
             'ordering': self.ordering,
             'ordering_fields': self.ordering_fields,
+            'filterset': self.filterset,
         }
 
         return render_to_string(self._meta.template, context)
