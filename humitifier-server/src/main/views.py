@@ -44,6 +44,26 @@ class SuperuserRequiredMixin(AccessMixin):
             self.get_redirect_field_name(),
         )
 
+class TableMixin:
+    table_class = None
+
+    def get_table_class(self):
+        return self.table_class
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        table_class = self.get_table_class()
+
+        context['table'] = table_class(
+            data=context['object_list'],
+            paginator=context['paginator'],
+            ordering=context['ordering'],
+            ordering_fields=context['ordering_fields'],
+            page_sizes=context['page_sizes'],
+        )
+
+        return context
 
 ###
 ### Generic views
