@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Case, F, Value, When
 from django.utils.safestring import mark_safe
 
+from main.models import User
 from main.templatetags.strip_quotes import strip_quotes
 
 
@@ -40,16 +41,16 @@ def _json_value(field: str):
 
 class HostManager(models.Manager):
 
-    def get_for_user(self, user):
+    def get_for_user(self, user: User):
         if user.is_anonymous:
             return self.get_queryset().none()
 
         if user.is_superuser:
             return self.get_queryset()
 
-        if user.access_profile:
+        if user.access_profiles.exists():
             return self.get_queryset().filter(
-                department__in=user.access_profile.departments_for_filter
+                department__in=user.departments_for_filter
             )
 
         # When a non-superuser has no access profile, THEY GET NOTHING
@@ -225,16 +226,16 @@ class Scan(models.Model):
 
 class AlertManager(models.Manager):
 
-        def get_for_user(self, user):
+        def get_for_user(self, user: User):
             if user.is_anonymous:
                 return self.get_queryset().none()
 
             if user.is_superuser:
                 return self.get_queryset()
 
-            if user.access_profile:
+            if user.access_profiles.exists():
                 return self.get_queryset().filter(
-                    host__department__in=user.access_profile.departments_for_filter
+                    host__department__in=user.departments_for_filter
                 )
 
             # When a non-superuser has no access profile, THEY GET NOTHING

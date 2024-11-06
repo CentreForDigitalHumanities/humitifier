@@ -2,11 +2,11 @@ from django.contrib.auth.models import AbstractUser
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
-# Create your models here.
 
 class HomeOptions(models.TextChoices):
     DASHBOARD = 'dashboard', 'Dashboard'
     HOSTS = 'hosts', 'Hosts'
+
 
 class User(AbstractUser):
 
@@ -20,12 +20,20 @@ class User(AbstractUser):
         default=HomeOptions.HOSTS
     )
 
-    access_profile = models.ForeignKey(
+    access_profiles = models.ManyToManyField(
         'AccessProfile',
         blank=True,
-        null=True,
-        on_delete=models.SET_NULL
+        related_name='users',
     )
+
+    @property
+    def departments_for_filter(self):
+        departments = set()
+
+        for access_profile in self.access_profiles.all():
+            departments.update(access_profile.departments_for_filter)
+
+        return departments
 
 
 class AccessProfile(models.Model):
