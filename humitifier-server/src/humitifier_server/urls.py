@@ -39,7 +39,7 @@ if hasattr(settings, 'OIDC_RP_CLIENT_ID'):
     # Custom OIDC url conf, because we're hijacking an existing RP config
     urlpatterns += [
         path(
-            "redirect_uri/",
+            "redirect_uri", # NO TRAILING SLASH. IMPORTANT!
             OIDCCallbackClass.as_view(),
             name="oidc_authentication_callback"
         ),
