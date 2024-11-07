@@ -18,6 +18,16 @@ class TableOptions:
         self.table = None
         self.column_type_overrides = getattr(meta, 'column_type_overrides', {})
         self.column_breakpoint_overrides = getattr(meta, 'column_breakpoint_overrides', {})
+        self.no_data_message = getattr(
+            meta,
+            'no_data_message',
+            'No data available. Please check your filters.'
+        )
+        self.no_data_message_wild_wasteland = getattr(
+            meta,
+            'no_data_message_wild_wasteland',
+            "Oops! Looks like we ran out of data. Time to panic!"
+        )
 
     def contribute_to_class(self, cls):
         self.table = cls
@@ -124,6 +134,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
         ordering_fields: dict[str, str] | None =None,
         page_sizes: list[int] | None = None,
         filterset=None,
+        request=None,
         **kwargs
     ):
         self.columns : dict[str, BaseColumn] = copy.deepcopy(self.declared_columns)
@@ -134,6 +145,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
         self.ordering_fields = ordering_fields
         self.page_sizes = page_sizes
         self.filterset = filterset
+        self.request = request
 
         super().__init__(*args, **kwargs)
 
@@ -148,6 +160,10 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
                 row.append((column, column.render(obj)))
             rows.append(row)
 
+        no_data_message = self._meta.no_data_message
+        if self.request and self.request.user.wild_wasteland_mode:
+            no_data_message = self._meta.no_data_message_wild_wasteland
+
         context = {
             'table': self,
             'columns': self.columns,
@@ -159,6 +175,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
             'ordering': self.ordering,
             'ordering_fields': self.ordering_fields,
             'filterset': self.filterset,
+            'no_data_message': no_data_message,
         }
 
         return render_to_string(self._meta.template, context)

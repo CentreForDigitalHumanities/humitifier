@@ -29,6 +29,8 @@ class HostsTable(BaseTable):
             'created_at': '2xl',
             'department': 'lg',
         }
+        no_data_message = "No hosts found. Please check your filters."
+        no_data_message_wild_wasteland = "Oh no! Where have our hosts gone?"
 
     status = TemplatedColumn(
         "Status",

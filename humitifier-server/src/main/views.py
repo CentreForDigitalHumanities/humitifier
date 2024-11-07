@@ -63,6 +63,7 @@ class TableMixin:
             ordering=context['ordering'],
             ordering_fields=context['ordering_fields'],
             page_sizes=context['page_sizes'],
+            request=self.request,
         )
 
         return context
