@@ -1,8 +1,17 @@
-<div class="">
-    {% if field.label %}
-        <label class="font-bold mb-6">{{ field.label }}</label>
+{% load is_checkbox %}
+
+<div class="mb-2">
+    {% if field.field.widget|is_checkbox %}
+        <label class="flex gap-2 font-bold mb-3">
+            {{ field }}
+            <span>{{ field.label }}</span>
+        </label>
+    {% else %}
+        {% if field.label %}
+            <label class="block font-bold mb-3">{{ field.label }}</label>
+        {% endif %}
+        <div>
+            {{ field }}
+        </div>
     {% endif %}
-    <div class="">
-        {{ field }}
-    </div>
 </div>

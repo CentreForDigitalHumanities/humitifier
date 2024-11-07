@@ -1,9 +1,23 @@
-{{ errors }}
+{% if errors %}
+    <div class="text-red-500 mb-4">
+    {{ errors }}
+    </div>
+{% endif %}
+
 {% if errors and not fields %}
   <div>{% for field in hidden_fields %}{{ field }}{% endfor %}</div>
 {% endif %}
 {% for field, errors in fields %}
     {{ field.as_field_group }}
+
+    {% if errors %}
+        <div class="text-red-500 text-sm mt-1">
+            {% for error in errors %}
+                {{ error }}
+            {% endfor %}
+        </div>
+    {% endif %}
+    <div class="mb-4"></div>
 
     {% if forloop.last %}
       {% for field in hidden_fields %}{{ field }}{% endfor %}
