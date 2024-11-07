@@ -27,6 +27,13 @@
     </tbody>
 </table>
 
+{# Not in the table as it's a pain to deal with colspan and responsiveness #}
+{% if rows|length == 0 %}
+    <div class="pl-7 py-8 text-center" >
+        {{ no_data_message }}
+    </div>
+{% endif %}
+
 {% if has_pagination %}
     <div class="px-7 py-5">
         {% include 'base/page_parts/paginator_bottom.html' %}
