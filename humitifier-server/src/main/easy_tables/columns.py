@@ -270,9 +270,17 @@ class ButtonColumn(LinkColumn):
     def __init__(
             self,
             button_class: str = 'btn light:btn-primary dark:btn-outline',
+            show_check_function: Callable = None,
             *args,
             **kwargs,
     ):
         super().__init__(*args, **kwargs)
 
         self.css_classes = button_class
+        self.show_check_function = show_check_function
+
+    def render(self, obj):
+        if self.show_check_function and not self.show_check_function(obj):
+            return ''
+
+        return super().render(obj)
