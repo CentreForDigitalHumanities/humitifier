@@ -24,6 +24,10 @@
         @apply w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded focus-visible:outline-none focus-visible:border-gray-400 dark:focus-visible:border-gray-600 transition duration-150 ease-in-out;
     }
 
+    .input:disabled {
+        @apply bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed;
+    }
+
     .btn {
         @apply px-3 py-2 font-bold rounded transition duration-150 ease-in-out border border-primary;
     }
