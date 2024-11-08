@@ -1,0 +1,39 @@
+{% extends 'base/base_page_template.html' %}
+
+{% block content %}
+    <div class="h-full--header w-full bg px-7 py-5">
+        {% if object %}
+            <h1 class="text-3xl font-bold">Edit {% if is_solis %}solis-{% endif %}user</h1>
+        {% else %}
+            <h1 class="text-3xl font-bold">Create new {% if is_solis %}solis-{% endif %}user</h1>
+        {% endif %}
+
+        {% if object and not object.is_local_account %}
+            <div class="mt-8 flex gap-2 items-center text-blue">
+                {% include 'icons/warning.html' %}
+                You are editing a Solis user. Some fields are provided by OIDC and cannot be changed.
+            </div>
+        {% endif %}
+
+        <form method="post" class="max-w-xl mt-8">
+            {% csrf_token %}
+            {{ form }}
+
+            {% if object %}
+                <div class="font-bold mb-3 mt-5">Date joined</div>
+                <div class="text-gray-500">{{ form_user.date_joined }}</div>
+                <div class="font-bold mb-3 mt-5">Last login</div>
+                <div class="text-gray-500">{{ form_user.last_login }}</div>
+            {% endif %}
+
+            <div class="flex gap-2 mt-6">
+                <a href="{% url 'main:users' %}" class="btn btn-outline">
+                    Cancel
+                </a>
+                <button type="submit" class="btn light:btn-primary dark:btn-outline">
+                    Confirm
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

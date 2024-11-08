@@ -3,12 +3,25 @@ from urllib.parse import urlparse
 from django.contrib.auth.mixins import AccessMixin, LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
 from django.db.models import Count
+from django.forms import Form
+from django.http import HttpResponseRedirect
 from django.shortcuts import resolve_url
 from django.urls import reverse
-from django.views.generic import ListView, RedirectView, TemplateView
+from django.views.generic import ListView, RedirectView, TemplateView, \
+    UpdateView
+from django.views.generic.detail import BaseDetailView, \
+    SingleObjectTemplateResponseMixin
+from django.views.generic.edit import CreateView, FormMixin
+from rest_framework.reverse import reverse_lazy
 
 from hosts.filters import AlertFilters
 from hosts.models import Alert, Host
+from main.filters import UserFilters
+from main.forms import CreateSolisUserForm, SetPasswordForm, UserForm, \
+    UserProfileForm
+from main.models import User
+from main.tables import UsersTable
+
 
 ###
 ### Mixins
@@ -188,8 +201,149 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
 
         return context
 
-class UsersView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
-    template_name = 'main/not_implemented.html'
+class UsersView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    TableMixin,
+    FilteredListView
+):
+    model = User
+    table_class = UsersTable
+    filterset_class = UserFilters
+    paginate_by = 50
+    template_name = 'main/user_list.html'
+    ordering = 'username'
+    ordering_fields = {
+        'username': 'Username',
+        'email': 'Email',
+        'first_name': 'First name',
+        'last_name': 'Last name',
+        'access_profile': 'Access profile',
+    }
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+
+        return qs.prefetch_related('access_profiles')
+
+
+class DeActivateUserView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    SingleObjectTemplateResponseMixin,
+    FormMixin,
+    BaseDetailView
+):
+    model = User
+    form_class = Form
+    template_name = 'main/user_deactivate.html'
+
+    def get_success_url(self):
+        return reverse('main:users')
+
+    def post(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        form = self.get_form()
+        if form.is_valid():
+            return self.form_valid(form)
+        else:
+            return self.form_invalid(form)
+
+    def form_valid(self, form):
+        success_url = self.get_success_url()
+
+        self.object.is_active = not self.object.is_active
+        self.object.save()
+
+        return HttpResponseRedirect(success_url)
+
+class CreateUserView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    CreateView
+):
+    model = User
+    form_class = UserForm
+    success_url = reverse_lazy('main:users')
+    context_object_name = 'form_user' # needed to keep the view from
+    # overriding the user object in the context
+
+
+class CreateSolisUserView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    CreateView
+):
+    model = User
+    form_class = CreateSolisUserForm
+    success_url = reverse_lazy('main:users')
+    context_object_name = 'form_user' # needed to keep the view from
+    # overriding the user object in the context
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        context['is_solis'] = True
+
+        return context
+
+    def form_valid(self, form):
+        form.instance.is_local_account = False
+        return super().form_valid(form)
+
+
+class EditUserView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    UpdateView
+):
+    model = User
+    form_class = UserForm
+    success_url = reverse_lazy('main:users')
+    context_object_name = 'form_user' # needed to keep the view from
+    # overriding the user object in the context
+
+
+class UserProfileView(
+    LoginRequiredMixin,
+    UpdateView
+):
+    model = User
+    form_class = UserProfileForm
+    success_url = reverse_lazy('main:user_profile')
+    template_name = 'main/user_profile.html'
+    context_object_name = 'form_user' # needed to keep the view from
+    # overriding the user object in the context
+
+    def get_object(self, queryset=None):
+        return self.request.user
+
+
+class SetPasswordView(
+    LoginRequiredMixin,
+    UpdateView,
+):
+    model = User
+    form_class = SetPasswordForm
+    template_name = 'main/user_set_password_form.html'
+    success_url = reverse_lazy('main:users')
+    context_object_name = 'form_user' # needed to keep the view from
+    # overriding the user object in the context
+
+    def dispatch(self, request, *args, **kwargs):
+        requested_user = self.get_object()
+
+        # Only local accounts can have their password changed
+        if not requested_user.is_local_account:
+            return self.handle_no_permission()
+
+        # Only superusers can change the password of other users
+        if not request.user.is_superuser and request.user != requested_user:
+            return self.handle_no_permission()
+
+        return super().dispatch(request, *args, **kwargs)
+
+
 
 class AccessProfilesView(
     LoginRequiredMixin,

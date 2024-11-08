@@ -12,12 +12,16 @@ class User(AbstractUser):
 
     is_local_account = models.BooleanField(default=True)
 
-    wild_wasteland_mode = models.BooleanField(default=False)
+    wild_wasteland_mode = models.BooleanField(
+        default=False,
+        help_text="Enables easter eggs, non-default as it's less professional."
+    )
 
     default_home = models.CharField(
         max_length=20,
         choices=HomeOptions.choices,
-        default=HomeOptions.HOSTS
+        default=HomeOptions.HOSTS,
+        help_text="The default page to redirect to after login."
     )
 
     access_profiles = models.ManyToManyField(

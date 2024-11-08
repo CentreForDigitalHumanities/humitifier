@@ -16,7 +16,7 @@ class HumitifierOIDCAuthenticationBackend(OIDCAuthenticationBackend):
         username = self.get_username(claims)
         if not username:
             return self.UserModel.objects.none()
-        return self.UserModel.objects.filter(username=username)
+        return self.UserModel.objects.filter(username=username, is_local_account=False)
 
     def get_username(self, claims):
         return claims.get('preferred_username')

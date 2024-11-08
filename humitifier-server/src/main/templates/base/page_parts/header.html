@@ -1,8 +1,9 @@
 <div class="sticky top-0 flex items-center w-100 h-14 bg-primary dark:bg-gray-900 font-semibold px-4 border-b border-yellow-300 dark:border-gray-700 transition ease-in-out duration-150">
 
     <div class="md:hidden mr-2 cursor-pointer" @click="show_sidebar = !show_sidebar">
-        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
+             class="size-6">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
         </svg>
     </div>
 
@@ -30,15 +31,19 @@
         </div>
     </div>
 
-    <div class="px-4 flex items-center h-full">
+    <div class="px-4 flex items-center h-full cursor-pointer relative" x-data="{show_dropdown: false}"
+         @click="show_dropdown = !show_dropdown">
         {{ user.get_full_name }}
+        <div x-html="show_dropdown ? '&uarr;' : '&darr;'" class="ml-2"></div>
+        <div class="absolute min-w-40 bg-gray-200 dark:bg-gray-700 top-header right-2 z-50 rounded-b flex-col" x-bind:class="show_dropdown ? 'flex' : 'hidden'">
+            <a href="#" class="px-4 py-3 hover:bg-gray-300 dark:hover:bg-gray-800 border-b border-b-gray-300 dark:border-b-gray-800 text-center">Profile</a>
+            {% if user.is_local_user %}
+                <a href="#" class="px-4 py-3 hover:bg-gray-300 dark:hover:bg-gray-800 border-b border-b-gray-300 dark:border-b-gray-800 text-center">Set password</a>
+            {% endif %}
+            <form action="{% url 'oidc_logout' %}" method="post">
+                {% csrf_token %}
+                <input type="submit" value="Logout" class="px-4 py-3 w-full hover:bg-gray-300 dark:hover:bg-gray-800 w-100">
+            </form>
+        </div>
     </div>
-    {% if user.is_authenticated %}
-      <form action="{% url 'oidc_logout' %}" method="post">
-        {% csrf_token %}
-        <input type="submit" value="Logout" class="cursor-pointer">
-      </form>
-    {% else %}
-      <a href="{% url 'oidc_authentication_init' %}">Login</a>
-    {% endif %}
 </div>

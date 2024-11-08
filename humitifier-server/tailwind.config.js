@@ -10,6 +10,8 @@ module.exports = {
         'xl:table-cell',
         '2xl:table-cell',
         'ultrawide:table-cell',
+        'btn-danger',
+        'btn-primary',
     ],
     darkMode: ['selector'],
     theme: {

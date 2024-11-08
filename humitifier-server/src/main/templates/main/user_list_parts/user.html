@@ -1,0 +1,23 @@
+{% load strip_quotes %}
+<tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+    <td class="py-5 pl-7">
+        {{ user.get_full_name }}
+    </td>
+    <td class="hidden lg:table-cell">
+        {{ user.email }}
+    </td>
+    <td class="hidden xl:table-cell">
+        {{ user.get_access_profile_display }}
+    </td>
+    <td class="hidden 2xl:table-cell">
+        {{ user.is_active|yesno:"Yes,No" }} {# TODO: icon? #}
+    </td>
+    {% if layout.oidc_enabled %}
+        <td class="hidden lg:table-cell">
+            {{ user.is_local_account|yesno:"Local,Solis" }}
+        </td>
+    {% endif %}
+    <td class="pr-7 py-3">
+        Meep!
+    </td>
+</tr>
