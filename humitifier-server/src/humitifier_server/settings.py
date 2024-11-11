@@ -9,9 +9,9 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
 from pathlib import Path
 import re
+from urllib.parse import urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.reverse import reverse_lazy
@@ -298,6 +298,18 @@ STORAGES = {
 
 import sentry_sdk
 
+
+def before_send(event, hint):
+    if "request" in event and "url" in event["request"]:
+        url_string = event["request"]["url"]
+        parsed_url = urlparse(url_string)
+        hostname = parsed_url.hostname
+
+        if hostname not in ALLOWED_HOSTS:
+            return None
+
+    return None
+
 DSN = env.get("SENTRY_DSN", default=None)
 if DSN:
     sentry_sdk.init(
@@ -306,4 +318,5 @@ if DSN:
         _experiments={
             "continuous_profiling_auto_start": True,
         },
+        before_send=before_send,
     )
