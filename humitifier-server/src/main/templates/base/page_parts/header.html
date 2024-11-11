@@ -36,7 +36,7 @@
         {{ user.get_full_name }}
         <div x-html="show_dropdown ? '&uarr;' : '&darr;'" class="ml-2"></div>
         <div class="absolute min-w-40 bg-gray-200 dark:bg-gray-700 top-header right-2 z-50 rounded-b flex-col" x-bind:class="show_dropdown ? 'flex' : 'hidden'">
-            <a href="#" class="px-4 py-3 hover:bg-gray-300 dark:hover:bg-gray-800 border-b border-b-gray-300 dark:border-b-gray-800 text-center">Profile</a>
+            <a href="{% url 'main:user_profile' %}" class="px-4 py-3 hover:bg-gray-300 dark:hover:bg-gray-800 border-b border-b-gray-300 dark:border-b-gray-800 text-center">Profile</a>
             {% if user.is_local_user %}
                 <a href="#" class="px-4 py-3 hover:bg-gray-300 dark:hover:bg-gray-800 border-b border-b-gray-300 dark:border-b-gray-800 text-center">Set password</a>
             {% endif %}
