@@ -7,7 +7,8 @@ from django.forms import Form
 from django.http import HttpResponseRedirect
 from django.shortcuts import resolve_url
 from django.urls import reverse
-from django.views.generic import ListView, RedirectView, TemplateView, \
+from django.views.generic import DeleteView, ListView, RedirectView, \
+    TemplateView, \
     UpdateView
 from django.views.generic.detail import BaseDetailView, \
     SingleObjectTemplateResponseMixin
@@ -16,11 +17,12 @@ from rest_framework.reverse import reverse_lazy
 
 from hosts.filters import AlertFilters
 from hosts.models import Alert, Host
-from main.filters import UserFilters
-from main.forms import CreateSolisUserForm, SetPasswordForm, UserForm, \
+from main.filters import AccessProfileFilters, UserFilters
+from main.forms import AccessProfileForm, CreateSolisUserForm, SetPasswordForm, \
+    UserForm, \
     UserProfileForm
-from main.models import User
-from main.tables import UsersTable
+from main.models import AccessProfile, User
+from main.tables import AccessProfilesTable, UsersTable
 
 
 ###
@@ -348,9 +350,46 @@ class SetPasswordView(
 class AccessProfilesView(
     LoginRequiredMixin,
     SuperuserRequiredMixin,
-    TemplateView
+    TableMixin,
+    FilteredListView
 ):
-    template_name = 'main/not_implemented.html'
+    model = AccessProfile
+    table_class = AccessProfilesTable
+    filterset_class = AccessProfileFilters
+    paginate_by = 50
+    template_name = 'main/accessprofile_list.html'
+    ordering = 'name'
+    ordering_fields = {
+        'name': 'name',
+    }
+
+class CreateAccessProfileView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    CreateView
+):
+    model = AccessProfile
+    form_class = AccessProfileForm
+    success_url = reverse_lazy('main:access_profiles')
+
+
+class EditAccessProfileView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    UpdateView
+):
+    model = AccessProfile
+    form_class = AccessProfileForm
+    success_url = reverse_lazy('main:access_profiles')
+
+
+class DeleteAccessProfileView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
+    DeleteView
+):
+    model = AccessProfile
+    success_url = reverse_lazy('main:access_profiles')
 
 class OAuthApplicationsView(
     LoginRequiredMixin,

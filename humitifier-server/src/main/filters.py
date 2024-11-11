@@ -43,3 +43,14 @@ class UserFilters(django_filters.FilterSet):
         queryset=AccessProfile.objects.all(),
         empty_label="Access profile",
     )
+
+class AccessProfileFilters(django_filters.FilterSet):
+    class Meta:
+        model = AccessProfile
+        fields = ['departments']
+        form = FiltersForm
+
+    departments = django_filters.CharFilter(
+        field_name="departments",
+        lookup_expr='icontains',
+    )

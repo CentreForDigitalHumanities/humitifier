@@ -1,7 +1,9 @@
 from django import forms
 from django.forms.renderers import TemplatesSetting
+from django.utils.safestring import mark_safe
 
-from main.models import User
+from hosts.filters import _get_choices
+from main.models import AccessProfile, User
 
 
 class CustomFormRenderer(TemplatesSetting):
@@ -115,3 +117,44 @@ class SetPasswordForm(forms.ModelForm):
     def save(self, commit=True):
         self.instance.set_password(self.cleaned_data['new_password'])
         return super().save(commit=commit)
+
+
+class DepartmentsWidget(forms.CheckboxSelectMultiple):
+
+    def format_value(self, value):
+        if value is None:
+            return []
+        return value.split(',')
+
+    def optgroups(self, name, value, attrs=None):
+        # First, reset the choices with the current options from the DB
+        # This cannot be done in __init__ because the choices change over time
+        self.choices = _get_choices('department')
+        print(value)
+
+        # Then, add any values that are not in the choices (but are in the
+        # value) to the options, as they might be departments that were removed
+        # from the dataset at some point
+        for val in value:
+            if val not in dict(self.choices):
+                label = val.strip('"')
+                # Mark the label as gray to indicate it's not in the dataset
+                label = mark_safe(f"<span class='text-gray-500'>{label}</span>")
+                self.choices.append((val, label))
+
+        self.choices = sorted(self.choices, key=lambda x: x[0])
+
+        return super().optgroups(name, value, attrs)
+
+
+class AccessProfileForm(forms.ModelForm):
+    class Meta:
+        model = AccessProfile
+        fields = [
+            "name",
+            "description",
+            "departments",
+        ]
+        widgets = {
+            "departments": DepartmentsWidget,
+        }

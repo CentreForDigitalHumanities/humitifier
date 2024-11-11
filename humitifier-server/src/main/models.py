@@ -48,6 +48,10 @@ class AccessProfile(models.Model):
         models.CharField(max_length=200),
     )
 
+    def get_departments_display(self):
+        stripped = [department.strip('"') for department in self.departments]
+        return ', '.join(stripped)
+
     @property
     def departments_for_filter(self):
         departments = []

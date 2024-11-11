@@ -4,7 +4,7 @@ from django.utils.safestring import mark_safe
 from main.easy_tables import BooleanColumn, BaseTable, ButtonColumn, \
     CompoundColumn, \
     MethodColumn, ValueColumn
-from main.models import User
+from main.models import AccessProfile, User
 
 
 class UsersTable(BaseTable):
@@ -77,3 +77,33 @@ class UsersTable(BaseTable):
             return  ', '.join([profile.name for profile in obj.access_profiles.all()])
 
         return mark_safe("<span class='text-gray-500'>None</span")
+
+
+class AccessProfilesTable(BaseTable):
+    class Meta:
+        model = AccessProfile
+        columns = [
+            'name',
+            'description',
+            'departments',
+            'actions',
+        ]
+        no_data_message = "No access profiles found. Please check your filters."
+        no_data_message_wild_wasteland = ("There are no access profiles here! "
+                                          "Stop looking! There's nothing to see!")
+
+    actions = CompoundColumn(
+        'Actions',
+        columns=[
+            ButtonColumn(
+                text='Edit',
+                button_class='btn light:btn-primary dark:btn-outline mr-2',
+                url=lambda obj: reverse('main:edit_access_profile', args=[obj.pk]),
+            ),
+            ButtonColumn(
+                text='Delete',
+                button_class='btn btn-danger',
+                url=lambda obj: reverse('main:delete_access_profile', args=[obj.pk]),
+            ),
+        ]
+    )
