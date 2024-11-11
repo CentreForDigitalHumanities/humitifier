@@ -308,7 +308,7 @@ def before_send(event, hint):
         if hostname not in ALLOWED_HOSTS:
             return None
 
-    return None
+    return event
 
 DSN = env.get("SENTRY_DSN", default=None)
 if DSN:
