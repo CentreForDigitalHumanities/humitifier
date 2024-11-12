@@ -206,7 +206,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     'TITLE': 'Humitifier API',
     'DESCRIPTION': 'API for Humitifier, the Hum-IT CMDB',
-    'VERSION': '1.0.0',
+    'VERSION': '3.2.0',
     'SERVE_INCLUDE_SCHEMA': False,
     # OAuth2
     'OAUTH2_FLOWS':             ['clientCredentials'],
