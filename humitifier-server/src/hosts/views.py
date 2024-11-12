@@ -1,4 +1,6 @@
+import csv
 import json
+from io import StringIO
 
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -50,6 +52,53 @@ class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
         filtered_qs = filtered_qs.prefetch_related('alerts')
 
         return filtered_qs.distinct()
+
+
+class HostExportView(LoginRequiredMixin, FilteredListView):
+    model = Host
+    filterset_class = HostFilters
+    template_name = 'hosts/export.html'
+
+    def get_queryset(self):
+        queryset = Host.objects.get_for_user(self.request.user)
+
+        data = self.request.GET.copy()
+        data.update(self.request.POST)
+
+        self.filterset = self.filterset_class(data, queryset=queryset)
+
+        return self.filterset.qs.distinct()
+
+    def post(self, request, *args, **kwargs):
+        buffer = StringIO()
+        csv_file = csv.DictWriter(
+            f=buffer,
+            fieldnames={
+                'fqdn': 'Hostname',
+                'os': 'Operating System',
+                'department': 'Department',
+                'contact': 'Contact',
+                'created_at': 'Created At',
+                'archived': 'Archived',
+                'archival_date': 'Archival Date',
+                'last_scan_date': 'Last Scan Date',
+            }
+        )
+        csv_file.writeheader()
+        for host in self.get_queryset():
+            csv_file.writerow({
+                'fqdn': host.fqdn,
+                'os': host.os,
+                'department': host.department,
+                'contact': host.contact,
+                'created_at': host.created_at,
+                'archived': host.archived,
+                'archival_date': host.archival_date,
+                'last_scan_date': host.last_scan_date,
+            })
+
+        return HttpResponse(buffer.getvalue(), content_type='text/csv')
+
 
 class HostDetailView(LoginRequiredMixin, TemplateView):
     template_name = 'hosts/detail.html'
@@ -157,9 +206,6 @@ class ArchiveHostView(
 
         return HttpResponseRedirect(success_url)
 
-
-class ExportView(LoginRequiredMixin, TemplateView):
-    template_name = 'main/not_implemented.html'
 
 class TasksView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'main/not_implemented.html'
