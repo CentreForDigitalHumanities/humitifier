@@ -38,7 +38,7 @@ class CreateOAuthApplicationView(
     def form_valid(self, form):
         # We only allow confidential clients with client credentials grant type
         form.instance.client_type = OAuth2Application.CLIENT_CONFIDENTIAL
-        form.instance.grant_type = OAuth2Application.GRANT_CLIENT_CREDENTIALS
+        form.instance.authorization_grant_type = OAuth2Application.GRANT_CLIENT_CREDENTIALS
         return super().form_valid(form)
 
 
