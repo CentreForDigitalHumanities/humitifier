@@ -16,7 +16,11 @@ def layout_context(request):
 
     tag_line = "HumIT CMDB"
 
-    wild_wasteland = settings.DEBUG  # TODO: user setting
+    wild_wasteland = False
+    if user.is_authenticated:
+        wild_wasteland = user.wild_wasteland_mode
+
+    oidc_enabled = hasattr(settings, "OIDC_RP_CLIENT_ID")
 
     if wild_wasteland:
         jokes = [
@@ -40,6 +44,7 @@ def layout_context(request):
             "num_info_alerts": all_alerts.filter(level=AlertLevel.INFO).count(),
             "num_warning_alerts": all_alerts.filter(level=AlertLevel.WARNING).count(),
             "num_critical_alerts": all_alerts.filter(level=AlertLevel.CRITICAL).count(),
+            "oidc_enabled": oidc_enabled,
             "wild_wasteland": wild_wasteland,
             "tag_line": tag_line,
         }

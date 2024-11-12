@@ -9,6 +9,7 @@ Menu.add_item(
         weight=10,
         icon="icons/host.html",
         separator=True,
+        check=lambda request: request.user.is_authenticated,
     )
 )
 
@@ -19,6 +20,7 @@ Menu.add_item(
         reverse("hosts:tasks"),
         weight=10,
         icon="icons/tasks.html",
+        check=lambda request: request.user.is_superuser,
     )
 )
 
@@ -29,6 +31,7 @@ Menu.add_item(
         reverse("hosts:scan_profiles"),
         weight=10,
         icon="icons/terminal.html",
+        check=lambda request: request.user.is_superuser,
     )
 )
 
@@ -39,5 +42,6 @@ Menu.add_item(
         reverse("hosts:data_sources"),
         weight=10,
         icon="icons/databases.html",
+        check=lambda request: request.user.is_superuser,
     )
 )

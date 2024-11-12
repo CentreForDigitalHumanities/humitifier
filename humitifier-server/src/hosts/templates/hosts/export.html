@@ -1,0 +1,28 @@
+{% extends "base/base_page_template.html" %}
+
+{% load humanize %}
+{% load param_replace %}
+
+{% block page_title %}Hosts | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg transition ease-in-out duration-150">
+        <div class="px-7 py-5 flex justify-between">
+            <h1 class="text-3xl font-bold">Export host data</h1>
+        </div>
+        <p class="px-7 pt-5">
+            Here you can export the host data in CSV format. You can filter the data before exporting.
+            Note: in the future there might be more fields to export.
+        </p>
+        <div class="px-7 py-5 flex justify-between">
+            <h1 class="text-xl font-bold">Filters</h1>
+        </div>
+        <form method="post" class="px-7 flex flex-col gap-3 max-w-xl">
+            {% csrf_token %}
+            {{ filterset.form }}
+            <button class="btn light:btn-primary dark:btn-outline" type="submit">
+                Export
+            </button>
+        </form>
+    </div>
+{% endblock %}

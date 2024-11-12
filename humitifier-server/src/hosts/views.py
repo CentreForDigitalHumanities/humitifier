@@ -1,5 +1,8 @@
+import csv
 import json
+from io import StringIO
 
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.forms import Form
 from django.http import HttpResponse, HttpResponseRedirect
@@ -11,15 +14,16 @@ from django.views.generic.detail import BaseDetailView, \
     SingleObjectTemplateResponseMixin
 from django.views.generic.edit import FormMixin
 
-from main.views import FilteredListView
+from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 
 from .filters import HostFilters
 from .models import Host
+from .tables import HostsTable
 
-# Create your views here.
 
-class HostsListView(FilteredListView):
+class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
     model = Host
+    table_class = HostsTable
     filterset_class = HostFilters
     paginate_by = 50
     template_name = 'hosts/list.html'
@@ -49,7 +53,54 @@ class HostsListView(FilteredListView):
 
         return filtered_qs.distinct()
 
-class HostDetailView(TemplateView):
+
+class HostExportView(LoginRequiredMixin, FilteredListView):
+    model = Host
+    filterset_class = HostFilters
+    template_name = 'hosts/export.html'
+
+    def get_queryset(self):
+        queryset = Host.objects.get_for_user(self.request.user)
+
+        data = self.request.GET.copy()
+        data.update(self.request.POST)
+
+        self.filterset = self.filterset_class(data, queryset=queryset)
+
+        return self.filterset.qs.distinct()
+
+    def post(self, request, *args, **kwargs):
+        buffer = StringIO()
+        csv_file = csv.DictWriter(
+            f=buffer,
+            fieldnames={
+                'fqdn': 'Hostname',
+                'os': 'Operating System',
+                'department': 'Department',
+                'contact': 'Contact',
+                'created_at': 'Created At',
+                'archived': 'Archived',
+                'archival_date': 'Archival Date',
+                'last_scan_date': 'Last Scan Date',
+            }
+        )
+        csv_file.writeheader()
+        for host in self.get_queryset():
+            csv_file.writerow({
+                'fqdn': host.fqdn,
+                'os': host.os,
+                'department': host.department,
+                'contact': host.contact,
+                'created_at': host.created_at,
+                'archived': host.archived,
+                'archival_date': host.archival_date,
+                'last_scan_date': host.last_scan_date,
+            })
+
+        return HttpResponse(buffer.getvalue(), content_type='text/csv')
+
+
+class HostDetailView(LoginRequiredMixin, TemplateView):
     template_name = 'hosts/detail.html'
 
     LATEST_KEY = 'latest'
@@ -88,7 +139,7 @@ class HostDetailView(TemplateView):
         return context
 
 
-class HostsRawDownloadView(View):
+class HostsRawDownloadView(LoginRequiredMixin, View):
 
     def get(self, request, fqdn):
         host = Host.objects.get_for_user(request.user).get(fqdn=fqdn)
@@ -113,6 +164,8 @@ class HostsRawDownloadView(View):
 
 
 class ArchiveHostView(
+    LoginRequiredMixin,
+    SuperuserRequiredMixin,
     SingleObjectTemplateResponseMixin,
     FormMixin,
     BaseDetailView
@@ -154,14 +207,11 @@ class ArchiveHostView(
         return HttpResponseRedirect(success_url)
 
 
-class ExportView(TemplateView):
+class TasksView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'main/not_implemented.html'
 
-class TasksView(TemplateView):
+class ScanProfilesView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'main/not_implemented.html'
 
-class ScanProfilesView(TemplateView):
-    template_name = 'main/not_implemented.html'
-
-class DataSourcesView(TemplateView):
+class DataSourcesView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'main/not_implemented.html'

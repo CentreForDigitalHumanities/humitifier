@@ -18,6 +18,8 @@ Including another URLconf
 from django.conf import settings
 from django.contrib import admin
 from django.urls import include, path
+from mozilla_django_oidc.urls import OIDCAuthenticateClass, OIDCCallbackClass
+from mozilla_django_oidc.views import OIDCLogoutView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
@@ -32,3 +34,19 @@ if settings.DEBUG:
     urlpatterns = [
         path("__debug__/", include(debug_toolbar.urls)),
     ] + urlpatterns
+
+if hasattr(settings, 'OIDC_RP_CLIENT_ID'):
+    # Custom OIDC url conf, because we're hijacking an existing RP config
+    urlpatterns += [
+        path(
+            "redirect_uri", # NO TRAILING SLASH. IMPORTANT!
+            OIDCCallbackClass.as_view(),
+            name="oidc_authentication_callback"
+        ),
+        path(
+            "oidc/authenticate/",
+            OIDCAuthenticateClass.as_view(),
+            name="oidc_authentication_init",
+        ),
+        path("oidc/logout/", OIDCLogoutView.as_view(), name="oidc_logout"),
+    ]

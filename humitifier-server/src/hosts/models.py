@@ -2,6 +2,8 @@ from django.db import models
 from django.db.models import Case, F, Value, When
 from django.utils.safestring import mark_safe
 
+from api.models import OAuth2Application
+from main.models import User
 from main.templatetags.strip_quotes import strip_quotes
 
 
@@ -40,9 +42,29 @@ def _json_value(field: str):
 
 class HostManager(models.Manager):
 
-    def get_for_user(self, user):
-        # TODO: implement this when we have user support
-        return self.get_queryset()
+    def get_for_user(self, user: User):
+        if user.is_anonymous:
+            return self.get_queryset().none()
+
+        if user.is_superuser:
+            return self.get_queryset()
+
+        if user.access_profiles.exists():
+            return self.get_queryset().filter(
+                department__in=user.departments_for_filter
+            )
+
+        # When a non-superuser has no access profile, THEY GET NOTHING
+        # They lose! Good day sir!
+        return self.get_queryset().none()
+
+    def get_for_application(self, application: OAuth2Application):
+        if application.access_profile is None:
+            return self.get_queryset().none()
+
+        return self.get_queryset().filter(
+            department__in=application.access_profile.departments_for_filter
+        )
 
 
 class Host(models.Model):
@@ -51,7 +73,10 @@ class Host(models.Model):
 
     objects = HostManager()
 
-    fqdn = models.CharField(max_length=255)
+    fqdn = models.CharField(
+        "Hostname",
+        max_length=255
+    )
 
     last_scan_cache = models.JSONField(
         null=True,
@@ -61,7 +86,10 @@ class Host(models.Model):
         null=True,
     )
 
-    created_at = models.DateTimeField(auto_now_add=True)
+    created_at = models.DateTimeField(
+        "Registered",
+        auto_now_add=True,
+    )
 
     protected = models.BooleanField(default=False)
 
@@ -134,15 +162,32 @@ class Host(models.Model):
 
     @property
     def num_critical_alerts(self):
-        return self.alerts.filter(level=AlertLevel.CRITICAL).count()
+        return self._get_alerts_for_level(AlertLevel.CRITICAL, count=True)
 
     @property
     def num_warning_alerts(self):
-        return self.alerts.filter(level=AlertLevel.WARNING).count()
+        return self._get_alerts_for_level(AlertLevel.WARNING, count=True)
 
     @property
     def num_info_alerts(self):
-        return self.alerts.filter(level=AlertLevel.INFO).count()
+        return self._get_alerts_for_level(AlertLevel.INFO, count=True)
+
+    def _get_alerts_for_level(self, level, count=False):
+        # Use the prefetched objects if they are available
+        # It's not quicker for a single query, but it is for multiple queries
+        # (Read: the list page)
+        if 'alerts' in self._prefetched_objects_cache:
+            alerts =  [alert for alert in self.alerts.all() if (alert.level ==
+                                                             level)]
+            if count:
+                return len(alerts)
+            return alerts
+
+        qs = self.alerts.filter(level=level)
+
+        if count:
+            return qs.count()
+        return qs
 
     ##
     ## Display methods
@@ -190,9 +235,21 @@ class Scan(models.Model):
 
 class AlertManager(models.Manager):
 
-        def get_for_user(self, user):
-            # TODO: implement this when we have user support
-            return self.get_queryset()
+        def get_for_user(self, user: User):
+            if user.is_anonymous:
+                return self.get_queryset().none()
+
+            if user.is_superuser:
+                return self.get_queryset()
+
+            if user.access_profiles.exists():
+                return self.get_queryset().filter(
+                    host__department__in=user.departments_for_filter
+                )
+
+            # When a non-superuser has no access profile, THEY GET NOTHING
+            # They lose! Good day sir!
+            return self.get_queryset().none()
 
 
 class Alert(models.Model):

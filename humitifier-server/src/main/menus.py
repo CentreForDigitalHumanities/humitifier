@@ -8,6 +8,7 @@ Menu.add_item(
         reverse("main:dashboard"),
         weight=1,
         icon="icons/dashboard.html",
+        check=lambda request: request.user.is_authenticated,
     )
 )
 
@@ -19,6 +20,7 @@ Menu.add_item(
         weight=20,
         icon="icons/users.html",
         separator=True,
+        check=lambda request: request.user.is_superuser,
     )
 )
 
@@ -28,17 +30,8 @@ Menu.add_item(
         "Access profiles",
         reverse("main:access_profiles"),
         weight=21,
+        check=lambda request: request.user.is_superuser,
         icon="icons/shield.html",
-    )
-)
-
-Menu.add_item(
-    "main",
-    MenuItem(
-        "OAuth2 Applications",
-        reverse("main:oauth_applications"),
-        weight=21,
-        icon="icons/api.html",
     )
 )
 

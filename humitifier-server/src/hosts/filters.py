@@ -1,11 +1,12 @@
-from collections import OrderedDict
-
 import django_filters
 from django.db.models.expressions import RawSQL
-from django.forms import Form
 from django_filters import ChoiceFilter
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 
 from hosts.models import Alert, AlertLevel, AlertType, Host
+from main.filters import FiltersForm
+
 
 def _get_choices(field, strip_quotes=True):
     # The empty order_by() is required to remove the default ordering
@@ -39,7 +40,9 @@ class TextSearchFilter(django_filters.Filter):
         return qs
 
 class PackageFilter(django_filters.Filter):
-
+    _spectacular_annotation = {
+        'field': OpenApiTypes.STR,
+    }
     def filter(self, qs, value):
         if value:
             qs = qs.annotate(
@@ -91,14 +94,6 @@ class IncludeArchivedFilter(ChoiceFilter):
         return qs
 
 
-class FiltersForm(Form):
-    template_name = 'base/page_parts/filters_form_template.html'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-
-        for field_name, field in self.fields.items():
-            self.fields[field_name].widget.attrs['placeholder'] = field.label
 
 
 class HostFilters(django_filters.FilterSet):

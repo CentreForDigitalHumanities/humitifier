@@ -3,6 +3,16 @@ const colors = require('tailwindcss/colors')
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     content: ["./src/*/templates/**/*.html"],
+    safelist: [
+        'sm:table-cell',
+        'md:table-cell',
+        'lg:table-cell',
+        'xl:table-cell',
+        '2xl:table-cell',
+        'ultrawide:table-cell',
+        'btn-danger',
+        'btn-primary',
+    ],
     darkMode: ['selector'],
     theme: {
         container: {

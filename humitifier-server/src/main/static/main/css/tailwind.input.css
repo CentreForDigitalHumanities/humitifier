@@ -12,6 +12,11 @@
         @apply min-h-[calc(100vh-3.5rem)];
     }
 
+    .top-header
+    {
+        @apply top-[3.5rem];
+    }
+
     .section {
         @apply bg p-7 pt-5 rounded;
     }
@@ -22,6 +27,10 @@
 
     .input {
         @apply w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded focus-visible:outline-none focus-visible:border-gray-400 dark:focus-visible:border-gray-600 transition duration-150 ease-in-out;
+    }
+
+    .input:disabled {
+        @apply bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed;
     }
 
     .btn {
@@ -41,7 +50,11 @@
     }
 
     .btn-primary {
-        @apply bg-primary text-black hover:bg-yellow-500 hover:text-black;
+        @apply bg-primary text-black hover:bg-yellow-500 hover:text-black dark:bg-yellow-500 dark:text-black dark:hover:bg-yellow-400 dark:hover:border-yellow-400 dark:hover:text-black;
+    }
+
+    .btn-danger {
+        @apply bg-red-500 text-white hover:bg-red-600 border-red-500 hover:border-red-600 dark:border-red-700 dark:bg-red-700 dark:hover:bg-red-500 dark:hover:border-red-500;
     }
 
     .text-blue {

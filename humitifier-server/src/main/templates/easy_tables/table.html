@@ -1,0 +1,41 @@
+{% if has_pagination %}
+    <div class="px-7 py-4">
+        {% include 'base/page_parts/paginator_top.html' %}
+    </div>
+{% endif %}
+
+ <table class="w-full table-auto">
+     <thead>
+        <tr class="text-left">
+            {% for column in columns.values %}
+                <th class="{% if forloop.first %}pl-7 {% endif %}{% if forloop.last %}pr-7 {% endif %}py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 {{ column.header_classes }}">
+                    {{ column.header|default:"unknown"|capfirst }}
+                </th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in rows %}
+            <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+                {% for column, content in row %}
+                    <td class="{% if forloop.first %}pl-7 {% endif %}{% if forloop.last %}pr-7 {% endif %}py-5 {{ column.column_classes }}">
+                        {{ content }}
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+{# Not in the table as it's a pain to deal with colspan and responsiveness #}
+{% if rows|length == 0 %}
+    <div class="pl-7 py-8 text-center" >
+        {{ no_data_message }}
+    </div>
+{% endif %}
+
+{% if has_pagination %}
+    <div class="px-7 py-5">
+        {% include 'base/page_parts/paginator_bottom.html' %}
+    </div>
+{% endif %}

@@ -9,8 +9,13 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
-
 from pathlib import Path
+import re
+from urllib.parse import urlparse
+
+from django.core.exceptions import ImproperlyConfigured
+from rest_framework.reverse import reverse_lazy
+
 from . import env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -54,6 +59,8 @@ INSTALLED_APPS = [
     # Third-party apps
     "rest_framework",
     "simple_menu",
+    "drf_spectacular",
+    "oauth2_provider",
     # Local apps
     "hosts",
     "api",
@@ -116,6 +123,111 @@ DATABASES = {
     }
 }
 
+# Authentication
+
+LOGIN_URL = reverse_lazy("main:login")
+LOGIN_REDIRECT_URL = reverse_lazy("main:home")
+LOGOUT_REDIRECT_URL = reverse_lazy("main:home")
+
+## OpenID Connect
+
+if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
+    try:
+        index = INSTALLED_APPS.index('django.contrib.auth')
+        INSTALLED_APPS.insert(index + 1, "mozilla_django_oidc")
+    except ValueError:
+        raise ImproperlyConfigured(
+            "Cannot enable OIDC; django.contrib.auth is not enabled"
+        )
+
+    if env.get_boolean("DJANGO_OIDC_SESSION_REFRESH", default=False):
+        MIDDLEWARE.append("mozilla_django_oidc.middleware.SessionRefresh")
+
+    AUTHENTICATION_BACKENDS = [
+        "humitifier_server.oidc_backend.HumitifierOIDCAuthenticationBackend",
+        "django.contrib.auth.backends.ModelBackend",
+    ]
+
+    OIDC_EXEMPT_URLS = [
+        re.compile(r"^api/.*$"),
+    ]
+
+    OIDC_CREATE_USER = env.get_boolean("OIDC_CREATE_USER", default=False)
+    OIDC_RP_SCOPES = env.get("OIDC_RP_SCOPES", default="openid email profile")
+
+    OIDC_RP_SIGN_ALGO = env.get("OIDC_RP_SIGN_ALGO", default="RS256")
+
+    OIDC_AUTH_REQUEST_EXTRA_PARAMS = {}
+
+    _acr_values = env.get("OIDC_RP_ACR_VALUES", default=None)
+
+    if _acr_values:
+        OIDC_AUTH_REQUEST_EXTRA_PARAMS["acr_values"] = _acr_values
+
+    if client_id :=env.get("OIDC_RP_CLIENT_ID", default=None):
+        OIDC_RP_CLIENT_ID = client_id
+    else:
+        raise ImproperlyConfigured("OIDC_RP_CLIENT_ID is required")
+
+    if client_secret := env.get("OIDC_RP_CLIENT_SECRET", default=None):
+        OIDC_RP_CLIENT_SECRET = client_secret
+    else:
+        raise ImproperlyConfigured("OIDC_RP_CLIENT_SECRET is required")
+
+    if jwk_endpoint := env.get("OIDC_OP_JWKS_ENDPOINT", default=None):
+        OIDC_OP_JWKS_ENDPOINT = jwk_endpoint
+    else:
+        raise ImproperlyConfigured("OIDC_OP_JWKS_ENDPOINT is required")
+
+    if auth_endpoint := env.get("OIDC_OP_AUTHORIZATION_ENDPOINT", default=None):
+        OIDC_OP_AUTHORIZATION_ENDPOINT = auth_endpoint
+    else:
+        raise ImproperlyConfigured("OIDC_OP_AUTHORIZATION_ENDPOINT is required")
+
+    if token_endpoint := env.get("OIDC_OP_TOKEN_ENDPOINT", default=None):
+        OIDC_OP_TOKEN_ENDPOINT = token_endpoint
+    else:
+        raise ImproperlyConfigured("OIDC_OP_TOKEN_ENDPOINT is required")
+
+    if user_endpoint := env.get("OIDC_OP_USER_ENDPOINT", default=None):
+        OIDC_OP_USER_ENDPOINT = user_endpoint
+    else:
+        raise ImproperlyConfigured("OIDC_OP_USER_ENDPOINT is required")
+
+# DRF
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    ),
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Humitifier API',
+    'DESCRIPTION': 'API for Humitifier, the Hum-IT CMDB',
+    'VERSION': '3.2.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # OAuth2
+    'OAUTH2_FLOWS':             ['clientCredentials'],
+    'OAUTH2_AUTHORIZATION_URL': reverse_lazy('api:authorize'),
+    'OAUTH2_TOKEN_URL':         reverse_lazy('api:token'),
+    'OAUTH2_REFRESH_URL':       reverse_lazy('api:token'),
+    'OAUTH2_SCOPES':            None,
+    # OTHER SETTINGS
+}
+
+## OAuth2
+
+OAUTH2_PROVIDER_APPLICATION_MODEL = 'api.OAuth2Application'
+
+OAUTH2_PROVIDER = {
+    "SCOPES": {
+        "read": "Read scope",
+        "system": "System scope",
+    },
+    "SCOPES_BACKEND_CLASS": "api.scopes.OAuth2Scopes",
+}
 
 # Security
 
@@ -222,6 +334,18 @@ STORAGES = {
 
 import sentry_sdk
 
+
+def before_send(event, hint):
+    if "request" in event and "url" in event["request"]:
+        url_string = event["request"]["url"]
+        parsed_url = urlparse(url_string)
+        hostname = parsed_url.hostname
+
+        if hostname not in ALLOWED_HOSTS:
+            return None
+
+    return event
+
 DSN = env.get("SENTRY_DSN", default=None)
 if DSN:
     sentry_sdk.init(
@@ -230,4 +354,5 @@ if DSN:
         _experiments={
             "continuous_profiling_auto_start": True,
         },
+        before_send=before_send,
     )

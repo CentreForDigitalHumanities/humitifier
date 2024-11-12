@@ -1,0 +1,29 @@
+{% extends 'base/base_page_template.html' %}
+
+{% block content %}
+    <div class="h-full--header w-full bg px-7 py-5 ">
+        {% if object.is_active %}
+            <h1 class="text-3xl font-bold">Enable user</h1>
+            <p class="mt-6">
+                Are you sure you want to enable user '<strong>{{ object }}</strong>'?
+            </p>
+        {% else %}
+            <h1 class="text-3xl font-bold">Disable user</h1>
+            <p class="mt-6">
+                Are you sure you want to disable user '<strong>{{ object }}</strong>'?
+            </p>
+        {% endif %}
+        <form method="post">
+            {% csrf_token %}
+            {{ form }}
+            <div class="flex gap-2 mt-6">
+                <a href="{% url 'main:users' %}" class="btn btn-outline">
+                    Cancel
+                </a>
+                <button type="submit" class="btn light:btn-primary dark:btn-outline">
+                    Confirm
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
