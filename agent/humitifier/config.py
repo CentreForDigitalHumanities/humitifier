@@ -15,7 +15,10 @@ class Config:
     inventory: list[str]
     pssh: dict
     tasks: dict[str, str]
+    token_endpoint: str
     upload_endpoint: str
+    client_id: str
+    client_secret: str
 
     @classmethod
     def load(cls) -> "Config":

@@ -1,3 +1,5 @@
+import base64
+
 import asyncio
 from sys import stdout
 
@@ -106,6 +108,33 @@ async def scan_hosts():
     )
     await conn.close()
 
+async def request_oauth_token():
+    credential = "{0}:{1}".format(CONFIG.client_id, CONFIG.client_secret)
+    encoded_credentials = base64.b64encode(credential.encode("utf-8")).decode("utf-8")
+
+    headers = {
+        "Authorization": f"Basic {encoded_credentials}",
+        "Cache-Control": "no-cache",
+        "Content-Type":  "application/x-www-form-urlencoded"
+    }
+
+    data= {
+        "grant_type": "client_credentials",
+        "scope":      "system"
+    }
+
+    response = await asyncio.to_thread(
+        requests.post,
+        CONFIG.token_endpoint,
+        headers=headers,
+        data=data,
+    )
+    print(response.json())
+    json_data = response.json()
+    if "error" in json_data:
+        return None
+    return json_data["access_token"]
+
 
 @app.task(after_success(scan_hosts))
 async def parse_facts():
@@ -129,12 +158,20 @@ async def parse_facts():
             }
         )
 
-    await asyncio.to_thread(
-        requests.post,
-        CONFIG.upload_endpoint,
-        data=json.dumps(host_data),
-        headers={'Content-Type': 'application/json'}
-    )
+    token = await request_oauth_token()
+
+    if token:
+        await asyncio.to_thread(
+            requests.post,
+            CONFIG.upload_endpoint,
+            data=json.dumps(host_data),
+            headers={
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json'
+            }
+        )
+    else:
+        logger.error("Failed to get OAuth token")
 
     await conn.executemany(
         """INSERT INTO facts(name, host, scan, data) VALUES($1, $2, $3, $4)""",
