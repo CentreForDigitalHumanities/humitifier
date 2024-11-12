@@ -7,7 +7,6 @@ from .views import AccessProfilesView, CreateAccessProfileView, \
     DeActivateUserView, \
     DeleteAccessProfileView, EditAccessProfileView, EditUserView, \
     HomeRedirectView, \
-    OAuthApplicationsView, \
     SetPasswordView, UserProfileView, UsersView
 
 app_name = 'main'
@@ -32,7 +31,6 @@ urlpatterns = [
          name="edit_access_profile"),
     path("access-profiles/<int:pk>/delete/", DeleteAccessProfileView.as_view(),
          name="delete_access_profile"),
-    path("oauth-applications/", OAuthApplicationsView.as_view(), name="oauth_applications"),
 
     path("login", LoginView.as_view(), name="login"),
 ]

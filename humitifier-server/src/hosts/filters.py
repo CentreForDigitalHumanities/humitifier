@@ -1,6 +1,8 @@
 import django_filters
 from django.db.models.expressions import RawSQL
 from django_filters import ChoiceFilter
+from drf_spectacular.types import OpenApiTypes
+from drf_spectacular.utils import extend_schema_field
 
 from hosts.models import Alert, AlertLevel, AlertType, Host
 from main.filters import FiltersForm
@@ -38,7 +40,9 @@ class TextSearchFilter(django_filters.Filter):
         return qs
 
 class PackageFilter(django_filters.Filter):
-
+    _spectacular_annotation = {
+        'field': OpenApiTypes.STR,
+    }
     def filter(self, qs, value):
         if value:
             qs = qs.annotate(

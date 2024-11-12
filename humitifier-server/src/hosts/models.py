@@ -2,6 +2,7 @@ from django.db import models
 from django.db.models import Case, F, Value, When
 from django.utils.safestring import mark_safe
 
+from api.models import OAuth2Application
 from main.models import User
 from main.templatetags.strip_quotes import strip_quotes
 
@@ -56,6 +57,14 @@ class HostManager(models.Manager):
         # When a non-superuser has no access profile, THEY GET NOTHING
         # They lose! Good day sir!
         return self.get_queryset().none()
+
+    def get_for_application(self, application: OAuth2Application):
+        if application.access_profile is None:
+            return self.get_queryset().none()
+
+        return self.get_queryset().filter(
+            department__in=application.access_profile.departments_for_filter
+        )
 
 
 class Host(models.Model):

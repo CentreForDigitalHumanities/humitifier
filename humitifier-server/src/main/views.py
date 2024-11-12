@@ -390,10 +390,3 @@ class DeleteAccessProfileView(
 ):
     model = AccessProfile
     success_url = reverse_lazy('main:access_profiles')
-
-class OAuthApplicationsView(
-    LoginRequiredMixin,
-    SuperuserRequiredMixin,
-    TemplateView
-):
-    template_name = 'main/not_implemented.html'

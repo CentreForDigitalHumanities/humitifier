@@ -59,6 +59,8 @@ INSTALLED_APPS = [
     # Third-party apps
     "rest_framework",
     "simple_menu",
+    "drf_spectacular",
+    "oauth2_provider",
     # Local apps
     "hosts",
     "api",
@@ -192,6 +194,40 @@ if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
     else:
         raise ImproperlyConfigured("OIDC_OP_USER_ENDPOINT is required")
 
+# DRF
+
+REST_FRAMEWORK = {
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    ),
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Humitifier API',
+    'DESCRIPTION': 'API for Humitifier, the Hum-IT CMDB',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    # OAuth2
+    'OAUTH2_FLOWS':             ['clientCredentials'],
+    'OAUTH2_AUTHORIZATION_URL': reverse_lazy('api:authorize'),
+    'OAUTH2_TOKEN_URL':         reverse_lazy('api:token'),
+    'OAUTH2_REFRESH_URL':       reverse_lazy('api:token'),
+    'OAUTH2_SCOPES':            None,
+    # OTHER SETTINGS
+}
+
+## OAuth2
+
+OAUTH2_PROVIDER_APPLICATION_MODEL = 'api.OAuth2Application'
+
+OAUTH2_PROVIDER = {
+    "SCOPES": {
+        "read": "Read scope",
+        "system": "System scope",
+    },
+    "SCOPES_BACKEND_CLASS": "api.scopes.OAuth2Scopes",
+}
 
 # Security
 

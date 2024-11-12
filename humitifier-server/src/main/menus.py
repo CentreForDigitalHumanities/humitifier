@@ -38,17 +38,6 @@ Menu.add_item(
 Menu.add_item(
     "main",
     MenuItem(
-        "OAuth2 Applications",
-        reverse("main:oauth_applications"),
-        weight=21,
-        check=lambda request: request.user.is_superuser,
-        icon="icons/api.html",
-    )
-)
-
-Menu.add_item(
-    "main",
-    MenuItem(
         "Django Admin",
         reverse("admin:index"),
         weight=999,
