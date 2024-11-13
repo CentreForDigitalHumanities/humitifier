@@ -10,7 +10,7 @@ Menu.add_item(
         weight=22,
         icon="icons/document.html",
         separator=True,
-    )
+    ),
 )
 
 Menu.add_item(
@@ -21,5 +21,5 @@ Menu.add_item(
         weight=23,
         check=lambda request: request.user.is_superuser,
         icon="icons/api.html",
-    )
+    ),
 )

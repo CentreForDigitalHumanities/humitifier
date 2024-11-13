@@ -23,9 +23,9 @@ from mozilla_django_oidc.views import OIDCLogoutView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
-    path("api/", include('api.urls')),
-    path("hosts/", include('hosts.urls')),
-    path("", include('main.urls')),
+    path("api/", include("api.urls")),
+    path("hosts/", include("hosts.urls")),
+    path("", include("main.urls")),
 ]
 
 if settings.DEBUG:
@@ -35,13 +35,13 @@ if settings.DEBUG:
         path("__debug__/", include(debug_toolbar.urls)),
     ] + urlpatterns
 
-if hasattr(settings, 'OIDC_RP_CLIENT_ID'):
+if hasattr(settings, "OIDC_RP_CLIENT_ID"):
     # Custom OIDC url conf, because we're hijacking an existing RP config
     urlpatterns += [
         path(
-            "redirect_uri", # NO TRAILING SLASH. IMPORTANT!
+            "redirect_uri",  # NO TRAILING SLASH. IMPORTANT!
             OIDCCallbackClass.as_view(),
-            name="oidc_authentication_callback"
+            name="oidc_authentication_callback",
         ),
         path(
             "oidc/authenticate/",

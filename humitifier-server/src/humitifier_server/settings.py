@@ -9,6 +9,7 @@ https://docs.djangoproject.com/en/5.1/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.1/ref/settings/
 """
+
 from pathlib import Path
 import re
 from urllib.parse import urlparse
@@ -28,14 +29,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env.get(
     "DJANGO_SECRET_KEY",
-    "django-insecure-ffdjavjsp%s%b069$aai#h7odtbd#!q8uu7=hn1tv&y$gdq17_"
+    "django-insecure-ffdjavjsp%s%b069$aai#h7odtbd#!q8uu7=hn1tv&y$gdq17_",
 )
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.get_boolean("DJANGO_DEBUG", False)
 
 ALLOWED_HOSTS = []
-INTERNAL_IPS = ["127.0.0.1",]
+INTERNAL_IPS = [
+    "127.0.0.1",
+]
 
 _env_hosts = env.get("DJANGO_ALLOWED_HOSTS", default=None)
 if _env_hosts:
@@ -96,7 +99,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "main.context_processors.layout_context"
+                "main.context_processors.layout_context",
             ],
         },
     },
@@ -133,7 +136,7 @@ LOGOUT_REDIRECT_URL = reverse_lazy("main:home")
 
 if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
     try:
-        index = INSTALLED_APPS.index('django.contrib.auth')
+        index = INSTALLED_APPS.index("django.contrib.auth")
         INSTALLED_APPS.insert(index + 1, "mozilla_django_oidc")
     except ValueError:
         raise ImproperlyConfigured(
@@ -164,7 +167,7 @@ if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
     if _acr_values:
         OIDC_AUTH_REQUEST_EXTRA_PARAMS["acr_values"] = _acr_values
 
-    if client_id :=env.get("OIDC_RP_CLIENT_ID", default=None):
+    if client_id := env.get("OIDC_RP_CLIENT_ID", default=None):
         OIDC_RP_CLIENT_ID = client_id
     else:
         raise ImproperlyConfigured("OIDC_RP_CLIENT_ID is required")
@@ -197,29 +200,29 @@ if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
 # DRF
 
 REST_FRAMEWORK = {
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
-    'DEFAULT_AUTHENTICATION_CLASSES': (
-        'oauth2_provider.contrib.rest_framework.OAuth2Authentication',
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "oauth2_provider.contrib.rest_framework.OAuth2Authentication",
     ),
 }
 
 SPECTACULAR_SETTINGS = {
-    'TITLE': 'Humitifier API',
-    'DESCRIPTION': 'API for Humitifier, the Hum-IT CMDB',
-    'VERSION': '3.2.0',
-    'SERVE_INCLUDE_SCHEMA': False,
+    "TITLE": "Humitifier API",
+    "DESCRIPTION": "API for Humitifier, the Hum-IT CMDB",
+    "VERSION": "3.2.0",
+    "SERVE_INCLUDE_SCHEMA": False,
     # OAuth2
-    'OAUTH2_FLOWS':             ['clientCredentials'],
-    'OAUTH2_AUTHORIZATION_URL': reverse_lazy('api:authorize'),
-    'OAUTH2_TOKEN_URL':         reverse_lazy('api:token'),
-    'OAUTH2_REFRESH_URL':       reverse_lazy('api:token'),
-    'OAUTH2_SCOPES':            None,
+    "OAUTH2_FLOWS": ["clientCredentials"],
+    "OAUTH2_AUTHORIZATION_URL": reverse_lazy("api:authorize"),
+    "OAUTH2_TOKEN_URL": reverse_lazy("api:token"),
+    "OAUTH2_REFRESH_URL": reverse_lazy("api:token"),
+    "OAUTH2_SCOPES": None,
     # OTHER SETTINGS
 }
 
 ## OAuth2
 
-OAUTH2_PROVIDER_APPLICATION_MODEL = 'api.OAuth2Application'
+OAUTH2_PROVIDER_APPLICATION_MODEL = "api.OAuth2Application"
 
 OAUTH2_PROVIDER = {
     "SCOPES": {
@@ -235,9 +238,7 @@ _https_enabled = env.get_boolean("DJANGO_HTTPS", default=False)
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_SSL_REDIRECT = _https_enabled
-SECURE_REDIRECT_EXEMPT = [
-    r'^api/upload_scans/$'
-]
+SECURE_REDIRECT_EXEMPT = [r"^api/upload_scans/$"]
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -247,8 +248,7 @@ CSRF_COOKIE_SECURE = _https_enabled
 # own domain
 SESSION_COOKIE_DOMAIN = env.get("SESSION_COOKIE_DOMAIN", default=None)
 CSRF_COOKIE_DOMAIN = env.get("CSRF_COOKIE_DOMAIN", default=None)
-SESSION_COOKIE_NAME = env.get("SESSION_COOKIE_NAME",
-                              default="humitifier_sessionid")
+SESSION_COOKIE_NAME = env.get("SESSION_COOKIE_NAME", default="humitifier_sessionid")
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 hours
 
@@ -345,6 +345,7 @@ def before_send(event, hint):
             return None
 
     return event
+
 
 DSN = env.get("SENTRY_DSN", default=None)
 if DSN:

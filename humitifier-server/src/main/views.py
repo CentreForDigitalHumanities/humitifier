@@ -7,20 +7,30 @@ from django.forms import Form
 from django.http import HttpResponseRedirect
 from django.shortcuts import resolve_url
 from django.urls import reverse
-from django.views.generic import DeleteView, ListView, RedirectView, \
-    TemplateView, \
-    UpdateView
-from django.views.generic.detail import BaseDetailView, \
-    SingleObjectTemplateResponseMixin
+from django.views.generic import (
+    DeleteView,
+    ListView,
+    RedirectView,
+    TemplateView,
+    UpdateView,
+)
+from django.views.generic.detail import (
+    BaseDetailView,
+    SingleObjectTemplateResponseMixin,
+)
 from django.views.generic.edit import CreateView, FormMixin
 from rest_framework.reverse import reverse_lazy
 
 from hosts.filters import AlertFilters
 from hosts.models import Alert, Host
 from main.filters import AccessProfileFilters, UserFilters
-from main.forms import AccessProfileForm, CreateSolisUserForm, SetPasswordForm, \
-    UserForm, \
-    UserProfileForm
+from main.forms import (
+    AccessProfileForm,
+    CreateSolisUserForm,
+    SetPasswordForm,
+    UserForm,
+    UserProfileForm,
+)
 from main.models import AccessProfile, HomeOptions, User
 from main.tables import AccessProfilesTable, UsersTable
 
@@ -28,6 +38,7 @@ from main.tables import AccessProfilesTable, UsersTable
 ###
 ### Mixins
 ###
+
 
 class SuperuserRequiredMixin(AccessMixin):
     """
@@ -50,7 +61,7 @@ class SuperuserRequiredMixin(AccessMixin):
         login_scheme, login_netloc = urlparse(resolved_login_url)[:2]
         current_scheme, current_netloc = urlparse(path)[:2]
         if (not login_scheme or login_scheme == current_scheme) and (
-                not login_netloc or login_netloc == current_netloc
+            not login_netloc or login_netloc == current_netloc
         ):
             path = self.request.get_full_path()
         return redirect_to_login(
@@ -58,6 +69,7 @@ class SuperuserRequiredMixin(AccessMixin):
             resolved_login_url,
             self.get_redirect_field_name(),
         )
+
 
 class TableMixin:
     table_class = None
@@ -70,22 +82,24 @@ class TableMixin:
 
         table_class = self.get_table_class()
 
-        context['table'] = table_class(
-            data=context['object_list'],
-            paginator=context['paginator'],
-            page_object=context['page_obj'],
-            filterset=context['filterset'],
-            ordering=context['ordering'],
-            ordering_fields=context['ordering_fields'],
-            page_sizes=context['page_sizes'],
+        context["table"] = table_class(
+            data=context["object_list"],
+            paginator=context["paginator"],
+            page_object=context["page_obj"],
+            filterset=context["filterset"],
+            ordering=context["ordering"],
+            ordering_fields=context["ordering_fields"],
+            page_sizes=context["page_sizes"],
             request=self.request,
         )
 
         return context
 
+
 ###
 ### Generic views
 ###
+
 
 class FilteredListView(ListView):
     filterset_class = None
@@ -102,10 +116,10 @@ class FilteredListView(ListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['filterset'] = self.filterset
-        context['page_sizes'] = self.page_sizes
-        context['ordering'] = self.get_ordering()
-        context['ordering_fields'] = self.get_ordering_fields()
+        context["filterset"] = self.filterset
+        context["page_sizes"] = self.page_sizes
+        context["ordering"] = self.get_ordering()
+        context["ordering_fields"] = self.get_ordering_fields()
 
         return context
 
@@ -114,15 +128,15 @@ class FilteredListView(ListView):
         if self.paginate_by is None:
             return None
 
-        return self.request.GET.get('page_size', self.paginate_by)
+        return self.request.GET.get("page_size", self.paginate_by)
 
     def get_ordering(self):
         # Never order if we don't have ordering fields
         if not self.ordering_fields:
             return None
 
-        ordering = self.request.GET.get('ordering')
-        if ordering and ordering.lstrip('-') in self.ordering_fields:
+        ordering = self.request.GET.get("ordering")
+        if ordering and ordering.lstrip("-") in self.ordering_fields:
             return ordering
 
         if self.ordering:
@@ -147,23 +161,24 @@ class FilteredListView(ListView):
 ### Page views
 ###
 
+
 class HomeRedirectView(LoginRequiredMixin, RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
         if self.request.user.default_home == HomeOptions.DASHBOARD:
-            return reverse('main:dashboard')
-        return reverse('hosts:list')
+            return reverse("main:dashboard")
+        return reverse("hosts:list")
 
 
 class DashboardView(LoginRequiredMixin, FilteredListView):
     model = Alert
     filterset_class = AlertFilters
     paginate_by = 20
-    template_name = 'main/dashboard.html'
+    template_name = "main/dashboard.html"
     ordering_fields = {
-        'host': 'Hostname',
-        'level': 'Alert level',
-        'type': 'Alert type',
+        "host": "Hostname",
+        "level": "Alert level",
+        "type": "Alert type",
     }
 
     def get_queryset(self):
@@ -180,54 +195,48 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
         filtered_qs = self.filterset.qs
         # We're going to need the data for the alerts in the template
         # So, let's prefetch it here for _performance_
-        filtered_qs = filtered_qs.select_related('host')
+        filtered_qs = filtered_qs.select_related("host")
 
         return filtered_qs.distinct()
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['os_stats'] = Host.objects.get_for_user(
-            self.request.user
-        ).values(
-            'os'
-        ).annotate(
-            count=Count('os')
+        context["os_stats"] = (
+            Host.objects.get_for_user(self.request.user)
+            .values("os")
+            .annotate(count=Count("os"))
         )
-        context['department_stats'] = Host.objects.get_for_user(
-            self.request.user
-        ).values(
-            'department'
-        ).annotate(
-            count=Count('department')
+        context["department_stats"] = (
+            Host.objects.get_for_user(self.request.user)
+            .values("department")
+            .annotate(count=Count("department"))
         )
 
         return context
 
+
 class UsersView(
-    LoginRequiredMixin,
-    SuperuserRequiredMixin,
-    TableMixin,
-    FilteredListView
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
 ):
     model = User
     table_class = UsersTable
     filterset_class = UserFilters
     paginate_by = 50
-    template_name = 'main/user_list.html'
-    ordering = 'username'
+    template_name = "main/user_list.html"
+    ordering = "username"
     ordering_fields = {
-        'username': 'Username',
-        'email': 'Email',
-        'first_name': 'First name',
-        'last_name': 'Last name',
-        'access_profile': 'Access profile',
+        "username": "Username",
+        "email": "Email",
+        "first_name": "First name",
+        "last_name": "Last name",
+        "access_profile": "Access profile",
     }
 
     def get_queryset(self):
         qs = super().get_queryset()
 
-        return qs.prefetch_related('access_profiles')
+        return qs.prefetch_related("access_profiles")
 
 
 class DeActivateUserView(
@@ -235,14 +244,14 @@ class DeActivateUserView(
     SuperuserRequiredMixin,
     SingleObjectTemplateResponseMixin,
     FormMixin,
-    BaseDetailView
+    BaseDetailView,
 ):
     model = User
     form_class = Form
-    template_name = 'main/user_deactivate.html'
+    template_name = "main/user_deactivate.html"
 
     def get_success_url(self):
-        return reverse('main:users')
+        return reverse("main:users")
 
     def post(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -260,33 +269,26 @@ class DeActivateUserView(
 
         return HttpResponseRedirect(success_url)
 
-class CreateUserView(
-    LoginRequiredMixin,
-    SuperuserRequiredMixin,
-    CreateView
-):
+
+class CreateUserView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
     model = User
     form_class = UserForm
-    success_url = reverse_lazy('main:users')
-    context_object_name = 'form_user' # needed to keep the view from
+    success_url = reverse_lazy("main:users")
+    context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
 
-class CreateSolisUserView(
-    LoginRequiredMixin,
-    SuperuserRequiredMixin,
-    CreateView
-):
+class CreateSolisUserView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
     model = User
     form_class = CreateSolisUserForm
-    success_url = reverse_lazy('main:users')
-    context_object_name = 'form_user' # needed to keep the view from
+    success_url = reverse_lazy("main:users")
+    context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context['is_solis'] = True
+        context["is_solis"] = True
 
         return context
 
@@ -295,27 +297,20 @@ class CreateSolisUserView(
         return super().form_valid(form)
 
 
-class EditUserView(
-    LoginRequiredMixin,
-    SuperuserRequiredMixin,
-    UpdateView
-):
+class EditUserView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
     model = User
     form_class = UserForm
-    success_url = reverse_lazy('main:users')
-    context_object_name = 'form_user' # needed to keep the view from
+    success_url = reverse_lazy("main:users")
+    context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
 
-class UserProfileView(
-    LoginRequiredMixin,
-    UpdateView
-):
+class UserProfileView(LoginRequiredMixin, UpdateView):
     model = User
     form_class = UserProfileForm
-    success_url = reverse_lazy('main:user_profile')
-    template_name = 'main/user_profile.html'
-    context_object_name = 'form_user' # needed to keep the view from
+    success_url = reverse_lazy("main:user_profile")
+    template_name = "main/user_profile.html"
+    context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
     def get_object(self, queryset=None):
@@ -328,9 +323,9 @@ class SetPasswordView(
 ):
     model = User
     form_class = SetPasswordForm
-    template_name = 'main/user_set_password_form.html'
-    success_url = reverse_lazy('main:users')
-    context_object_name = 'form_user' # needed to keep the view from
+    template_name = "main/user_set_password_form.html"
+    success_url = reverse_lazy("main:users")
+    context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
     def dispatch(self, request, *args, **kwargs):
@@ -347,47 +342,32 @@ class SetPasswordView(
         return super().dispatch(request, *args, **kwargs)
 
 
-
 class AccessProfilesView(
-    LoginRequiredMixin,
-    SuperuserRequiredMixin,
-    TableMixin,
-    FilteredListView
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
 ):
     model = AccessProfile
     table_class = AccessProfilesTable
     filterset_class = AccessProfileFilters
     paginate_by = 50
-    template_name = 'main/accessprofile_list.html'
-    ordering = 'name'
+    template_name = "main/accessprofile_list.html"
+    ordering = "name"
     ordering_fields = {
-        'name': 'name',
+        "name": "name",
     }
 
-class CreateAccessProfileView(
-    LoginRequiredMixin,
-    SuperuserRequiredMixin,
-    CreateView
-):
+
+class CreateAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
     model = AccessProfile
     form_class = AccessProfileForm
-    success_url = reverse_lazy('main:access_profiles')
+    success_url = reverse_lazy("main:access_profiles")
 
 
-class EditAccessProfileView(
-    LoginRequiredMixin,
-    SuperuserRequiredMixin,
-    UpdateView
-):
+class EditAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
     model = AccessProfile
     form_class = AccessProfileForm
-    success_url = reverse_lazy('main:access_profiles')
+    success_url = reverse_lazy("main:access_profiles")
 
 
-class DeleteAccessProfileView(
-    LoginRequiredMixin,
-    SuperuserRequiredMixin,
-    DeleteView
-):
+class DeleteAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
     model = AccessProfile
-    success_url = reverse_lazy('main:access_profiles')
+    success_url = reverse_lazy("main:access_profiles")

@@ -9,7 +9,7 @@ Menu.add_item(
         weight=1,
         icon="icons/dashboard.html",
         check=lambda request: request.user.is_authenticated,
-    )
+    ),
 )
 
 Menu.add_item(
@@ -21,7 +21,7 @@ Menu.add_item(
         icon="icons/users.html",
         separator=True,
         check=lambda request: request.user.is_superuser,
-    )
+    ),
 )
 
 Menu.add_item(
@@ -32,7 +32,7 @@ Menu.add_item(
         weight=21,
         check=lambda request: request.user.is_superuser,
         icon="icons/shield.html",
-    )
+    ),
 )
 
 Menu.add_item(
@@ -44,5 +44,5 @@ Menu.add_item(
         icon="icons/admin.html",
         check=lambda request: request.user.is_superuser,
         separator=True,
-    )
+    ),
 )

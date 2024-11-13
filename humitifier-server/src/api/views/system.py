@@ -9,9 +9,10 @@ from api.permissions import TokenHasApplication
 from hosts.models import Host
 from hosts.utils import historical_clean
 
+
 class UploadScans(APIView):
     permission_classes = [TokenHasApplication, TokenHasScope]
-    required_scopes = ['system']
+    required_scopes = ["system"]
 
     @extend_schema(
         operation_id="upload_scans",
@@ -23,9 +24,7 @@ class UploadScans(APIView):
             },
             many=True,
         ),
-        responses={
-            200: OpenApiTypes.INT
-        },
+        responses={200: OpenApiTypes.INT},
     )
     def post(self, request, format=None):
         """
@@ -38,11 +37,11 @@ class UploadScans(APIView):
             scans = [scans]
 
         for scan in scans:
-            if 'host' not in scan or 'data' not in scan:
+            if "host" not in scan or "data" not in scan:
                 raise APIException("Invalid scan data")
 
-            host, created = Host.objects.get_or_create(fqdn=scan['host'])
-            host.add_scan(scan['data'])
+            host, created = Host.objects.get_or_create(fqdn=scan["host"])
+            host.add_scan(scan["data"])
 
             hosts.append(host)
 
@@ -50,9 +49,10 @@ class UploadScans(APIView):
 
         return Response(len(scans))
 
+
 class InventorySync(APIView):
     permission_classes = [TokenHasApplication, TokenHasScope]
-    required_scopes = ['system']
+    required_scopes = ["system"]
 
     @extend_schema(
         operation_id="inventory_sync",
@@ -66,9 +66,7 @@ class InventorySync(APIView):
                 ),
             },
         ),
-        responses={
-            200: OpenApiTypes.INT
-        },
+        responses={200: OpenApiTypes.INT},
     )
     def post(self, request, format=None):
         """

@@ -11,22 +11,22 @@ from main.easy_tables.columns import BaseColumn, ModelValueColumn
 class TableOptions:
 
     def __init__(self, meta):
-        self.template = getattr(meta, 'template', 'easy_tables/table.html')
-        self.model = getattr(meta, 'model', None)
-        self.columns = getattr(meta, 'columns', [])
+        self.template = getattr(meta, "template", "easy_tables/table.html")
+        self.model = getattr(meta, "model", None)
+        self.columns = getattr(meta, "columns", [])
         self.meta = meta
         self.table = None
-        self.column_type_overrides = getattr(meta, 'column_type_overrides', {})
-        self.column_breakpoint_overrides = getattr(meta, 'column_breakpoint_overrides', {})
+        self.column_type_overrides = getattr(meta, "column_type_overrides", {})
+        self.column_breakpoint_overrides = getattr(
+            meta, "column_breakpoint_overrides", {}
+        )
         self.no_data_message = getattr(
-            meta,
-            'no_data_message',
-            'No data available. Please check your filters.'
+            meta, "no_data_message", "No data available. Please check your filters."
         )
         self.no_data_message_wild_wasteland = getattr(
             meta,
-            'no_data_message_wild_wasteland',
-            "Oops! Looks like we ran out of data. Time to panic!"
+            "no_data_message_wild_wasteland",
+            "Oops! Looks like we ran out of data. Time to panic!",
         )
 
     def contribute_to_class(self, cls):
@@ -41,18 +41,30 @@ class TableOptions:
                         column = self.column_type_overrides[field.name]
 
                         if isclass(column):
-                            instance = column(header=field.verbose_name, value_attr=field.name)
+                            instance = column(
+                                header=field.verbose_name, value_attr=field.name
+                            )
                             columns.append((field.name, instance))
                         else:
                             if column.header is None:
                                 column.header = field.verbose_name
 
-                            if hasattr(column, 'value_attr') and column.value_attr is None:
+                            if (
+                                hasattr(column, "value_attr")
+                                and column.value_attr is None
+                            ):
                                 column.value_attr = field.name
 
                             columns.append((field.name, column))
                     else:
-                        columns.append((field.name, ModelValueColumn(header=field.verbose_name, value_attr=field.name)))
+                        columns.append(
+                            (
+                                field.name,
+                                ModelValueColumn(
+                                    header=field.verbose_name, value_attr=field.name
+                                ),
+                            )
+                        )
 
         return columns
 
@@ -77,7 +89,7 @@ class DeclarativeColumnsMetaclass(type):
         new_class = super().__new__(mcs, name, bases, attrs)
 
         # Handle Meta options
-        meta = attrs.get('Meta', None)
+        meta = attrs.get("Meta", None)
         if meta:
             meta = TableOptions(meta)
             new_class._meta = meta
@@ -92,7 +104,7 @@ class DeclarativeColumnsMetaclass(type):
         # Walk through the MRO.
         declared_columns = OrderedDict(columns)
         for base in reversed(new_class.__mro__):
-            if hasattr(base, 'declared_columns'):
+            if hasattr(base, "declared_columns"):
                 declared_columns.update(base.declared_columns)
             for key, value in base.__dict__.items():
                 if isinstance(value, BaseColumn):
@@ -104,7 +116,9 @@ class DeclarativeColumnsMetaclass(type):
             new_order = OrderedDict()
             for column_name in new_class._meta.columns:
                 if column_name not in declared_columns:
-                    raise ValueError(f'Column {column_name} not found in declared columns.')
+                    raise ValueError(
+                        f"Column {column_name} not found in declared columns."
+                    )
 
                 new_order[column_name] = declared_columns[column_name]
 
@@ -131,13 +145,13 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
         paginator=None,
         page_object=None,
         ordering: str | None = None,
-        ordering_fields: dict[str, str] | None =None,
+        ordering_fields: dict[str, str] | None = None,
         page_sizes: list[int] | None = None,
         filterset=None,
         request=None,
-        **kwargs
+        **kwargs,
     ):
-        self.columns : dict[str, BaseColumn] = copy.deepcopy(self.declared_columns)
+        self.columns: dict[str, BaseColumn] = copy.deepcopy(self.declared_columns)
         self.data = data
         self.paginator = paginator
         self.page_object = page_object
@@ -149,7 +163,7 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
 
         super().__init__(*args, **kwargs)
 
-    def render(self, obj_list = None, paginator = None):
+    def render(self, obj_list=None, paginator=None):
         data = obj_list or self.data
         paginator = paginator or self.paginator
 
@@ -165,17 +179,17 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
             no_data_message = self._meta.no_data_message_wild_wasteland
 
         context = {
-            'table': self,
-            'columns': self.columns,
-            'rows': rows,
-            'has_pagination': paginator is not None,
-            'paginator': paginator,
-            'page_obj': self.page_object,
-            'page_sizes': self.page_sizes,
-            'ordering': self.ordering,
-            'ordering_fields': self.ordering_fields,
-            'filterset': self.filterset,
-            'no_data_message': no_data_message,
+            "table": self,
+            "columns": self.columns,
+            "rows": rows,
+            "has_pagination": paginator is not None,
+            "paginator": paginator,
+            "page_obj": self.page_object,
+            "page_sizes": self.page_sizes,
+            "ordering": self.ordering,
+            "ordering_fields": self.ordering_fields,
+            "filterset": self.filterset,
+            "no_data_message": no_data_message,
         }
 
         return render_to_string(self._meta.template, context)

@@ -32,30 +32,30 @@ class UserForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
 
         if self.instance and not self.instance.is_local_account:
-            self.fields['username'].disabled = True
-            self.fields['email'].disabled = True
-            self.fields['first_name'].disabled = True
-            self.fields['last_name'].disabled = True
+            self.fields["username"].disabled = True
+            self.fields["email"].disabled = True
+            self.fields["first_name"].disabled = True
+            self.fields["last_name"].disabled = True
 
     def clean_username(self):
         if self.instance and not self.instance.is_local_account:
             return self.instance.username
-        return self.cleaned_data['username']
+        return self.cleaned_data["username"]
 
     def clean_email(self):
         if self.instance and not self.instance.is_local_account:
             return self.instance.email
-        return self.cleaned_data['email']
+        return self.cleaned_data["email"]
 
     def clean_first_name(self):
         if self.instance and not self.instance.is_local_account:
             return self.instance.first_name
-        return self.cleaned_data['first_name']
+        return self.cleaned_data["first_name"]
 
     def clean_last_name(self):
         if self.instance and not self.instance.is_local_account:
             return self.instance.last_name
-        return self.cleaned_data['last_name']
+        return self.cleaned_data["last_name"]
 
 
 class UserProfileForm(forms.ModelForm):
@@ -90,24 +90,23 @@ class SetPasswordForm(forms.ModelForm):
 
     new_password = forms.CharField(
         widget=forms.PasswordInput,
-        label='New Password',
+        label="New Password",
     )
     password_confirm = forms.CharField(
         widget=forms.PasswordInput,
-        label='Confirm Password',
+        label="Confirm Password",
     )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-
-        self.fields['new_password'].widget.attrs['placeholder'] = 'hunter2'
-        self.fields['password_confirm'].widget.attrs['placeholder'] = 'hunter2'
+        self.fields["new_password"].widget.attrs["placeholder"] = "hunter2"
+        self.fields["password_confirm"].widget.attrs["placeholder"] = "hunter2"
 
     def clean(self):
         cleaned_data = super().clean()
-        new_password = cleaned_data.get('new_password')
-        password_confirm = cleaned_data.get('password_confirm')
+        new_password = cleaned_data.get("new_password")
+        password_confirm = cleaned_data.get("password_confirm")
 
         if new_password != password_confirm:
             raise forms.ValidationError("Passwords do not match")
@@ -115,7 +114,7 @@ class SetPasswordForm(forms.ModelForm):
         return cleaned_data
 
     def save(self, commit=True):
-        self.instance.set_password(self.cleaned_data['new_password'])
+        self.instance.set_password(self.cleaned_data["new_password"])
         return super().save(commit=commit)
 
 
@@ -124,12 +123,12 @@ class DepartmentsWidget(forms.CheckboxSelectMultiple):
     def format_value(self, value):
         if value is None:
             return []
-        return value.split(',')
+        return value.split(",")
 
     def optgroups(self, name, value, attrs=None):
         # First, reset the choices with the current options from the DB
         # This cannot be done in __init__ because the choices change over time
-        self.choices = _get_choices('department')
+        self.choices = _get_choices("department")
         print(value)
 
         # Then, add any values that are not in the choices (but are in the
