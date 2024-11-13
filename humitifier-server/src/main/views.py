@@ -21,7 +21,7 @@ from main.filters import AccessProfileFilters, UserFilters
 from main.forms import AccessProfileForm, CreateSolisUserForm, SetPasswordForm, \
     UserForm, \
     UserProfileForm
-from main.models import AccessProfile, User
+from main.models import AccessProfile, HomeOptions, User
 from main.tables import AccessProfilesTable, UsersTable
 
 
@@ -150,7 +150,8 @@ class FilteredListView(ListView):
 class HomeRedirectView(LoginRequiredMixin, RedirectView):
 
     def get_redirect_url(self, *args, **kwargs):
-        # TODO: user preferences
+        if self.request.user.default_home == HomeOptions.DASHBOARD:
+            return reverse('main:dashboard')
         return reverse('hosts:list')
 
 
