@@ -9,7 +9,7 @@
     </div>
 
     <div class="flex gap-2">
-        <div class="relative">
+        <div class="relative"  @click.outside="show_filters = false">
             <button class="btn btn-sm light:btn-primary dark:btn-outline" @click="show_filters = !show_filters">
                 Filters
             </button>
