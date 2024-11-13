@@ -2,10 +2,9 @@ import django_filters
 from django.db.models.expressions import RawSQL
 from django_filters import ChoiceFilter
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field
 
 from hosts.models import Alert, AlertLevel, AlertType, Host
-from main.filters import FiltersForm
+from main.filters import FiltersForm, MultipleChoiceFilterWidget
 
 
 def _get_choices(field, strip_quotes=True):
@@ -96,8 +95,6 @@ class IncludeArchivedFilter(ChoiceFilter):
         return qs
 
 
-
-
 class HostFilters(django_filters.FilterSet):
     class Meta:
         model = Host
@@ -109,11 +106,11 @@ class HostFilters(django_filters.FilterSet):
         field_name="fqdn",
     )
 
-    os = django_filters.ChoiceFilter(
-        label="OS",
+    os = django_filters.MultipleChoiceFilter(
+        label="Operating System",
         field_name="os",
         choices=lambda: _get_choices('os'),
-        empty_label="Operating System"
+        widget=MultipleChoiceFilterWidget,
     )
 
     alert_level = HostAlertLevelFilter(
@@ -124,18 +121,18 @@ class HostFilters(django_filters.FilterSet):
         empty_label="Alert Type",
     )
 
-    department = django_filters.ChoiceFilter(
+    department = django_filters.MultipleChoiceFilter(
         label="Department",
         field_name="department",
         choices=lambda: _get_choices('department'),
-        empty_label="Department",
+        widget=MultipleChoiceFilterWidget,
     )
 
-    contact = django_filters.ChoiceFilter(
+    contact = django_filters.MultipleChoiceFilter(
         label="Contact",
         field_name="contact",
         choices=lambda: _get_choices('contact'),
-        empty_label="Contact",
+        widget=MultipleChoiceFilterWidget,
     )
 
     package = PackageFilter(
