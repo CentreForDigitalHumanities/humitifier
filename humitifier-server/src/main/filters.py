@@ -1,7 +1,13 @@
 import django_filters
-from django.forms import Form
+from django.forms import Form, SelectMultiple
 
 from main.models import AccessProfile, User
+
+
+class MultipleChoiceFilterWidget(SelectMultiple):
+    class Media:
+        js = ['main/js/alpine.multiselect.js']
+    template_name = 'django/forms/widgets/multi_select_filter.html'
 
 
 class FiltersForm(Form):
