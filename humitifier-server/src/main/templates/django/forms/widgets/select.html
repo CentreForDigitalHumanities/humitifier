@@ -1,6 +1,6 @@
 <select
     name="{{ widget.name }}"
-    class="input"
+    class="input select"
     {% include "django/forms/widgets/attrs.html" %}
     x-data="{isPlaceholder: true}"
     x-init="isPlaceholder = $el.value == ''"
