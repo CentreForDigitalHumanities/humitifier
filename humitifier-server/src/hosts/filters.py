@@ -26,6 +26,8 @@ def _get_choices(field, strip_quotes=True):
 
             values.append((db_value, human_label))
 
+    values = sorted(values, key=lambda x: x[1])
+
     return values
 
 
