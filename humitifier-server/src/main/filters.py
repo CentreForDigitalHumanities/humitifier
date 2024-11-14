@@ -11,6 +11,17 @@ class MultipleChoiceFilterWidget(SelectMultiple):
     template_name = "django/forms/widgets/multi_select_filter.html"
 
 
+class BooleanChoiceFilter(django_filters.ChoiceFilter):
+
+    def filter(self, qs, value):
+        if value.lower() == "true":
+            value = True
+        elif value.lower() == "false":
+            value = False
+
+        return super().filter(qs, value)
+
+
 class FiltersForm(Form):
     template_name = "base/page_parts/filters_form_template.html"
 

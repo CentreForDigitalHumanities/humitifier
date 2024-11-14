@@ -4,7 +4,7 @@ from django_filters import ChoiceFilter
 from drf_spectacular.types import OpenApiTypes
 
 from hosts.models import Alert, AlertLevel, AlertType, Host
-from main.filters import FiltersForm, MultipleChoiceFilterWidget
+from main.filters import BooleanChoiceFilter, FiltersForm, MultipleChoiceFilterWidget
 
 
 def _get_choices(field, strip_quotes=True):
@@ -140,7 +140,7 @@ class HostFilters(django_filters.FilterSet):
         label="Package",
     )
 
-    is_wp = django_filters.ChoiceFilter(
+    is_wp = BooleanChoiceFilter(
         empty_label="Is WordPress",
         field_name="last_scan_cache__IsWordpress__is_wp",
         choices=[
