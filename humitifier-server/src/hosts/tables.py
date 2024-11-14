@@ -1,7 +1,13 @@
 from django.urls import reverse
 
 from hosts.models import Host
-from main.easy_tables import BaseTable, DateTimeColumn, LinkColumn, TemplatedColumn
+from main.easy_tables import (
+    BaseTable,
+    DateTimeColumn,
+    LinkColumn,
+    ModelValueColumn,
+    TemplatedColumn,
+)
 
 
 class HostsTable(BaseTable):
@@ -22,6 +28,10 @@ class HostsTable(BaseTable):
             ),
             "last_scan_date": DateTimeColumn,
             "created_at": DateTimeColumn,
+            "os": ModelValueColumn(
+                header="Operating System",
+                value_attr="os",
+            ),
         }
         column_breakpoint_overrides = {
             "os": "lg",
