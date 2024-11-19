@@ -1,19 +1,19 @@
 [tool.poetry]
 name = "humitifier"
-version = "3.2.0"
+version = "3.3.0"
 description = "Tools and interfaces for displaying server resources"
-authors = ["Donatas Rasiukevicius <d.rasiukevicius@uu.nl>"]
-
+authors = [
+    "Donatas Rasiukevicius <d.rasiukevicius@uu.nl>",
+]
 
 [tool.poetry.dependencies]
 python = "~3.11"
 toml = "^0.10.2"
 parallel-ssh = "^2.12.0"
 rocketry = "^2.5.1"
-pydantic = "<2.0.0" # Needed to keep compatibility with rocketry
+pydantic = "<2.0.0"
 asyncpg = "^0.29.0"
 requests = "^2.32.3"
-
 
 [tool.poetry.group.dev.dependencies]
 mypy = "^1.1.1"
@@ -28,5 +28,7 @@ hypothesis-auto = "^1.1.5"
 line-length = 119
 
 [build-system]
-requires = ["poetry-core"]
+requires = [
+    "poetry-core",
+]
 build-backend = "poetry.core.masonry.api"
