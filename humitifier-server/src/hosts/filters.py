@@ -2,10 +2,9 @@ import django_filters
 from django.db.models.expressions import RawSQL
 from django_filters import ChoiceFilter
 from drf_spectacular.types import OpenApiTypes
-from drf_spectacular.utils import extend_schema_field
 
 from hosts.models import Alert, AlertLevel, AlertType, Host
-from main.filters import FiltersForm
+from main.filters import BooleanChoiceFilter, FiltersForm, MultipleChoiceFilterWidget
 
 
 def _get_choices(field, strip_quotes=True):
@@ -26,6 +25,8 @@ def _get_choices(field, strip_quotes=True):
 
             values.append((db_value, human_label))
 
+    values = sorted(values, key=lambda x: x[1])
+
     return values
 
 
@@ -33,32 +34,33 @@ class TextSearchFilter(django_filters.Filter):
 
     def filter(self, qs, value):
         if value:
-            kwargs = {
-                f"{self.field_name}__icontains": value
-            }
+            kwargs = {f"{self.field_name}__icontains": value}
             return qs.filter(**kwargs)
         return qs
 
+
 class PackageFilter(django_filters.Filter):
     _spectacular_annotation = {
-        'field': OpenApiTypes.STR,
+        "field": OpenApiTypes.STR,
     }
+
     def filter(self, qs, value):
         if value:
             qs = qs.annotate(
                 package_exists=RawSQL(
                     "SELECT 1 FROM jsonb_array_elements(\"hosts_host\".\"last_scan_cache\"->'PackageList') AS pkg WHERE pkg->>'name' = %s",
-                    [value]
+                    [value],
                 )
             )
             return qs.filter(package_exists__isnull=False)
         return qs
 
+
 class HostAlertLevelFilter(ChoiceFilter):
 
     def __init__(self, *args, **kwargs):
-        kwargs['choices'] = AlertLevel.choices
-        kwargs['field_name'] = 'alerts__level'
+        kwargs["choices"] = AlertLevel.choices
+        kwargs["field_name"] = "alerts__level"
         super().__init__(*args, **kwargs)
 
     def filter(self, qs, value):
@@ -70,8 +72,8 @@ class HostAlertLevelFilter(ChoiceFilter):
 class HostAlertTypeFilter(ChoiceFilter):
 
     def __init__(self, *args, **kwargs):
-        kwargs['choices'] = AlertType.choices
-        kwargs['field_name'] = 'alerts__type'
+        kwargs["choices"] = AlertType.choices
+        kwargs["field_name"] = "alerts__type"
         super().__init__(*args, **kwargs)
 
     def filter(self, qs, value):
@@ -82,10 +84,10 @@ class HostAlertTypeFilter(ChoiceFilter):
 
 class IncludeArchivedFilter(ChoiceFilter):
     def __init__(self, *args, **kwargs):
-        kwargs['choices'] = [
+        kwargs["choices"] = [
             (True, "Include archived servers"),
         ]
-        kwargs['field_name'] = 'archived'
+        kwargs["field_name"] = "archived"
         super().__init__(*args, **kwargs)
 
     def filter(self, qs, value):
@@ -94,12 +96,10 @@ class IncludeArchivedFilter(ChoiceFilter):
         return qs
 
 
-
-
 class HostFilters(django_filters.FilterSet):
     class Meta:
         model = Host
-        fields = ['fqdn']
+        fields = ["fqdn"]
         form = FiltersForm
 
     fqdn = TextSearchFilter(
@@ -107,11 +107,11 @@ class HostFilters(django_filters.FilterSet):
         field_name="fqdn",
     )
 
-    os = django_filters.ChoiceFilter(
-        label="OS",
+    os = django_filters.MultipleChoiceFilter(
+        label="Operating System",
         field_name="os",
-        choices=lambda: _get_choices('os'),
-        empty_label="Operating System"
+        choices=lambda: _get_choices("os"),
+        widget=MultipleChoiceFilterWidget,
     )
 
     alert_level = HostAlertLevelFilter(
@@ -122,31 +122,31 @@ class HostFilters(django_filters.FilterSet):
         empty_label="Alert Type",
     )
 
-    department = django_filters.ChoiceFilter(
+    department = django_filters.MultipleChoiceFilter(
         label="Department",
         field_name="department",
-        choices=lambda: _get_choices('department'),
-        empty_label="Department",
+        choices=lambda: _get_choices("department"),
+        widget=MultipleChoiceFilterWidget,
     )
 
-    contact = django_filters.ChoiceFilter(
+    contact = django_filters.MultipleChoiceFilter(
         label="Contact",
         field_name="contact",
-        choices=lambda: _get_choices('contact'),
-        empty_label="Contact",
+        choices=lambda: _get_choices("contact"),
+        widget=MultipleChoiceFilterWidget,
     )
 
     package = PackageFilter(
         label="Package",
     )
 
-    is_wp = django_filters.ChoiceFilter(
+    is_wp = BooleanChoiceFilter(
         empty_label="Is WordPress",
         field_name="last_scan_cache__IsWordpress__is_wp",
         choices=[
             (True, "Yes"),
             (False, "No"),
-        ]
+        ],
     )
 
     archived = IncludeArchivedFilter(
@@ -157,9 +157,8 @@ class HostFilters(django_filters.FilterSet):
 class AlertFilters(django_filters.FilterSet):
     class Meta:
         model = Alert
-        fields = ['level', 'type']
+        fields = ["level", "type"]
         form = FiltersForm
-
 
     level = django_filters.ChoiceFilter(
         label="Alert level",

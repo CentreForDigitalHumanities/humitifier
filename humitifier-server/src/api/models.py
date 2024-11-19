@@ -21,6 +21,6 @@ class OAuth2Application(AbstractApplication):
         super().clean()
         if self.allowed_scopes:
             allowed_scopes_set = set(self.allowed_scopes)
-            available_scopes_set = set(settings.OAUTH2_PROVIDER['SCOPES'].keys())
+            available_scopes_set = set(settings.OAUTH2_PROVIDER["SCOPES"].keys())
             if not allowed_scopes_set.issubset(available_scopes_set):
                 raise ValidationError("Invalid scopes in allowed_scopes")

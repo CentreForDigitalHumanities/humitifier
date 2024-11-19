@@ -8,15 +8,15 @@ from main.templatetags.strip_quotes import strip_quotes
 
 
 class AlertLevel(models.TextChoices):
-    INFO = 'info'
-    WARNING = 'warning'
-    CRITICAL = 'critical'
+    INFO = "info"
+    WARNING = "warning"
+    CRITICAL = "critical"
 
 
 class AlertType(models.TextChoices):
-    OUTDATED_OS = 'Outdated OS'
-    FACT_ERROR = 'Has fact error'
-    DISABLED_PUPPET = 'Puppet agent disabled'
+    OUTDATED_OS = "Outdated OS"
+    FACT_ERROR = "Has fact error"
+    DISABLED_PUPPET = "Puppet agent disabled"
 
 
 def _json_value(field: str):
@@ -30,12 +30,8 @@ def _json_value(field: str):
     :return:
     """
     return Case(
-        When(
-            **{field: 'null', 'then': Value(None)}
-        ),
-        When(
-            **{field: None, 'then': Value(None)}
-        ),
+        When(**{field: "null", "then": Value(None)}),
+        When(**{field: None, "then": Value(None)}),
         default=F(field),
     )
 
@@ -69,14 +65,11 @@ class HostManager(models.Manager):
 
 class Host(models.Model):
     class Meta:
-        ordering = ['fqdn']
+        ordering = ["fqdn"]
 
     objects = HostManager()
 
-    fqdn = models.CharField(
-        "Hostname",
-        max_length=255
-    )
+    fqdn = models.CharField("Hostname", max_length=255)
 
     last_scan_cache = models.JSONField(
         null=True,
@@ -105,19 +98,19 @@ class Host(models.Model):
     ##
 
     department = models.GeneratedField(
-        expression=_json_value('last_scan_cache__HostMeta__department'),
+        expression=_json_value("last_scan_cache__HostMeta__department"),
         output_field=models.CharField(max_length=255),
         db_persist=True,
     )
 
     contact = models.GeneratedField(
-        expression=_json_value('last_scan_cache__HostMeta__contact'),
+        expression=_json_value("last_scan_cache__HostMeta__contact"),
         output_field=models.CharField(max_length=255),
         db_persist=True,
     )
 
     os = models.GeneratedField(
-        expression=_json_value('last_scan_cache__HostnameCtl__os'),
+        expression=_json_value("last_scan_cache__HostnameCtl__os"),
         output_field=models.CharField(max_length=255),
         db_persist=True,
     )
@@ -127,11 +120,7 @@ class Host(models.Model):
     ##
 
     def add_scan(
-            self,
-            scan_data,
-            *,
-            cache_scan: bool = True,
-            generate_alerts: bool = True
+        self, scan_data, *, cache_scan: bool = True, generate_alerts: bool = True
     ):
         if self.archived:
             return None
@@ -176,9 +165,8 @@ class Host(models.Model):
         # Use the prefetched objects if they are available
         # It's not quicker for a single query, but it is for multiple queries
         # (Read: the list page)
-        if 'alerts' in self._prefetched_objects_cache:
-            alerts =  [alert for alert in self.alerts.all() if (alert.level ==
-                                                             level)]
+        if "alerts" in self._prefetched_objects_cache:
+            alerts = [alert for alert in self.alerts.all() if (alert.level == level)]
             if count:
                 return len(alerts)
             return alerts
@@ -224,9 +212,9 @@ class Host(models.Model):
 
 class Scan(models.Model):
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
-    host = models.ForeignKey(Host, on_delete=models.CASCADE, related_name='scans')
+    host = models.ForeignKey(Host, on_delete=models.CASCADE, related_name="scans")
 
     data = models.JSONField()
 
@@ -235,30 +223,30 @@ class Scan(models.Model):
 
 class AlertManager(models.Manager):
 
-        def get_for_user(self, user: User):
-            if user.is_anonymous:
-                return self.get_queryset().none()
-
-            if user.is_superuser:
-                return self.get_queryset()
-
-            if user.access_profiles.exists():
-                return self.get_queryset().filter(
-                    host__department__in=user.departments_for_filter
-                )
-
-            # When a non-superuser has no access profile, THEY GET NOTHING
-            # They lose! Good day sir!
+    def get_for_user(self, user: User):
+        if user.is_anonymous:
             return self.get_queryset().none()
+
+        if user.is_superuser:
+            return self.get_queryset()
+
+        if user.access_profiles.exists():
+            return self.get_queryset().filter(
+                host__department__in=user.departments_for_filter
+            )
+
+        # When a non-superuser has no access profile, THEY GET NOTHING
+        # They lose! Good day sir!
+        return self.get_queryset().none()
 
 
 class Alert(models.Model):
     class Meta:
-        ordering = ['-created_at']
+        ordering = ["-created_at"]
 
     objects = AlertManager()
 
-    host = models.ForeignKey(Host, on_delete=models.CASCADE, related_name='alerts')
+    host = models.ForeignKey(Host, on_delete=models.CASCADE, related_name="alerts")
 
     level = models.CharField(max_length=255, choices=AlertLevel.choices)
 

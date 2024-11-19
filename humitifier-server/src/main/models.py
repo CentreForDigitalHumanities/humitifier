@@ -4,8 +4,8 @@ from django.db import models
 
 
 class HomeOptions(models.TextChoices):
-    DASHBOARD = 'dashboard', 'Dashboard'
-    HOSTS = 'hosts', 'Hosts'
+    DASHBOARD = "dashboard", "Dashboard"
+    HOSTS = "hosts", "Hosts"
 
 
 class User(AbstractUser):
@@ -14,20 +14,20 @@ class User(AbstractUser):
 
     wild_wasteland_mode = models.BooleanField(
         default=False,
-        help_text="Enables easter eggs, non-default as it's less professional."
+        help_text="Enables easter eggs, non-default as it's less professional.",
     )
 
     default_home = models.CharField(
         max_length=20,
         choices=HomeOptions.choices,
         default=HomeOptions.HOSTS,
-        help_text="The default page to redirect to after login."
+        help_text="The default page to redirect to after login.",
     )
 
     access_profiles = models.ManyToManyField(
-        'AccessProfile',
+        "AccessProfile",
         blank=True,
-        related_name='users',
+        related_name="users",
     )
 
     @property
@@ -50,7 +50,7 @@ class AccessProfile(models.Model):
 
     def get_departments_display(self):
         stripped = [department.strip('"') for department in self.departments]
-        return ', '.join(stripped)
+        return ", ".join(stripped)
 
     @property
     def departments_for_filter(self):

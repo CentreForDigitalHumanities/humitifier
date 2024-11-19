@@ -8,7 +8,7 @@ def outdated_os(scan_data: dict, host: Host):
     OUTDATED_OS = [
         "Debian GNU/Linux 10 (buster)",
         "Debian GNU/Linux 9 (stretch)",
-        "CentOS Linux 7 (Core)"
+        "CentOS Linux 7 (Core)",
     ]
 
     if not hostname_ctl_data or not isinstance(hostname_ctl_data, dict):
@@ -32,7 +32,7 @@ def has_fact_error(scan_data, host):
             # was fine
             continue
 
-        if 'exception' in data:
+        if "exception" in data:
             return host.alerts.get_or_create(
                 level=AlertLevel.CRITICAL,
                 type=AlertType.FACT_ERROR,
@@ -43,7 +43,6 @@ def has_fact_error(scan_data, host):
 def puppet_agent_disabled(scan_data: dict, host: Host):
     """Puppet agent is disabled"""
     puppet_agent_status = scan_data.get("PuppetAgentStatus")
-
 
     if not puppet_agent_status or not isinstance(puppet_agent_status, dict):
         return None
@@ -56,7 +55,9 @@ def puppet_agent_disabled(scan_data: dict, host: Host):
             message="Puppet agent is disabled",
         )
 
+
 ALERTS = [outdated_os, has_fact_error, puppet_agent_disabled]
+
 
 def generate_alerts(scan_data: dict, host: Host, delete_old_alerts: bool = True):
     alerts = []
