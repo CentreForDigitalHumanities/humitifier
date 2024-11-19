@@ -8,13 +8,13 @@
     </div>
 
 
-    <form action="{% url 'hosts:list' %}" method="get" class="h-full pr-4 flex items-center w-64">
+    <form action="{% url 'hosts:list' %}" method="get" class="h-full pr-4 flex items-center w-full">
         <input placeholder="Search hosts..."
                class="p-2 focus-visible:outline-none w-full font-semibold bg-transparent text-black dark:text-white placeholder-gray-700 dark:placeholder-gray-50"
                name="fqdn">
     </form>
 
-    <div class="ml-auto cursor-pointer" x-data="{}">
+    <div class="ml-auto cursor-pointer flex-shrink-0" x-data="{}">
         <div class="hidden dark:block" @click="localStorage.theme = 'light';setTheme();">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                  stroke="currentColor" class="size-6">
@@ -31,7 +31,7 @@
         </div>
     </div>
 
-    <div class="px-4 flex items-center h-full cursor-pointer relative" x-data="{show_dropdown: false}"
+    <div class="px-4 flex items-center h-full cursor-pointer relative flex-shrink-0 text-nowrap" x-data="{show_dropdown: false}"
          @click="show_dropdown = !show_dropdown">
         {{ user.get_full_name }}
         <div x-html="show_dropdown ? '&uarr;' : '&darr;'" class="ml-2"></div>
