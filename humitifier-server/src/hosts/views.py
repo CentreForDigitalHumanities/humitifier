@@ -34,6 +34,7 @@ class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
         "os": "Operating System",
         "department": "Department",
         "contact": "Contact",
+        "last_scan_date": "Last Scan Date",
     }
 
     def get_queryset(self):
