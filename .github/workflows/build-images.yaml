@@ -122,7 +122,7 @@ jobs:
       - name: Load Docker image
         run: |
           gunzip -c agent_image.tar.gz | docker load
-          docker ps -a
+          docker image list
 
       - name: Docker meta
         id: meta
