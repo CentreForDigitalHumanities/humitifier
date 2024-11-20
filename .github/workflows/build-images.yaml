@@ -2,9 +2,15 @@ name: Build and Push Docker Images
 
 on:
   push:
+    branches:
+      - 'main'
+      - 'develop'
+      - 'ci/*'
     tags:
       - '*'
-  workflow_dispatch:
+  pull_request:
+    branches:
+      - 'main'
 
 env:
   AGENT_IMAGE_NAME: humitifier
@@ -27,29 +33,28 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}.{{minor}}
       
       - name: Build and push main image
         uses: docker/build-push-action@v6
         with:
           context: ${{ env.AGENT_CONTEXT_PATH }}
           file: ${{ env.AGENT_DOCKERFILE_PATH }}
-          push: true
-          tags: |
-            ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}:${{ github.ref_name }}
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
-#            ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}:latest
-      
-      - name: Grype Scan
-        id: scan
-        uses: anchore/scan-action@v3
-        with:
-          image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}:${{ github.ref_name }}
-          fail-build: false
-
-      - name: upload Grype SARIF report
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: ${{ steps.scan.outputs.sarif }}
 
   build-and-push-server:
     runs-on: ubuntu-latest
@@ -64,24 +69,84 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=pep440,pattern={{version}}
+            type=pep440,pattern={{major}}.{{minor}}
+
       - name: Build and push main image
         uses: docker/build-push-action@v6
         with:
           context: ${{ env.SERVER_CONTEXT_PATH }}
           file: ${{ env.SERVER_DOCKERFILE_PATH }}
-          push: true
-          tags: |
-            ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}:${{ github.ref_name }}
-#            ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}:latest
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Grype Scan
-        id: scan
-        uses: anchore/scan-action@v3
+
+  scan-agent:
+    needs: build-and-push-agent
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    steps:
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
         with:
-          image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}:${{ github.ref_name }}
-          fail-build: false
+          images: |
+            ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=pep440,pattern={{version}}
+      - name: Run the Anchore Grype scan action
+        uses: anchore/scan-action@v5
+        id: scan
+        with:
+          image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+          fail-build: true
+          severity-cutoff: critical
+      - name: Upload vulnerability report
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
 
-      - name: upload Grype SARIF report
+  scan-server:
+    needs: build-and-push-server
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read # for actions/checkout to fetch code
+      security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
+      actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
+    steps:
+      - name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=pep440,pattern={{version}}
+      - name: Run the Anchore Grype scan action
+        uses: anchore/scan-action@v5
+        id: scan
+        with:
+          image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+          fail-build: true
+          severity-cutoff: critical
+      - name: Upload vulnerability report
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.scan.outputs.sarif }}
