@@ -113,7 +113,7 @@ jobs:
         uses: anchore/scan-action@v5
         id: scan
         with:
-          image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+          image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           fail-build: true
           severity-cutoff: critical
       - name: Upload vulnerability report
@@ -143,7 +143,7 @@ jobs:
         uses: anchore/scan-action@v5
         id: scan
         with:
-          image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}:${{ steps.meta.outputs.tags }}
+          image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
           fail-build: true
           severity-cutoff: critical
       - name: Upload vulnerability report
