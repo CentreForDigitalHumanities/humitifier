@@ -121,6 +121,7 @@ jobs:
       - name: Upload vulnerability report
         uses: github/codeql-action/upload-sarif@v3
         with:
+          category: 'agent'
           sarif_file: ${{ steps.scan.outputs.sarif }}
 
   scan-server:
@@ -152,4 +153,5 @@ jobs:
       - name: Upload vulnerability report
         uses: github/codeql-action/upload-sarif@v3
         with:
+          category: 'server'
           sarif_file: ${{ steps.scan.outputs.sarif }}
