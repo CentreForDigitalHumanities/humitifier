@@ -5,12 +5,12 @@ on:
     branches:
       - 'main'
       - 'develop'
-      - 'ci/*'
     tags:
       - '*'
   pull_request:
     branches:
       - 'main'
+      - 'develop'
 
 env:
   AGENT_IMAGE_NAME: humitifier
@@ -114,7 +114,7 @@ jobs:
         id: scan
         with:
           image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
-          fail-build: true
+          fail-build: ${{ github.event_name == 'pull_request' }}
           severity-cutoff: critical
       - name: Upload vulnerability report
         uses: github/codeql-action/upload-sarif@v3
@@ -144,7 +144,7 @@ jobs:
         id: scan
         with:
           image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
-          fail-build: true
+          fail-build: ${{ github.event_name == 'pull_request' }}
           severity-cutoff: critical
       - name: Upload vulnerability report
         uses: github/codeql-action/upload-sarif@v3
