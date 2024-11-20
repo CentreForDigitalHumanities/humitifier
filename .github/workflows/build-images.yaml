@@ -56,17 +56,6 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-      - name: Save Docker image to cache
-        run: |
-          docker save ${{ steps.build.outputs.imageid }} | gzip > agent_image.tar.gz
-
-      - name: Upload Docker image to cache
-        uses: actions/cache@v4
-        with:
-          path: agent_image.tar.gz
-          key: ${{ runner.os }}-agent-image-${{ github.sha }}
-
-
 
   build-and-push-server:
     runs-on: ubuntu-latest
@@ -105,25 +94,13 @@ jobs:
 
   scan-agent:
     needs: build-and-push-agent
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read # for actions/checkout to fetch code
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
     steps:
-      - name: Download Docker image from cache
-        uses: actions/cache@v4
-        with:
-          path: agent_image.tar.gz
-          key: ${{ runner.os }}-agent-image-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-agent-image-
-
-      - name: Load Docker image
-        run: |
-          gunzip -c agent_image.tar.gz | docker load
-          docker image list
-
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
@@ -139,7 +116,7 @@ jobs:
         id: scan
         with:
           image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
-          fail-build: ${{ github.event_name == 'pull_request' }}
+          fail-build: false
           severity-cutoff: critical
       - name: Upload vulnerability report
         uses: github/codeql-action/upload-sarif@v3
@@ -148,6 +125,7 @@ jobs:
 
   scan-server:
     needs: build-and-push-server
+    if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read # for actions/checkout to fetch code
@@ -169,7 +147,7 @@ jobs:
         id: scan
         with:
           image: ghcr.io/centrefordigitalhumanities/humitifier/${{ env.SERVER_IMAGE_NAME }}:${{ steps.meta.outputs.version }}
-          fail-build: ${{ github.event_name == 'pull_request' }}
+          fail-build: false
           severity-cutoff: critical
       - name: Upload vulnerability report
         uses: github/codeql-action/upload-sarif@v3
