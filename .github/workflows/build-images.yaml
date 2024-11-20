@@ -91,8 +91,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-
-  scan-agent:
+  grype-scan-agent:
     needs: build-and-push-agent
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
@@ -126,7 +125,7 @@ jobs:
           category: 'agent'
           sarif_file: ${{ steps.scan.outputs.sarif }}
 
-  scan-server:
+  grype-scan-server:
     needs: build-and-push-server
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
@@ -159,3 +158,27 @@ jobs:
         with:
           category: 'server'
           sarif_file: ${{ steps.scan.outputs.sarif }}
+
+  CodeQL:
+    name: "CodeQL: Analyze Python code"
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+      packages: read
+      actions: read
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: python
+          build-mode: none
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "CodeQL"
