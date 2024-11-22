@@ -64,6 +64,8 @@ INSTALLED_APPS = [
     "simple_menu",
     "drf_spectacular",
     "oauth2_provider",
+    "django_celery_beat",
+    "django_celery_results",
     # Local apps
     "hosts",
     "api",
@@ -357,3 +359,13 @@ if DSN:
         },
         before_send=before_send,
     )
+
+## Celery
+
+### Broker
+CELERY_BROKER_URL = env.get("CELERY_BROKER_URL", default="amqp://guest@localhost//")
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+### Result backend
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_RESULT_EXTENDED = True
