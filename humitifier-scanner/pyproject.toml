@@ -10,16 +10,15 @@ python = "^3.11"
 paramiko = "^3.5.0"
 toml = "^0.10.2"
 pydantic-settings = "^2.6.1"
+humitifier-common = { path = "../humitifier-common", develop = true }
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"
-humitifier-common = { path = "../humitifier-common",  develop = true }
 
 [tool.poetry.group.production]
 optional = true
 
 [tool.poetry.group.production.dependencies]
-humitifier-common = { path = "../humitifier-common" }
 
 [tool.poetry.group.celery]
 optional = true

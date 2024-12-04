@@ -14,8 +14,8 @@ on:
 
 env:
   AGENT_IMAGE_NAME: humitifier-scanner
-  AGENT_DOCKERFILE_PATH: ./agent/Dockerfile
-  AGENT_CONTEXT_PATH: ./humitifier-scanner
+  AGENT_DOCKERFILE_PATH: ./humitifier-scanner/Dockerfile
+  AGENT_CONTEXT_PATH: .
   SERVER_IMAGE_NAME: humitifier-server
   SERVER_DOCKERFILE_PATH: ./humitifier-server/Dockerfile
   SERVER_CONTEXT_PATH: ./humitifier-server

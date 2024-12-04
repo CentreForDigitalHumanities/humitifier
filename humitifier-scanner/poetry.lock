@@ -380,7 +380,7 @@ test-randomorder = ["pytest-randomly"]
 
 [[package]]
 name = "humitifier-common"
-version = "0.1.0"
+version = "4.0.0"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -798,4 +798,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "caa45caf0aca3c5952dcebc363a977332372fc7325b2550d33eb7b3e40fcc13e"
+content-hash = "9c73a1193a0d0438536d6284a855809c55416cb013406c2e653f5574f4199a5e"
