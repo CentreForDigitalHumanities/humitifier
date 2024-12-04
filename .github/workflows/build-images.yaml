@@ -13,15 +13,15 @@ on:
       - 'develop'
 
 env:
-  AGENT_IMAGE_NAME: humitifier
+  AGENT_IMAGE_NAME: humitifier-scanner
   AGENT_DOCKERFILE_PATH: ./agent/Dockerfile
-  AGENT_CONTEXT_PATH: ./agent
+  AGENT_CONTEXT_PATH: ./humitifier-scanner
   SERVER_IMAGE_NAME: humitifier-server
   SERVER_DOCKERFILE_PATH: ./humitifier-server/Dockerfile
   SERVER_CONTEXT_PATH: ./humitifier-server
 
 jobs:
-  build-and-push-agent:
+  build-and-push-scanner:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -91,8 +91,8 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  grype-scan-agent:
-    needs: build-and-push-agent
+  grype-scan-scanner:
+    needs: build-and-push-scanner
     if: ${{ github.event_name != 'pull_request' }}
     runs-on: ubuntu-latest
     permissions:
