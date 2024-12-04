@@ -160,6 +160,8 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
 
     def close(self):
         self.ssh_client.close()
+        if self.bastion_enabled:
+            self.bastion_client.close()
 
 
 class _ExecutorManager:
