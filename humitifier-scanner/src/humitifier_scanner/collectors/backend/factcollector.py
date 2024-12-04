@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Any, Type, TypeVar
 
-from humitifier_agent.exceptions import FatalCollectorError
-from humitifier_agent.executor import Executors
-from humitifier_agent.executor.linux_shell import LinuxShellExecutor
-from humitifier_agent.logger import logger
+from humitifier_scanner.exceptions import FatalCollectorError
+from humitifier_scanner.executor import Executors
+from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
+from humitifier_scanner.logger import logger
 from humitifier_common.facts import registry as facts_registry
 from humitifier_common.scan_data import ErrorTypeEnum, ScanError, ScanErrorMetadata
 

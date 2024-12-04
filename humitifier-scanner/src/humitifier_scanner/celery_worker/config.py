@@ -1,6 +1,6 @@
 from celery import Celery
 
-from humitifier_agent.config import CONFIG
+from humitifier_scanner.config import CONFIG
 
 if not CONFIG.celery:
     raise ValueError("Celery config is not set in the config")
@@ -10,12 +10,12 @@ if not CONFIG.celery.rabbit_mq_url:
 
 
 app = Celery(
-    "humitifier_agent",
+    "humitifier_scanner",
     broker=CONFIG.celery.rabbit_mq_url.unicode_string(),
     broker_connection_retry_on_startup=True,
 )
 
 app.conf.task_routes = {
-    "agent.*": {"queue": "agent"},
+    "scanner.*": {"queue": "scanner"},
     "server.*": {"queue": "default"},
 }

@@ -10,13 +10,13 @@ from pydantic_settings import (
     TomlConfigSettingsSource,
 )
 
-from humitifier_agent.logger import logger
+from humitifier_scanner.logger import logger
 
 # Pydantic expects environment variables to be in lowercase
 # But that hurts my brain, so let's add a little helper to add a lowercase
-# version of each env var (prefixed with HUMITIFIER_AGENT_) to the environment
+# version of each env var (prefixed with HUMITIFIER_SCANNER_) to the environment
 for env_var, value in os.environ.items():
-    if env_var.startswith("HUMITIFIER_AGENT_"):
+    if env_var.startswith("HUMITIFIER_SCANNER_"):
         os.environ[env_var.lower()] = value
 
 # Get location of this file
@@ -24,15 +24,15 @@ _BASE_DIR = Path(__file__).parent
 
 _CONFIG_LOCATIONS = [
     _BASE_DIR / Path("../../.local/config.toml"),
-    Path("~/.config/humitifier-agent/config.toml").expanduser(),
-    Path("~/.humitifier-agent/config.toml").expanduser(),
-    Path("/etc/humitifier-agent/config.toml"),
-    Path("/usr/local/etc/humitifier-agent/config.toml"),
+    Path("~/.config/humitifier-scanner/config.toml").expanduser(),
+    Path("~/.humitifier-scanner/config.toml").expanduser(),
+    Path("/etc/humitifier-scanner/config.toml"),
+    Path("/usr/local/etc/humitifier-scanner/config.toml"),
 ]
-if config_in_env := os.environ.get("HUMITIFIER_AGENT_CONFIG"):
+if config_in_env := os.environ.get("HUMITIFIER_SCANNER_CONFIG"):
     _CONFIG_LOCATIONS.insert(0, Path(config_in_env))
 
-_SECRETS_DIR = os.environ.get("HUMITIFIER_SECRETS_DIR", None)
+_SECRETS_DIR = os.environ.get("HUMITIFIER_SCANNER_SECRETS_DIR", None)
 
 for loc in _CONFIG_LOCATIONS:
     if loc.exists():
@@ -124,7 +124,7 @@ class _Settings:
 # inherit from the same _Settings class as a workaround.
 class Settings(_Settings, BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="humitifier_agent_",
+        env_prefix="humitifier_scanner_",
         env_nested_delimiter="__",
         toml_file=_CONFIG_LOCATIONS,
         secrets_dir=_SECRETS_DIR,

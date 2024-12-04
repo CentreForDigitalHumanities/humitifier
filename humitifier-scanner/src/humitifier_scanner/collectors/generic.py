@@ -1,6 +1,6 @@
 from humitifier_common.scan_data import ScanErrorMetadata
 from .backend import CollectInfo, ShellFactCollector, T
-from humitifier_agent.executor.linux_shell import LinuxShellExecutor, ShellOutput
+from humitifier_scanner.executor.linux_shell import LinuxShellExecutor, ShellOutput
 from humitifier_common.facts import (
     Block,
     Blocks,

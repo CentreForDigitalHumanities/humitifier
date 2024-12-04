@@ -1,13 +1,13 @@
 from typing import Any, Type
 
-from humitifier_agent.collectors import CollectInfo, registry
-from humitifier_agent.collectors.backend import FactCollector
-from humitifier_agent.exceptions import (
+from humitifier_scanner.collectors import CollectInfo, registry
+from humitifier_scanner.collectors.backend import FactCollector
+from humitifier_scanner.exceptions import (
     InvalidScanConfigurationError,
     MissingRequiredFactError,
 )
-from humitifier_agent.executor import Executors, get_executor, release_executor
-from humitifier_agent.logger import logger
+from humitifier_scanner.executor import Executors, get_executor, release_executor
+from humitifier_scanner.logger import logger
 from humitifier_common.scan_data import (
     ErrorTypeEnum,
     ScanError,

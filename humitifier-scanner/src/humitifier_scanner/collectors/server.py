@@ -1,8 +1,8 @@
 import json
 from datetime import datetime
 
-from humitifier_agent.collectors import CollectInfo, ShellFactCollector, T
-from humitifier_agent.executor.linux_shell import LinuxShellExecutor
+from humitifier_scanner.collectors import CollectInfo, ShellFactCollector, T
+from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 from humitifier_common.facts import HostMeta, IsWordpress, PuppetAgentStatus, Uptime
 
 

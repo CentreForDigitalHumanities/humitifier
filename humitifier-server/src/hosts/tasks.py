@@ -14,7 +14,7 @@ def historical_clean_task():
 def start_scan(hostname: str):
     scan_input = build_scan_input(hostname)
 
-    scan_task = signature("agent.run_scan", args=(scan_input.model_dump(),))
+    scan_task = signature("scanner.run_scan", args=(scan_input.model_dump(),))
     process_task = process_scan_output.signature()
 
     chain = scan_task | process_task

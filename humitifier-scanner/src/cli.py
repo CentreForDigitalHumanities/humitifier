@@ -13,12 +13,12 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
-from humitifier_agent.config import (
+from humitifier_scanner.config import (
     Settings,
     _CONFIG_LOCATIONS,
     _SECRETS_DIR,
 )
-from humitifier_agent.scanner import scan
+from humitifier_scanner.scanner import scan
 from humitifier_common.scan_data import FactScanOptions, ScanInput
 from humitifier_common.facts import registry as fact_registry
 
@@ -139,7 +139,7 @@ class PrintConfig(BaseModel):
     )
 
     def cli_cmd(self):
-        from humitifier_agent.config import CONFIG
+        from humitifier_scanner.config import CONFIG
 
         if self.output_format == OutputFormatEnum.toml:
             print(toml.dumps(CONFIG.model_dump()))
@@ -154,10 +154,10 @@ class PrintConfig(BaseModel):
 ##
 class CLISettings(Settings, BaseSettings):
     model_config = SettingsConfigDict(
-        env_prefix="humitifier_agent_",
+        env_prefix="humitifier_scanner_",
         env_nested_delimiter="__",
         cli_parse_args=True,
-        cli_prog_name="humitifier-agent",
+        cli_prog_name="humitifier-scanner",
         toml_file=_CONFIG_LOCATIONS,
         secrets_dir=_SECRETS_DIR,
     )

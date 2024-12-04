@@ -6,7 +6,7 @@ from dataclasses import dataclass
 import paramiko
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 
-from humitifier_agent.config import CONFIG
+from humitifier_scanner.config import CONFIG
 
 LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", platform.node()]
 
