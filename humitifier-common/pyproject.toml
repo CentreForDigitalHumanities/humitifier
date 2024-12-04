@@ -1,0 +1,15 @@
+[tool.poetry]
+name = "humitifier-common"
+version = "0.1.0"
+description = ""
+authors = ["Mees, T.D. (Ty) <t.d.mees@uu.nl>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+pydantic = "~2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

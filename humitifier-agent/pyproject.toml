@@ -1,0 +1,27 @@
+[tool.poetry]
+name = "humitifier-agent"
+version = "4.0.0"
+description = ""
+authors = ["Mees, T.D. (Ty) <t.d.mees@uu.nl>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.13"
+celery = "^5.4.0"
+paramiko = "^3.5.0"
+toml = "^0.10.2"
+pydantic-settings = "^2.6.1"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.10.0"
+humitifier-common = { path = "../humitifier-common",  develop = true }
+
+[tool.poetry.group.production]
+optional = true
+
+[tool.poetry.group.production.dependencies]
+humitifier-common = { path = "../humitifier-common" }
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
