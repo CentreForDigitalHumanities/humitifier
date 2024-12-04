@@ -383,7 +383,7 @@ name = "humitifier-common"
 version = "0.1.0"
 description = ""
 optional = false
-python-versions = "^3.13"
+python-versions = "^3.11"
 files = []
 develop = true
 
@@ -797,5 +797,5 @@ files = [
 
 [metadata]
 lock-version = "2.0"
-python-versions = "^3.13"
-content-hash = "3234ccbca437ac220fcbf720d6d94c90f3b423e835041ee50e42adb111e1eada"
+python-versions = "^3.11"
+content-hash = "caa45caf0aca3c5952dcebc363a977332372fc7325b2550d33eb7b3e40fcc13e"

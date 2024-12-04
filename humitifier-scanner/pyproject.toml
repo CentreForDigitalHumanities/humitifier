@@ -1,12 +1,12 @@
 [tool.poetry]
-name = "humitifier-agent"
+name = "humitifier-scanner"
 version = "4.0.0"
 description = ""
 authors = ["Mees, T.D. (Ty) <t.d.mees@uu.nl>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.11"
 paramiko = "^3.5.0"
 toml = "^0.10.2"
 pydantic-settings = "^2.6.1"

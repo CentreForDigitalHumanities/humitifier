@@ -12,7 +12,7 @@ authors = [
 ]
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.11"
 django = "~5.1"
 bpython = "^0.24"
 django-braces = "^1.16.0"
