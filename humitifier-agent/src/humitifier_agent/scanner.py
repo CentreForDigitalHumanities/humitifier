@@ -31,7 +31,7 @@ def scan(input_data: ScanInput) -> ScanOutput:
         )
         return ScanOutput(facts={}, errors=[error])
 
-    output = ScanOutput(facts={}, errors=errors)
+    output = ScanOutput(hostname=input_data.hostname, facts={}, errors=errors)
 
     for collector in collectors:
         collector_output, collector_errors = _run_collector(

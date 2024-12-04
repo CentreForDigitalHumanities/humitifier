@@ -38,6 +38,7 @@ class ScanError(BaseModel):
 
 
 class ScanOutput(BaseModel):
-    version: int = 2
+    hostname: str
     facts: dict[str, Any]
     errors: list[ScanError]
+    version: int = 2

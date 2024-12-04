@@ -7,7 +7,6 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "^3.13"
-celery = "^5.4.0"
 paramiko = "^3.5.0"
 toml = "^0.10.2"
 pydantic-settings = "^2.6.1"
@@ -21,6 +20,12 @@ optional = true
 
 [tool.poetry.group.production.dependencies]
 humitifier-common = { path = "../humitifier-common" }
+
+[tool.poetry.group.celery]
+optional = true
+
+[tool.poetry.group.celery.dependencies]
+celery = "5.5.0rc3"
 
 [build-system]
 requires = ["poetry-core"]

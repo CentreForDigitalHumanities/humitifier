@@ -45,8 +45,6 @@ class UploadScans(APIView):
 
             hosts.append(host)
 
-        historical_clean()
-
         return Response(len(scans))
 
 
