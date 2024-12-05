@@ -23,13 +23,17 @@
                     </div>
                 </div>
             </div>
-            <div class="w-full lg:w-96">
+            <div class="w-full lg:w-96" x-data="{ show_manual_login: {% if layout.oidc_enabled or form.errors %}false{% else %}true{% endif %} }">
                 <h1 class="text-3xl font-semibold mb-10">Login</h1>
 
                 {% if user.is_authenticated  %}
-                    <p class="text-orange mb-7">
+                    <p class="text-orange mb-10">
                         Your account doesn't have access to this page. To proceed,
                         please login with an account that has access.
+                    </p>
+                {% else %}
+                    <p class="mb-10">
+                        This application requires authentication. Please login to continue.
                     </p>
                 {% endif %}
 
@@ -37,7 +41,22 @@
                     <p class="text-red-500 mb-4">Your username and password didn't match. Please try again.</p>
                 {% endif %}
 
-                <form method="post" action="{% url 'main:login' %}" class="flex gap-4 flex-col">
+                {% if layout.oidc_enabled %}
+                    <a href="{% url 'oidc_authentication_init' %}" class="btn block light:btn-primary dark:btn-outline dark:bg-gray-700 text-center">
+                        Login with Solis-ID
+                    </a>
+
+                    <div class="flex items-center gap-2 mt-3 mb-3">
+                        <div class="h-px bg-gray-600 dark:bg-gray-500 flex-grow"></div>
+                        <div>or</div>
+                        <div class="h-px bg-gray-600 dark:bg-gray-500 flex-grow"></div>
+                    </div>
+                {% endif %}
+
+                <button class="btn block light:btn-primary dark:btn-outline dark:bg-gray-700 text-center w-full" x-show="!show_manual_login" @click="show_manual_login = true">
+                    Login with local account
+                </button>
+                <form method="post" action="{% url 'main:login' %}" class="flex gap-4 flex-col" x-show="show_manual_login">
                     {% csrf_token %}
                     <div class="">
                         <label class="font-bold block mb-2">
@@ -61,16 +80,6 @@
                     </button>
                 </form>
 
-                {% if layout.oidc_enabled %}
-                    <div class="flex items-center gap-2 mt-3 mb-3">
-                        <div class="h-px bg-gray-600 dark:bg-gray-500 flex-grow"></div>
-                        <div>or</div>
-                        <div class="h-px bg-gray-600 dark:bg-gray-500 flex-grow"></div>
-                    </div>
-                    <a href="{% url 'oidc_authentication_init' %}" class="btn block light:btn-primary dark:btn-outline dark:bg-gray-700 text-center">
-                        Login with Solis-ID
-                    </a>
-                {% endif %}
             </div>
         </section>
     </div>
