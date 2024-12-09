@@ -76,6 +76,7 @@ class HostExportView(LoginRequiredMixin, FilteredListView):
         content = ""
         content_type = "text/plain"
         file_name = datetime.now().isoformat()
+        file_name = f"humitifier_export_{file_name}"
 
         if "csv" in request.POST:
             content = self._get_csv()
