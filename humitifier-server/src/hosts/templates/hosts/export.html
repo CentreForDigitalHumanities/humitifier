@@ -11,8 +11,8 @@
             <h1 class="text-3xl font-bold">Export host data</h1>
         </div>
         <p class="px-7 pt-5">
-            Here you can export the host data in CSV format. You can filter the data before exporting.
-            Note: in the future there might be more fields to export.
+            Here you can export the host data in either CSV or host-list format. You can filter the data before exporting.<br/>
+            CSV's contain hostname, os, department, contact, creation date, archival data and last seen date. Host-lists contain only the hostname.
         </p>
         <div class="px-7 py-5 flex justify-between">
             <h1 class="text-xl font-bold">Filters</h1>
@@ -20,9 +20,14 @@
         <form method="post" class="px-7 flex flex-col gap-3 max-w-xl">
             {% csrf_token %}
             {{ filterset.form }}
-            <button class="btn light:btn-primary dark:btn-outline" type="submit">
-                Export
-            </button>
+            <div class="flex gap-2 w-full">
+                <button class="btn light:btn-primary dark:btn-outline flex-grow" type="submit" name="csv">
+                    Export as CSV
+                </button>
+                <button class="btn light:btn-primary dark:btn-outline flex-grow" type="submit" name="host-list">
+                    Export as host-list
+                </button>
+            </div>
         </form>
     </div>
 {% endblock %}

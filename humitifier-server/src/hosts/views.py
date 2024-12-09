@@ -1,5 +1,6 @@
 import csv
 import json
+from datetime import datetime
 from io import StringIO
 
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -72,7 +73,27 @@ class HostExportView(LoginRequiredMixin, FilteredListView):
         return self.filterset.qs.distinct()
 
     def post(self, request, *args, **kwargs):
+        content = ""
+        content_type = "text/plain"
+        file_name = datetime.now().isoformat()
+
+        if "csv" in request.POST:
+            content = self._get_csv()
+            content_type = "text/csv"
+            file_name = f"{file_name}.csv"
+        elif "host-list" in request.POST:
+            content = self._get_host_list()
+            file_name = f"{file_name}.txt"
+
+        headers = {
+            "Content-Disposition": f'attachment; filename="{file_name}"',
+        }
+
+        return HttpResponse(content, content_type=content_type, headers=headers)
+
+    def _get_csv(self):
         buffer = StringIO()
+
         csv_file = csv.DictWriter(
             f=buffer,
             fieldnames={
@@ -87,6 +108,7 @@ class HostExportView(LoginRequiredMixin, FilteredListView):
             },
         )
         csv_file.writeheader()
+
         for host in self.get_queryset():
             csv_file.writerow(
                 {
@@ -101,7 +123,15 @@ class HostExportView(LoginRequiredMixin, FilteredListView):
                 }
             )
 
-        return HttpResponse(buffer.getvalue(), content_type="text/csv")
+        return buffer.getvalue()
+
+    def _get_host_list(self):
+        buffer = StringIO()
+
+        for host in self.get_queryset():
+            buffer.write(f"{host.fqdn}\n")
+
+        return buffer.getvalue()
 
 
 class HostDetailView(LoginRequiredMixin, TemplateView):
