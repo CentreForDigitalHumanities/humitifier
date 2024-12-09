@@ -35,6 +35,10 @@ def layout_context(request):
             "Who watches the watchmen?",
             "How are you?",
             "CAUTION: This email originated from outside of Utrecht University. Do not click links or open attachments unless you recognize the sender and know the content is safe.",
+            "Needs more cowbell",
+            "Hum-IT CMDB",
+            "Made for Itanium™",
+            "I'm on a horse",
         ]
         tag_line = random.choice(jokes)
 
