@@ -22,12 +22,16 @@
     </section>
 
     <div class="flex justify-between px-4 font-semibold">
-        <a class="text-green-600 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}">
+        <a class="flex items-center gap-2 py-1.5 text-gray-300" href="{% url 'hosts:list' %}">
             {% with stroke="stroke-2" %}
                 {% include 'icons/host.html' %}
             {% endwith %}
             {{ layout.num_hosts|intcomma }}
         </a>
+        {# Visual separator #}
+        <div class="py-1.5">
+            <div class="border-l border-gray-700 h-full"></div>
+        </div>
         <a class="text-blue-300 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_level=info">
             {% include 'icons/info.html' %}
             {{ layout.num_info_alerts|intcomma }}
