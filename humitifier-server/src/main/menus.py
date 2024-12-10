@@ -44,5 +44,6 @@ Menu.add_item(
         icon="icons/admin.html",
         check=lambda request: request.user.is_superuser,
         separator=True,
+        target="_blank",
     ),
 )

@@ -10,6 +10,7 @@ Menu.add_item(
         weight=22,
         icon="icons/document.html",
         separator=True,
+        target="_blank",
     ),
 )
 
