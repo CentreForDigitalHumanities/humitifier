@@ -41,8 +41,15 @@ class Uptime(float):
 
 @fact(namespace="server")
 @dataclass
-class PuppetAgentStatus:
-    disabled: bool
+class PuppetAgent:
+    enabled: bool
+    code_roles: list[str] | None = None
+    profiles: list[str] | None = None
+    environment: str | None = None
+    data_role: str | None = None
+    data_role_variant: str | None = None
+    last_run: str | None = None
+    is_failing: bool | None = None
 
 
 ##
