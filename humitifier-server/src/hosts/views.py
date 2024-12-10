@@ -29,7 +29,7 @@ class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
     table_class = HostsTable
     filterset_class = HostFilters
     paginate_by = 50
-    template_name = "hosts/list.html"
+    template_name = "hosts/host_list.html"
     ordering_fields = {
         "fqdn": "Hostname",
         "os": "Operating System",
@@ -60,7 +60,7 @@ class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
 class HostExportView(LoginRequiredMixin, FilteredListView):
     model = Host
     filterset_class = HostFilters
-    template_name = "hosts/export.html"
+    template_name = "hosts/host_export.html"
 
     def get_queryset(self):
         queryset = Host.objects.get_for_user(self.request.user)
@@ -136,7 +136,7 @@ class HostExportView(LoginRequiredMixin, FilteredListView):
 
 
 class HostDetailView(LoginRequiredMixin, TemplateView):
-    template_name = "hosts/detail.html"
+    template_name = "hosts/host_detail.html"
 
     LATEST_KEY = "latest"
 
@@ -210,7 +210,7 @@ class ArchiveHostView(
 ):
     model = Host
     form_class = Form
-    template_name = "hosts/archive.html"
+    template_name = "hosts/host_archive.html"
     slug_field = "fqdn"
     slug_url_kwarg = "fqdn"
 

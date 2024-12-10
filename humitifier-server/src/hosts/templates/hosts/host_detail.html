@@ -40,53 +40,53 @@
     {% if is_latest_scan %}
         {% for alert in alerts %}
             {% if alert.level == 'critical' %}
-                {% include 'hosts/detail_parts/alerts/critical.html' %}
+                {% include 'hosts/host_detail_parts/alerts/critical.html' %}
             {% elif alert.level == 'warning' %}
-                {% include 'hosts/detail_parts/alerts/warning.html' %}
+                {% include 'hosts/host_detail_parts/alerts/warning.html' %}
             {% elif alert.level == 'info' %}
-                {% include 'hosts/detail_parts/alerts/info.html' %}
+                {% include 'hosts/host_detail_parts/alerts/info.html' %}
             {% endif %}
         {% endfor %}
     {% else %}
         {% with alert="This is historical data, it does not reflect the current configuration." %}
-            {% include 'hosts/detail_parts/alerts/warning.html' %}
+            {% include 'hosts/host_detail_parts/alerts/warning.html' %}
         {% endwith %}
     {% endif %}
 
     {% if host.archived %}
         {% with alert=host.archived_string %}
-            {% include 'hosts/detail_parts/alerts/info.html' %}
+            {% include 'hosts/host_detail_parts/alerts/info.html' %}
         {% endwith %}
     {% endif %}
 
     <div class="p-3 columns-1 lg:columns-2 xl:columns-2 2xl:columns-3 ultrawide:columns-4 gap-3">
         <div class="break-inside-avoid mb-3">
-            {% include 'hosts/detail_parts/facts/host_meta.html' %}
+            {% include 'hosts/host_detail_parts/facts/host_meta.html' %}
         </div>
         {% if scan_data.HostMeta and scan_data.HostMeta.vhosts %}
             <div  class="break-inside-avoid mb-3">
-                {% include 'hosts/detail_parts/facts/vhosts.html' %}
+                {% include 'hosts/host_detail_parts/facts/vhosts.html' %}
             </div>
         {% endif %}
         {% if scan_data.HostMeta and scan_data.HostMeta.databases %}
             <div  class="break-inside-avoid mb-3">
-                {% include 'hosts/detail_parts/facts/databases.html' %}
+                {% include 'hosts/host_detail_parts/facts/databases.html' %}
             </div>
         {% endif %}
         <div  class="break-inside-avoid mb-3">
-            {% include 'hosts/detail_parts/facts/blocks.html' %}
+            {% include 'hosts/host_detail_parts/facts/blocks.html' %}
         </div>
         <div  class="break-inside-avoid mb-3">
-            {% include 'hosts/detail_parts/facts/memory.html' %}
+            {% include 'hosts/host_detail_parts/facts/memory.html' %}
         </div>
         <div class="break-inside-avoid mb-3">
-            {% include 'hosts/detail_parts/facts/packages.html' %}
+            {% include 'hosts/host_detail_parts/facts/packages.html' %}
         </div>
         <div class="break-inside-avoid mb-3">
-            {% include 'hosts/detail_parts/facts/users.html' %}
+            {% include 'hosts/host_detail_parts/facts/users.html' %}
         </div>
         <div class="break-inside-avoid mb-3">
-            {% include 'hosts/detail_parts/facts/groups.html' %}
+            {% include 'hosts/host_detail_parts/facts/groups.html' %}
         </div>
     </div>
 {% endblock %}

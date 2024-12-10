@@ -44,5 +44,5 @@ class HostsTable(BaseTable):
 
     status = TemplatedColumn(
         "Status",
-        template_name="hosts/list_parts/host_status.html",
+        template_name="hosts/host_list_parts/host_status.html",
     )
