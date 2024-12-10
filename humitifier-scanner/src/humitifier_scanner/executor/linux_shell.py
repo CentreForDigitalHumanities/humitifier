@@ -38,6 +38,8 @@ class LocalLinuxShellExecutor(LinuxShellExecutor):
     def execute(self, command: str) -> ShellOutput:
         import subprocess
 
+        logger.debug(f"Executing command locally: {command}")
+
         process = subprocess.Popen(
             command,
             shell=True,
@@ -49,6 +51,9 @@ class LocalLinuxShellExecutor(LinuxShellExecutor):
         # Strip empty lines
         stdout_lines = [line.decode() for line in stdout.splitlines() if line.strip()]
         stderr_lines = [line.decode() for line in stderr.splitlines() if line.strip()]
+
+        if process.returncode != 0:
+            logger.error(f"Command failed with return code {process.returncode}")
 
         return ShellOutput(
             stdout_lines,
@@ -145,6 +150,11 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         self._connect()
         logger.debug(f"Executing command on {self.host}: {command}")
         stdin, stdout, stderr = self.ssh_client.exec_command(command)
+
+        if stdout.channel.recv_exit_status() != 0:
+            logger.error(
+                f"Command failed with return code {stdout.channel.recv_exit_status()}. Stderr: {stderr.read().decode()}"
+            )
 
         return stdin, stdout, stderr
 
