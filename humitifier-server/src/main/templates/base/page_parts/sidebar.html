@@ -21,12 +21,6 @@
         </div>
     </section>
 
-    {% if debug %}
-        <div class="bg-red-700 px-3 py-2 my-2 text-center text-white font-bold">
-            DEBUG MODE
-        </div>
-    {% endif %}
-
     <div class="flex justify-between px-4 font-semibold">
         <a class="text-green-600 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}">
             {% with stroke="stroke-2" %}

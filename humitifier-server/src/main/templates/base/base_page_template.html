@@ -2,13 +2,27 @@
 {% load static %}
 
 {% block body %}
-    {% include 'base/page_parts/sidebar.html' %}
+    <div class="h-screen w-screen absolute top-0 left-0 flex flex-col overflow-hidden">
+        {% if debug %}
+            <div class="flex-grow-0 bg-red-700 px-3 md:pl-72 py-2 text-center text-white font-bold">
+                DEBUG MODE
+            </div>
+        {% endif %}
+        <div class="w-full flex-grow overflow-auto">
+            {% include 'base/page_parts/sidebar.html' %}
 
-    <section class="relative top-0 md:ml-72 min-h-screen">
-        {% include 'base/page_parts/header.html' %}
+            <section class="md:ml-72 min-h-full">
+                {% include 'base/page_parts/header.html' %}
 
-        {% block content %}
-        {% endblock %}
+                {% block content %}
+                {% endblock %}
 
-    </section>
+            </section>
+        </div>
+        {% if debug %}
+            <div class="flex-grow-0 bg-red-700 px-3 md:pl-72 py-2 text-center text-white font-bold">
+                DEBUG MODE
+            </div>
+        {% endif %}
+    </div>
 {% endblock %}
