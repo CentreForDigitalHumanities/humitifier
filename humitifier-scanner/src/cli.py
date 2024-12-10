@@ -2,13 +2,14 @@
 from enum import Enum
 from pprint import pprint
 from typing import Optional
+import logging
 
 import toml
 from pydantic import BaseModel, Field
 from pydantic_settings import (
     BaseSettings,
     CliApp,
-    CliPositionalArg,
+    CliImplicitFlag,
     CliSubCommand,
     SettingsConfigDict,
 )
@@ -21,6 +22,7 @@ from humitifier_scanner.config import (
 from humitifier_scanner.scanner import scan
 from humitifier_common.scan_data import FactScanOptions, ScanInput
 from humitifier_common.facts import registry as fact_registry
+from humitifier_scanner.logger import logger
 
 
 ##
@@ -163,12 +165,31 @@ class CLISettings(Settings, BaseSettings):
     )
 
     ##
+    ## CLI options
+    ##
+
+    debug: CliImplicitFlag[bool] = Field(
+        False,
+        description="Enable debug mode",
+    )
+
+    ##
     ## CLI commands
     ##
     scan: CliSubCommand[Scan]
     print_config: CliSubCommand[PrintConfig]
 
     def cli_cmd(self) -> None:
+        if self.debug:
+            # Enable debug logging
+            logger.setLevel("DEBUG")
+            # Print log to console
+            handler = logging.StreamHandler()
+            handler.formatter = logging.Formatter(
+                "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+            )
+            logger.addHandler(handler)
+
         CliApp.run_subcommand(self)
 
 
