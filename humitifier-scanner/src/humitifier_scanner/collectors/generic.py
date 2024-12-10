@@ -25,7 +25,7 @@ class BlocksFactCollector(ShellFactCollector):
     ) -> Blocks:
         blocks = []
 
-        result = shell_executor.execute("df | egrep '^/'")
+        result = shell_executor.execute("df -BM | egrep '^/'")
 
         for output_line in result.stdout:
             try:
@@ -36,9 +36,10 @@ class BlocksFactCollector(ShellFactCollector):
                 blocks.append(
                     Block(
                         name=name.strip(),
-                        size_mb=int(size),
-                        used_mb=int(used),
-                        available_mb=int(available),
+                        # Remove the 'M' from the size, used, and available values
+                        size_mb=int(size.rstrip("M")),
+                        used_mb=int(used.rstrip("M")),
+                        available_mb=int(available.rstrip("M")),
                         use_percent=int(use_percent.rstrip("%")),
                         mount=mount.strip(),
                     )
