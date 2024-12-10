@@ -120,7 +120,7 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
                 self.bastion_client.connect(
                     self.bastion_host,
                     username=self.bastion_user,
-                    pkey=self.private_key,
+                    pkey=self.bastion_private_key,
                 )
 
                 bastion_transport = self.bastion_client.get_transport()
