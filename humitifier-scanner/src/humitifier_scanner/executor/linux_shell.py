@@ -7,6 +7,7 @@ import paramiko
 from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 
 from humitifier_scanner.config import CONFIG
+from humitifier_scanner.logger import logger
 
 LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", platform.node()]
 
@@ -86,6 +87,8 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         if not self.bastion_enabled:
             return
 
+        logger.debug(f"Configuring bastion host for {host}")
+
         self.bastion_host = CONFIG.ssh.bastion.host
 
         if CONFIG.ssh.bastion.private_key:
@@ -117,6 +120,9 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
 
             # If we have a bastion host, we need some more setup
             if self.bastion_enabled:
+                logger.debug(
+                    f"Connecting SSH client for bastion host {self.bastion_host}"
+                )
                 self.bastion_client.connect(
                     self.bastion_host,
                     username=self.bastion_user,
@@ -130,13 +136,14 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
 
                 connection_kwargs["sock"] = bastion_channel
 
+            logger.debug(f"Connecting SSH client for host {self.host}")
             self.ssh_client.connect(**connection_kwargs)
 
     def _execute_command(
         self, command: str
     ) -> tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile]:
         self._connect()
-
+        logger.debug(f"Executing command on {self.host}: {command}")
         stdin, stdout, stderr = self.ssh_client.exec_command(command)
 
         return stdin, stdout, stderr
@@ -180,6 +187,7 @@ class _ExecutorManager:
                 host not in cls._connections
                 or not cls._connections[host].ssh_client.get_transport().is_active()
             ):
+                logger.debug(f"Creating new SSH connection to {host}")
                 cls._connections[host] = RemoteLinuxShellExecutor(host)
 
             return cls._connections[host]
@@ -191,6 +199,7 @@ class _ExecutorManager:
 
         with cls._lock:
             if host in cls._connections:
+                logger.debug(f"Closing SSH connection to {host}")
                 cls._connections[host].close()
                 del cls._connections[host]
 
@@ -203,8 +212,10 @@ class _ExecutorManager:
 
 
 def get_executor(host: str) -> LinuxShellExecutor:
+    logger.debug(f"Getting shell executor for host: {host}")
     return _ExecutorManager.get_executor(host)
 
 
 def close_connection(host: str):
+    logger.debug(f"Closing shell executor for host: {host}")
     _ExecutorManager.close_connection(host)
