@@ -1,4 +1,4 @@
-from .factcollector import FactCollector
+from .collector import Collector
 
 ##
 ## Registry
@@ -10,8 +10,8 @@ class _FactImplementationRegistry:
     def __init__(self):
         self._registry = {}
 
-    def register(self, fact_implementation: FactCollector):
-        fact = fact_implementation.fact.__fact_name__
+    def register(self, fact_implementation: Collector):
+        fact = fact_implementation._fact.__fact_name__
         variant = fact_implementation.variant
         key = (fact, variant)
         if key in self._registry:

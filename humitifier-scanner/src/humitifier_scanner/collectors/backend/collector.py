@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Type, TypeVar
 
+from humitifier_common.facts.registry.registry import FactType
 from humitifier_scanner.exceptions import FatalCollectorError
 from humitifier_scanner.executor import Executors
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
@@ -9,8 +10,8 @@ from humitifier_common.facts import registry as facts_registry
 from humitifier_common.scan_data import ErrorTypeEnum, ScanError, ScanErrorMetadata
 
 _BASE_FACT_COLLECTORS = [
-    "FactCollector",
-    "ShellFactCollector",
+    "Collector",
+    "ShellCollector",
 ]
 T = TypeVar("T")
 
@@ -24,10 +25,37 @@ class CollectorMetaclass(type):
         if name in _BASE_FACT_COLLECTORS:
             return new_cls
 
-        if new_cls.fact is None:
-            raise ValueError("FactCollector must define a 'fact' attribute")
+        new_cls._fact = None
 
-        cls._check_if_fact_exists(new_cls, new_cls.fact, "fact")
+        if new_cls.fact and cls._is_fact_or_metric(new_cls.fact):
+            new_cls._fact = new_cls.fact
+            new_cls.metric = None
+
+            if new_cls.fact.__fact_type__ != FactType.FACT:
+                raise ValueError(
+                    "Collector was given a metric as a fact. Please use the 'metric' attribute instead"
+                )
+
+        if new_cls.metric and cls._is_fact_or_metric(new_cls.metric):
+            new_cls._fact = new_cls.metric
+            # Set it to none, as it will be a weird Type[T] otherwise
+            new_cls.fact = None
+
+            if new_cls.metric.__fact_type__ != FactType.METRIC:
+                raise ValueError(
+                    "Collector was given a fact as a metric. Please use "
+                    "the 'fact' attribute instead"
+                )
+
+            if new_cls.required_facts:
+                raise ValueError("Metrics are not allowed to have required facts!")
+
+        if new_cls._fact is None:
+            raise ValueError(
+                "FactCollector must define a 'fact' or a 'metric' attribute"
+            )
+
+        cls._check_if_fact_exists(new_cls, new_cls._fact, "fact")
 
         for required_fact in new_cls.required_facts:
             cls._check_if_fact_exists(new_cls, required_fact, "required_facts")
@@ -37,6 +65,10 @@ class CollectorMetaclass(type):
         registry.register(new_cls)
 
         return new_cls
+
+    @staticmethod
+    def _is_fact_or_metric(obj):
+        return hasattr(obj, "__fact_name__") and hasattr(obj, "__fact_type__")
 
     def _check_if_fact_exists(cls, fact, attribute: str):
         if not hasattr(fact, "__fact_name__"):
@@ -58,8 +90,9 @@ class CollectInfo:
     required_facts: dict
 
 
-class FactCollector(metaclass=CollectorMetaclass):
+class Collector(metaclass=CollectorMetaclass):
     fact = Type[T]
+    metric = Type[T]
     variant: str = "default"
 
     required_facts = []
@@ -134,8 +167,20 @@ class FactCollector(metaclass=CollectorMetaclass):
         """Implement your collector logic here."""
         raise NotImplementedError("FactCollector must implement a collect method")
 
+    @classmethod
+    def fact_name(cls) -> str:
+        return cls._fact.__fact_name__
 
-class ShellFactCollector(FactCollector):
+    @classmethod
+    def metric_name(cls) -> str:
+        return cls._fact.__fact_name__
+
+    @classmethod
+    def fact_type(cls) -> FactType:
+        return cls._fact.__fact_type__
+
+
+class ShellCollector(Collector):
     required_executors = [Executors.SHELL]
 
     def collect(self, info: CollectInfo) -> T:

@@ -1,10 +1,10 @@
 from humitifier_common.facts import ZFS, ZFSPool, ZFSVolume
-from humitifier_scanner.collectors import CollectInfo, ShellFactCollector
+from humitifier_scanner.collectors import CollectInfo, ShellCollector
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 
 
-class ZFSVolumesFactCollector(ShellFactCollector):
-    fact = ZFS
+class ZFSVolumesMetricCollector(ShellCollector):
+    metric = ZFS
 
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo

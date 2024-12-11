@@ -1,7 +1,8 @@
 from typing import Any, Type
 
+from humitifier_common.facts.registry.registry import FactType
 from humitifier_scanner.collectors import CollectInfo, registry
-from humitifier_scanner.collectors.backend import FactCollector
+from humitifier_scanner.collectors.backend import Collector
 from humitifier_scanner.exceptions import (
     InvalidScanConfigurationError,
     MissingRequiredFactError,
@@ -31,14 +32,24 @@ def scan(input_data: ScanInput) -> ScanOutput:
         )
         return ScanOutput(facts={}, errors=[error])
 
-    output = ScanOutput(hostname=input_data.hostname, facts={}, errors=errors)
+    output = ScanOutput(
+        hostname=input_data.hostname,
+        facts={},
+        metrics={},
+        errors=errors,
+        original_input=input_data,
+    )
 
     for collector in collectors:
         collector_output, collector_errors = _run_collector(
             collector, input_data, output
         )
 
-        output.facts[collector.fact.__fact_name__] = collector_output
+        if collector.fact:
+            output.metrics[collector.fact.__fact_name__] = collector_output
+        elif collector.metric:
+            output.facts[collector.metric.__fact_name__] = collector_output
+
         output.errors.extend(collector_errors)
 
     _release_executors(input_data)
@@ -48,7 +59,7 @@ def scan(input_data: ScanInput) -> ScanOutput:
 
 def _get_scan_order(
     input_data: ScanInput,
-) -> tuple[list[Type[FactCollector]], list[ScanError]]:
+) -> tuple[list[Type[Collector]], list[ScanError]]:
     collectors = []
     errors = []
 
@@ -70,7 +81,9 @@ def _get_scan_order(
         collectors.append(collector)
 
     requested_facts = [
-        implementation.fact.__fact_name__ for implementation in collectors
+        collector.fact_name
+        for collector in collectors
+        if collector.fact_type == FactType.FACT
     ]
 
     for collector in collectors:
@@ -94,7 +107,7 @@ def _get_scan_order(
 
 
 def _run_collector(
-    collector: Type[FactCollector], input_data: ScanInput, current_output: ScanOutput
+    collector: Type[Collector], input_data: ScanInput, current_output: ScanOutput
 ) -> tuple[Any, list[ScanError]]:
     output = None
     errors = []
@@ -136,7 +149,7 @@ def _run_collector(
 
 
 def _get_executors(
-    collector: Type[FactCollector], input_data: ScanInput
+    collector: Type[Collector], input_data: ScanInput
 ) -> tuple[dict[Executors, Any], list[ScanError]]:
     executors = {}
     errors = []
@@ -169,7 +182,7 @@ def _release_executors(input_data: ScanInput) -> None:
 
 
 def _get_required_fact_data(
-    collector: Type[FactCollector], current_output: ScanOutput
+    collector: Type[Collector], current_output: ScanOutput
 ) -> tuple[dict, list[ScanError]]:
     required_fact_data = {}
     errors = []

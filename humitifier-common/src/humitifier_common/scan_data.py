@@ -38,7 +38,9 @@ class ScanError(BaseModel):
 
 
 class ScanOutput(BaseModel):
+    original_input: ScanInput
     hostname: str
     facts: dict[str, Any]
+    metrics: dict[str, Any]
     errors: list[ScanError]
     version: int = 2

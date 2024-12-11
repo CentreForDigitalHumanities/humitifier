@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from humitifier_common.facts import fact
+from humitifier_common.facts.registry import metric
 
 ##
 ## ZFS list
@@ -22,7 +22,7 @@ class ZFSPool:
     used_mb: int
 
 
-@fact(namespace="special")
+@metric(namespace="special")
 @dataclass
 class ZFS:
     pools: list[ZFSPool]

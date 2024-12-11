@@ -4,8 +4,7 @@ A collection of facts that are generic and can be collected on any system.
 
 from dataclasses import dataclass
 
-from humitifier_common.facts.registry import fact
-
+from humitifier_common.facts.registry import fact, metric
 
 ##
 ## Storage
@@ -22,7 +21,7 @@ class Block:
     mount: str
 
 
-@fact(namespace="generic")
+@metric(namespace="generic")
 class Blocks(list[Block]):
     pass
 
@@ -79,7 +78,7 @@ class HostnameCtl:
 ##
 
 
-@fact(namespace="generic")
+@metric(namespace="generic")
 @dataclass
 class Memory:
     total_mb: int

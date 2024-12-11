@@ -4,12 +4,12 @@ import re
 import yaml
 from datetime import datetime
 
-from humitifier_scanner.collectors import CollectInfo, ShellFactCollector, T
+from humitifier_scanner.collectors import CollectInfo, ShellCollector
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 from humitifier_common.facts import HostMeta, IsWordpress, PuppetAgent, Uptime
 
 
-class HostMetaFactCollector(ShellFactCollector):
+class HostMetaFactCollector(ShellCollector):
     fact = HostMeta
 
     def collect_from_shell(
@@ -26,8 +26,8 @@ class HostMetaFactCollector(ShellFactCollector):
         return HostMeta(**json_args)
 
 
-class UptimeFactCollector(ShellFactCollector):
-    fact = Uptime
+class UptimeMetricCollector(ShellCollector):
+    metric = Uptime
 
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
@@ -40,7 +40,7 @@ class UptimeFactCollector(ShellFactCollector):
         return Uptime((now - dt).total_seconds())
 
 
-class PuppetAgentFactCollector(ShellFactCollector):
+class PuppetAgentFactCollector(ShellCollector):
     fact = PuppetAgent
 
     def collect_from_shell(
@@ -122,7 +122,7 @@ class PuppetAgentFactCollector(ShellFactCollector):
         return output
 
 
-class IsWordpressFactCollector(ShellFactCollector):
+class IsWordpressFactCollector(ShellCollector):
     fact = IsWordpress
 
     required_facts = [HostMeta]

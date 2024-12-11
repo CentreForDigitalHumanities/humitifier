@@ -1,5 +1,5 @@
 from humitifier_common.scan_data import ScanErrorMetadata
-from .backend import CollectInfo, ShellFactCollector, T
+from .backend import CollectInfo, ShellCollector, T
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor, ShellOutput
 from humitifier_common.facts import (
     Block,
@@ -17,8 +17,8 @@ from ..constants import DEB_OS_LIST, RPM_OS_LIST
 from ..utils import os_in_list
 
 
-class BlocksFactCollector(ShellFactCollector):
-    fact = Blocks
+class BlocksMetricCollector(ShellCollector):
+    metric = Blocks
 
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
@@ -50,7 +50,7 @@ class BlocksFactCollector(ShellFactCollector):
         return Blocks(blocks)
 
 
-class GroupsFactCollector(ShellFactCollector):
+class GroupsFactCollector(ShellCollector):
     fact = Groups
 
     def collect_from_shell(
@@ -72,7 +72,7 @@ class GroupsFactCollector(ShellFactCollector):
         return Groups(groups)
 
 
-class UsersFactCollector(ShellFactCollector):
+class UsersFactCollector(ShellCollector):
     fact = Users
 
     def collect_from_shell(
@@ -101,8 +101,8 @@ class UsersFactCollector(ShellFactCollector):
         return Users(users)
 
 
-class MemoryFactCollector(ShellFactCollector):
-    fact = Memory
+class MemoryMetricCollector(ShellCollector):
+    metric = Memory
 
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
@@ -160,7 +160,7 @@ class MemoryFactCollector(ShellFactCollector):
         return total, used, free, shared, buff_cache, available
 
 
-class HostnameCtlFactCollector(ShellFactCollector):
+class HostnameCtlFactCollector(ShellCollector):
     fact = HostnameCtl
 
     def collect_from_shell(
@@ -197,7 +197,7 @@ class HostnameCtlFactCollector(ShellFactCollector):
         return create_arg, value.strip()
 
 
-class PackageListFactCollector(ShellFactCollector):
+class PackageListFactCollector(ShellCollector):
     fact = PackageList
     required_facts = [HostnameCtl]
 

@@ -4,7 +4,7 @@ A collection of facts that only make sense to collect on a server.
 
 from dataclasses import dataclass
 
-from humitifier_common.facts import fact
+from humitifier_common.facts.registry import fact, metric
 
 
 ##
@@ -29,7 +29,7 @@ class HostMeta:
 ##
 
 
-@fact(namespace="server")
+@metric(namespace="server")
 class Uptime(float):
     pass
 
