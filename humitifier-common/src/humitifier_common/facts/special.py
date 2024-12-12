@@ -22,7 +22,7 @@ class ZFSPool:
     used_mb: int
 
 
-@metric(namespace="special")
+@metric(group="special")
 @dataclass
 class ZFS:
     pools: list[ZFSPool]

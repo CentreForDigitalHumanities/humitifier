@@ -12,7 +12,7 @@ from humitifier_common.facts.registry import fact, metric
 ##
 
 
-@fact(namespace="server")
+@fact(group="server")
 @dataclass
 class HostMeta:
     department: str | None = None
@@ -29,7 +29,7 @@ class HostMeta:
 ##
 
 
-@metric(namespace="server")
+@metric(group="server")
 class Uptime(float):
     pass
 
@@ -39,7 +39,7 @@ class Uptime(float):
 ##
 
 
-@fact(namespace="server")
+@fact(group="server")
 @dataclass
 class PuppetAgent:
     enabled: bool
@@ -57,7 +57,7 @@ class PuppetAgent:
 ##
 
 
-@fact(namespace="server")
+@fact(group="server")
 @dataclass
 class IsWordpress:
     is_wp: bool

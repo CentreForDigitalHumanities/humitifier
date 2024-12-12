@@ -21,7 +21,7 @@ class Block:
     mount: str
 
 
-@metric(namespace="generic")
+@metric(group="generic")
 class Blocks(list[Block]):
     pass
 
@@ -38,7 +38,7 @@ class Group:
     users: list[str]
 
 
-@fact(namespace="generic")
+@fact(group="generic")
 class Groups(list[Group]):
     pass
 
@@ -53,7 +53,7 @@ class User:
     shell: str
 
 
-@fact(namespace="generic")
+@fact(group="generic")
 class Users(list[User]):
     pass
 
@@ -63,7 +63,7 @@ class Users(list[User]):
 ##
 
 
-@fact(namespace="generic")
+@fact(group="generic")
 @dataclass
 class HostnameCtl:
     hostname: str
@@ -78,7 +78,7 @@ class HostnameCtl:
 ##
 
 
-@metric(namespace="generic")
+@metric(group="generic")
 @dataclass
 class Memory:
     total_mb: int
@@ -100,6 +100,6 @@ class Package:
     version: str
 
 
-@fact(namespace="generic")
+@fact(group="generic")
 class PackageList(list[Package]):
     pass
