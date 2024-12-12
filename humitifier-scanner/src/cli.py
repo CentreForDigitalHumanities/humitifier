@@ -72,10 +72,7 @@ class Scan(BaseModel):
         # Add all facts from the requested groups
         for group in self.fact_group:
             requested_facts.extend(
-                [
-                    fact.__fact_name__
-                    for fact in fact_registry.get_all_in_namespace(group)
-                ]
+                [fact.__fact_name__ for fact in fact_registry.get_all_in_group(group)]
             )
 
         # Add any individual facts
