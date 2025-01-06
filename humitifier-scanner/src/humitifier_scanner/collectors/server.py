@@ -46,16 +46,30 @@ class PuppetAgentFactCollector(ShellCollector):
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
     ) -> PuppetAgent:
-        # We use a neg-check for slightly less mental stress
-        # Test if the lock-file does not exist
-        is_enabled_cmd = shell_executor.execute(
-            "test ! -f /opt/puppetlabs/puppet/cache/state/agent_disabled.lock"
+        # Assume it's enabled unless otherwise known
+        enabled = True
+        disabled_message = None
+
+        # Try to retrieve the agent-disabled lock file
+        agent_disabled_info_cmd = shell_executor.execute(
+            "sudo cat /opt/puppetlabs/puppet/cache/state/agent_disabled.lock",
+            # We expect this to fail most of the time, so supress the error log
+            fail_silent=True,
         )
-        # If the command returns 0, the lock-file does not exist, thus puppet is enabled
-        enabled = is_enabled_cmd.return_code == 0
+
+        # If we didn't get an error, the file exists and thus the agent is disabled
+        if agent_disabled_info_cmd.return_code == 0:
+            enabled = False
+            # Try and retrieve the contents of the lock-file
+            agent_disabled_info = agent_disabled_info_cmd.stdout
+            try:
+                agent_disabled_info = json.loads("".join(agent_disabled_info))
+                disabled_message = agent_disabled_info["disabled_message"]
+            except (ValueError, TypeError):
+                pass
 
         # Create our final output object
-        output = PuppetAgent(enabled=enabled)
+        output = PuppetAgent(enabled=enabled, disabled_message=disabled_message)
 
         # Retrieve the last run report for analysis
         result_report_cmd = shell_executor.execute(

@@ -43,6 +43,7 @@ class Uptime(float):
 @dataclass
 class PuppetAgent:
     enabled: bool
+    disabled_message: str | None = None
     code_roles: list[str] | None = None
     profiles: list[str] | None = None
     environment: str | None = None
