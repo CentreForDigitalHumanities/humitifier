@@ -32,16 +32,3 @@ class _FactImplementationRegistry:
 
 
 registry = _FactImplementationRegistry()
-
-##
-## Decorators
-##
-
-
-def fact(*, namespace: str, name: str | None = None):
-    def decorator(fact_cls):
-        actual_name = name or fact_cls.__name__
-        registry.register(actual_name, namespace, fact_cls)
-        return fact_cls
-
-    return decorator
