@@ -10,7 +10,9 @@ class InvalidScanConfigurationError(HumitifierAgentError):
 
 
 class MissingRequiredFactError(InvalidScanConfigurationError):
-    pass
+    def __init__(self, message, fact_name, *args):
+        super().__init__(message, *args)
+        self.fact_name = fact_name
 
 
 class FatalCollectorError(HumitifierAgentError):
