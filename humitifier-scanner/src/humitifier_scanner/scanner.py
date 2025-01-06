@@ -4,7 +4,6 @@ from humitifier_common.facts.registry.registry import FactType
 from humitifier_scanner.collectors import CollectInfo, registry
 from humitifier_scanner.collectors.backend import Collector
 from humitifier_scanner.exceptions import (
-    InvalidScanConfigurationError,
     MissingRequiredFactError,
 )
 from humitifier_scanner.executor import Executors, get_executor, release_executor
@@ -21,16 +20,22 @@ from humitifier_common.scan_data import (
 def scan(input_data: ScanInput) -> ScanOutput:
     try:
         collectors, errors = _get_scan_order(input_data)
-    except InvalidScanConfigurationError as e:
+    except MissingRequiredFactError as e:
         error = ScanError(
             global_error=True,
-            message="Required fact not requested!",
+            message=f"Required fact {e.fact_name} not requested!",
             type=ErrorTypeEnum.INVALID_SCAN_CONFIGURATION,
             metadata=ScanErrorMetadata(
                 py_exception=e.name(),
             ),
         )
-        return ScanOutput(facts={}, errors=[error])
+        return ScanOutput(
+            facts={},
+            errors=[error],
+            metrics={},
+            original_input=input_data,
+            hostname=input_data.hostname,
+        )
 
     output = ScanOutput(
         hostname=input_data.hostname,
@@ -81,15 +86,18 @@ def _get_scan_order(
         collectors.append(collector)
 
     requested_facts = [
-        collector.fact_name
+        collector.fact_name()
         for collector in collectors
-        if collector.fact_type == FactType.FACT
+        if collector.fact_type() == FactType.FACT
     ]
 
     for collector in collectors:
         for required_fact in collector.required_facts:
             if required_fact.__fact_name__ not in requested_facts:
-                raise MissingRequiredFactError("Required fact not requested!")
+                raise MissingRequiredFactError(
+                    f"Required fact {required_fact.__fact_name__ } not requested!",
+                    required_fact.__fact_name__,
+                )
 
     # make sure that any collector that requires another collector is
     # scanned after the required collector
@@ -103,6 +111,9 @@ def _get_scan_order(
                 collectors.remove(collector)
                 collectors.insert(required_index, collector)
 
+    scan_order = [collector.fact_name() for collector in collectors]
+    logger.debug(f"Resolved fact-scan order: {scan_order}")
+
     return collectors, errors
 
 
@@ -111,6 +122,8 @@ def _run_collector(
 ) -> tuple[Any, list[ScanError]]:
     output = None
     errors = []
+
+    logger.debug(f"Starting collector {collector.fact_name()}:{collector.variant}")
 
     required_executors, exc_errors = _get_executors(collector, input_data)
     required_facts, fact_errors = _get_required_fact_data(collector, current_output)
@@ -122,6 +135,7 @@ def _run_collector(
 
     # If either of the above functions returned errors, we cannot proceed
     if errors:
+        logger.debug(f"Collector startup errors: {errors}")
         return output, errors
 
     collect_info = CollectInfo(
@@ -187,24 +201,25 @@ def _get_required_fact_data(
     required_fact_data = {}
     errors = []
 
-    try:
-        for required_fact in collector.required_facts:
+    for required_fact in collector.required_facts:
+        try:
             required_fact_data[required_fact] = current_output.facts[
                 required_fact.__fact_name__
             ]
-    except KeyError as e:
-        logger.debug(
-            "Required fact not found in already collected facts",
-            exc_info=True,
-        )
-        error = ScanError(
-            fact=collector.fact.__fact_name__,
-            collector_implementation=collector.__class__.__name__,
-            message="Required fact not found in already collected facts",
-            metadata=ScanErrorMetadata(
-                py_exception=e.__class__.__name__,
-            ),
-        )
-        errors.append(error)
+        except KeyError as e:
+            collected_facts = ", ".join(current_output.facts.keys())
+            logger.debug(
+                f"Required fact '{required_fact.__fact_name__}' not found in already collected facts: {collected_facts}",
+                exc_info=True,
+            )
+            error = ScanError(
+                fact=collector.fact.__fact_name__,
+                collector_implementation=collector.__class__.__name__,
+                message="Required fact not found in already collected facts",
+                metadata=ScanErrorMetadata(
+                    py_exception=e.__class__.__name__,
+                ),
+            )
+            errors.append(error)
 
     return required_fact_data, errors
