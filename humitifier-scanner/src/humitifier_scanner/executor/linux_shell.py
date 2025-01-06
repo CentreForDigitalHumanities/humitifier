@@ -22,7 +22,20 @@ class ShellOutput:
 class LinuxShellExecutor(abc.ABC):
 
     @abc.abstractmethod
-    def execute(self, command: str) -> ShellOutput:
+    def execute(self, command: str, fail_silent: bool = False) -> ShellOutput:
+        """
+        Provides an abstract method for executing a command in a shell-like environment and obtaining its
+        output as a `ShellOutput` object. The method must be implemented by subclasses and allows handling
+        of execution failures optionally in a silent manner.
+
+        :param command: The shell command to execute.
+        :type command: str
+        :param fail_silent: Determines whether the method suppresses errors during command
+            execution. Defaults to False.
+        :type fail_silent: bool
+        :return: The output of the executed shell command encapsulated in a `ShellOutput` object.
+        :rtype: ShellOutput
+        """
         pass
 
     @staticmethod
@@ -35,7 +48,7 @@ class LinuxShellExecutor(abc.ABC):
 
 class LocalLinuxShellExecutor(LinuxShellExecutor):
 
-    def execute(self, command: str) -> ShellOutput:
+    def execute(self, command: str, fail_silent: bool = False) -> ShellOutput:
         import subprocess
 
         logger.debug(f"Executing command locally: {command}")
@@ -53,7 +66,8 @@ class LocalLinuxShellExecutor(LinuxShellExecutor):
         stderr_lines = [line.decode() for line in stderr.splitlines() if line.strip()]
 
         if process.returncode != 0:
-            logger.error(f"Command failed with return code {process.returncode}")
+            log_cmd = logger.debug if fail_silent else logger.error
+            log_cmd(f"Command failed with return code {process.returncode}")
 
         return ShellOutput(
             stdout_lines,
@@ -145,21 +159,22 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
             self.ssh_client.connect(**connection_kwargs)
 
     def _execute_command(
-        self, command: str
+        self, command: str, fail_silent: bool = False
     ) -> tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile]:
         self._connect()
         logger.debug(f"Executing command on {self.host}: {command}")
         stdin, stdout, stderr = self.ssh_client.exec_command(command)
 
         if stdout.channel.recv_exit_status() != 0:
-            logger.error(
+            log_cmd = logger.debug if fail_silent else logger.error
+            log_cmd(
                 f"Command failed with return code {stdout.channel.recv_exit_status()}. Stderr: {stderr.read().decode()}"
             )
 
         return stdin, stdout, stderr
 
-    def execute(self, command: str) -> ShellOutput:
-        stdin, stdout, stderr = self._execute_command(command)
+    def execute(self, command: str, fail_silent: bool = False) -> ShellOutput:
+        stdin, stdout, stderr = self._execute_command(command, fail_silent)
 
         # Strip empty lines
         stdout_lines = [
