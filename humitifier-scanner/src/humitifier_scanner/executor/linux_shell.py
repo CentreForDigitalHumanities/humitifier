@@ -86,6 +86,12 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         # Setup primary SSH client
         #
         self.host = host
+        self.port = 22
+
+        if ":" in host:
+            host, port = host.split(":")
+            self.port = int(port)
+            self.host = host
 
         self.ssh_client = paramiko.SSHClient()
         self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
@@ -109,6 +115,12 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         logger.debug(f"Configuring bastion host for {host}")
 
         self.bastion_host = CONFIG.ssh.bastion.host
+        self.bastion_port = 22
+
+        if ":" in host:
+            bastion_host, port = host.split(":")
+            self.bastion_host = bastion_host
+            self.bastion_port = int(port)
 
         if CONFIG.ssh.bastion.private_key:
             bastion_pkey_password = None
@@ -135,6 +147,7 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
                 "hostname": self.host,
                 "username": self.ssh_user,
                 "pkey": self.private_key,
+                "port": self.port,
             }
 
             # If we have a bastion host, we need some more setup
@@ -146,6 +159,7 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
                     self.bastion_host,
                     username=self.bastion_user,
                     pkey=self.bastion_private_key,
+                    port=self.bastion_port,
                 )
 
                 bastion_transport = self.bastion_client.get_transport()
@@ -156,7 +170,9 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
                 connection_kwargs["sock"] = bastion_channel
 
             logger.debug(f"Connecting SSH client for host {self.host}")
+            logger.debug(f"Connection kwargs: {connection_kwargs}")
             self.ssh_client.connect(**connection_kwargs)
+            logger.debug(self.ssh_client.get_transport())
 
     def _execute_command(
         self, command: str, fail_silent: bool = False
