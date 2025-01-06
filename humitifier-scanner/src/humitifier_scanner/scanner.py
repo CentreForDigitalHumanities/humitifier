@@ -46,9 +46,9 @@ def scan(input_data: ScanInput) -> ScanOutput:
         )
 
         if collector.fact:
-            output.metrics[collector.fact.__fact_name__] = collector_output
+            output.facts[collector.fact.__fact_name__] = collector_output
         elif collector.metric:
-            output.facts[collector.metric.__fact_name__] = collector_output
+            output.metrics[collector.metric.__fact_name__] = collector_output
 
         output.errors.extend(collector_errors)
 
