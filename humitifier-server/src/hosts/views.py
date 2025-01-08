@@ -237,16 +237,7 @@ class ArchiveHostView(
     def form_valid(self, form):
         success_url = self.get_success_url()
 
-        if self.object.archived:
-            self.object.archived = False
-            self.object.archival_date = None
-            self.object.save()
-            self.object.regenerate_alerts()
-        else:
-            self.object.archived = True
-            self.object.archival_date = timezone.now()
-            self.object.save()
-            self.object.alerts.all().delete()
+        self.object.switch_archived_status()
 
         return HttpResponseRedirect(success_url)
 

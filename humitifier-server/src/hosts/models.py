@@ -2,6 +2,7 @@ import uuid
 
 from django.db import models
 from django.db.models import Case, F, Value, When
+from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from api.models import OAuth2Application
@@ -270,6 +271,46 @@ class Host(models.Model):
             date = self.archival_date.strftime("%Y-%m-%d %H:%M")
             return f"This server was archived on {date}"
         return ""
+
+    def switch_archived_status(self):
+        """
+        Toggles the archived status of the instance. If the instance is currently archived,
+        it will be unarchived. Otherwise, it will be archived.
+
+        :raises Exception: If any error occurs during the archive or unarchive process.
+        :return: None
+        """
+        if self.archived:
+            self.unarchive()
+        else:
+            self.archive()
+
+    def archive(self):
+        """
+        Marks the object as archived, sets the archival date to the current date and
+        time, saves the object state, and deletes all associated alerts from the
+        database.
+
+        :return: None
+        """
+        self.archived = True
+        self.archival_date = timezone.now()
+        self.save()
+        self.alerts.all().delete()
+
+    def unarchive(self):
+        """
+        Restores the item by setting its archived status to False, clearing its archival
+        date, saving the current state, and regenerating relevant alerts.
+
+        :raises ValueError: If the operation cannot complete due to improper state or
+            logic conflict.
+        :return: None
+        """
+        self.archived = False
+        self.archival_date = None
+        self.save()
+        self.regenerate_alerts()
 
     def __str__(self):
         return self.fqdn
