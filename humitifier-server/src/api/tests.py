@@ -1,6 +1,5 @@
 from django.test import TestCase
-from django.urls import reverse
-from rest_framework.test import APIClient, APIRequestFactory
+from rest_framework.test import APIClient
 
 
 class ApiTestCaseMixin:
@@ -11,6 +10,8 @@ class ApiTestCaseMixin:
     ]
 
     def setUp(self):
+        super().setUp()
+
         self.system_client = APIClient()
         system_token_req = self.system_client.post(
             "/api/oauth/token/",
