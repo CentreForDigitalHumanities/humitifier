@@ -10,18 +10,24 @@ from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
 from django.utils import timezone
 from django.views import View
-from django.views.generic import TemplateView
+from django.views.generic import TemplateView, UpdateView
 from django.views.generic.detail import (
     BaseDetailView,
     SingleObjectTemplateResponseMixin,
 )
-from django.views.generic.edit import FormMixin
+from django.views.generic.edit import CreateView, FormMixin
+from rest_framework.reverse import reverse_lazy
 
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 
-from .filters import HostFilters
-from .models import Host
-from .tables import HostsTable
+from .filters import DataSourceFilters, HostFilters
+from .forms import DataSourceForm
+from .models import DataSource, Host
+from .tables import DataSourcesTable, HostsTable
+
+##
+## Host views
+##
 
 
 class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
@@ -253,5 +259,32 @@ class ScanProfilesView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView)
     template_name = "main/not_implemented.html"
 
 
-class DataSourcesView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
-    template_name = "main/not_implemented.html"
+##
+## Data source views
+##
+
+
+class DataSourcesView(LoginRequiredMixin, TableMixin, FilteredListView):
+    template_name = "hosts/datasource_list.html"
+    model = DataSource
+    table_class = DataSourcesTable
+    filterset_class = DataSourceFilters
+    ordering_fields = {
+        "name": "Name",
+        "source_type": "Source Type",
+    }
+    paginate_by = 10
+
+
+class DataSourceCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+    template_name = "hosts/datasource_form.html"
+    model = DataSource
+    form_class = DataSourceForm
+    success_url = reverse_lazy("hosts:data_sources")
+
+
+class DataSourceEditView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+    template_name = "hosts/datasource_form.html"
+    model = DataSource
+    form_class = DataSourceForm
+    success_url = reverse_lazy("hosts:data_sources")

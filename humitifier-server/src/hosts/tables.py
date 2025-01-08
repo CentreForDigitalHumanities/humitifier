@@ -1,13 +1,32 @@
 from django.urls import reverse
 
-from hosts.models import Host
+from hosts.models import Host, DataSource
 from main.easy_tables import (
     BaseTable,
+    ButtonColumn,
+    CompoundColumn,
     DateTimeColumn,
     LinkColumn,
     ModelValueColumn,
     TemplatedColumn,
 )
+
+
+class DataSourcesTable(BaseTable):
+    class Meta:
+        model = DataSource
+        columns = ["name", "source_type", "actions"]
+
+    actions = CompoundColumn(
+        "Actions",
+        columns=[
+            ButtonColumn(
+                text="Edit",
+                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                url=lambda obj: reverse("hosts:edit_data_source", args=[obj.pk]),
+            ),
+        ],
+    )
 
 
 class HostsTable(BaseTable):

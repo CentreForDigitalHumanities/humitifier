@@ -3,8 +3,12 @@ from django.db.models.expressions import RawSQL
 from django_filters import ChoiceFilter
 from drf_spectacular.types import OpenApiTypes
 
-from hosts.models import Alert, AlertLevel, AlertType, Host
+from hosts.models import Alert, AlertLevel, AlertType, DataSource, DataSourceType, Host
 from main.filters import BooleanChoiceFilter, FiltersForm, MultipleChoiceFilterWidget
+
+#
+# Helpers
+#
 
 
 def _get_choices(field, strip_quotes=True):
@@ -28,6 +32,23 @@ def _get_choices(field, strip_quotes=True):
     values = sorted(values, key=lambda x: x[1])
 
     return values
+
+
+#
+# DataSource filters
+#
+
+
+class DataSourceFilters(django_filters.FilterSet):
+    class Meta:
+        model = DataSource
+        fields = ["source_type"]
+        form = FiltersForm
+
+
+#
+# Host filters
+#
 
 
 class TextSearchFilter(django_filters.Filter):
@@ -152,6 +173,11 @@ class HostFilters(django_filters.FilterSet):
     archived = IncludeArchivedFilter(
         empty_label="Exclude archived servers",
     )
+
+
+#
+# Alert filters
+#
 
 
 class AlertFilters(django_filters.FilterSet):

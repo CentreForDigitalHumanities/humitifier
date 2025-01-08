@@ -2,6 +2,8 @@ from django.urls import path
 
 from .views import (
     ArchiveHostView,
+    DataSourceCreateView,
+    DataSourceEditView,
     DataSourcesView,
     HostDetailView,
     HostExportView,
@@ -22,4 +24,12 @@ urlpatterns = [
     path("tasks/", TasksView.as_view(), name="tasks"),
     path("scan-profiles/", ScanProfilesView.as_view(), name="scan_profiles"),
     path("data-sources/", DataSourcesView.as_view(), name="data_sources"),
+    path(
+        "data-sources/create/",
+        DataSourceCreateView.as_view(),
+        name="create_data_source",
+    ),
+    path(
+        "data-sources/<pk>/edit/", DataSourceEditView.as_view(), name="edit_data_source"
+    ),
 ]

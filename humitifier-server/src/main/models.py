@@ -31,6 +31,13 @@ class User(AbstractUser):
     )
 
     @property
+    def can_view_datasources(self):
+        return (
+            self.is_superuser
+            or self.access_profiles.exclude(data_sources__count=0).exists()
+        )
+
+    @property
     def departments_for_filter(self):
         departments = set()
 
@@ -46,6 +53,12 @@ class AccessProfile(models.Model):
 
     departments = ArrayField(
         models.CharField(max_length=200),
+    )
+
+    data_sources = models.ManyToManyField(
+        "hosts.DataSource",
+        verbose_name="Manage data sources",
+        help_text="Determines which data sources this access profile gives manage access to.",
     )
 
     def get_departments_display(self):

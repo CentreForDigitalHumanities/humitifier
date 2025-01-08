@@ -129,7 +129,6 @@ class DepartmentsWidget(forms.CheckboxSelectMultiple):
         # First, reset the choices with the current options from the DB
         # This cannot be done in __init__ because the choices change over time
         self.choices = _get_choices("department")
-        print(value)
 
         # Then, add any values that are not in the choices (but are in the
         # value) to the options, as they might be departments that were removed
@@ -153,7 +152,9 @@ class AccessProfileForm(forms.ModelForm):
             "name",
             "description",
             "departments",
+            "data_sources",
         ]
         widgets = {
             "departments": DepartmentsWidget,
+            "data_sources": forms.CheckboxSelectMultiple,
         }

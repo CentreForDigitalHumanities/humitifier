@@ -42,6 +42,7 @@ Menu.add_item(
         reverse("hosts:data_sources"),
         weight=10,
         icon="icons/databases.html",
-        check=lambda request: request.user.is_superuser,
+        check=lambda request: request.user.is_authenticated
+        and request.user.can_view_datasources,
     ),
 )

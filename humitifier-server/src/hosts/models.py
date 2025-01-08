@@ -7,6 +7,11 @@ from main.models import User
 from main.templatetags.strip_quotes import strip_quotes
 
 
+class DataSourceType(models.TextChoices):
+    API = ("api", "API Sync")
+    MANUAL = ("manual", "Manual entry")
+
+
 class AlertLevel(models.TextChoices):
     INFO = "info"
     WARNING = "warning"
@@ -34,6 +39,52 @@ def _json_value(field: str):
         When(**{field: None, "then": Value(None)}),
         default=F(field),
     )
+
+
+class DatasSourceManager(models.Manager):
+
+    def get_for_user(self, user: User):
+        if user.is_anonymous:
+            return self.get_queryset().none()
+
+        if user.is_superuser:
+            return self.get_queryset()
+
+        if user.access_profiles.exists():
+            return self.get_queryset().filter(
+                id__in=user.access_profiles.values_list("data_sources", flat=True)
+            )
+
+        # When a non-superuser has no access profile, THEY GET NOTHING
+        # They lose! Good day sir!
+        return self.get_queryset().none()
+
+    def get_for_application(self, application: OAuth2Application):
+        if application.access_profile is None:
+            return self.get_queryset().none()
+
+        if "system" not in application.allowed_scopes:
+            return self.get_queryset().none()
+
+        return self.get_queryset().filter(
+            id__in=application.access_profile.data_sources.all()
+        )
+
+
+class DataSource(models.Model):
+    class Meta:
+        ordering = ["name"]
+
+    objects = DatasSourceManager()
+
+    name = models.CharField(max_length=255)
+
+    source_type = models.CharField(
+        max_length=255, choices=DataSourceType.choices, default=DataSourceType.MANUAL
+    )
+
+    def __str__(self):
+        return self.name
 
 
 class HostManager(models.Manager):
@@ -89,6 +140,15 @@ class Host(models.Model):
     archived = models.BooleanField(default=False)
 
     archival_date = models.DateTimeField(null=True)
+
+    data_source = models.ForeignKey(
+        DataSource,
+        verbose_name="Data source",
+        help_text="The data source for this host",
+        on_delete=models.SET_NULL,
+        related_name="hosts",
+        null=True,
+    )
 
     ##
     ## Generated fields
