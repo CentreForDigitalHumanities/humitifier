@@ -8,6 +8,11 @@
                 DEBUG MODE
             </div>
         {% endif %}
+        {% if layout.gitlab_gag %}
+            <div class="flex-grow-0 bg-blue-800 px-3 md:pl-72 py-2 text-center text-white font-bold">
+                It's thursday; A new critical security update for GitLab has probably been released. Click <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="underline">here</a> to see if that's true.
+            </div>
+        {% endif %}
         <div class="w-full flex-grow overflow-auto">
             {% include 'base/page_parts/sidebar.html' %}
 

@@ -1,4 +1,5 @@
 import random
+from datetime import datetime
 
 from django.conf import settings
 
@@ -21,6 +22,7 @@ def layout_context(request):
         wild_wasteland = user.wild_wasteland_mode
 
     oidc_enabled = hasattr(settings, "OIDC_RP_CLIENT_ID")
+    gitlab_gag = False
 
     if wild_wasteland:
         jokes = [
@@ -53,6 +55,11 @@ def layout_context(request):
         ]
         tag_line = random.choice(jokes)
 
+        if (
+            datetime.today().weekday() == 3 and random.randint(1, 100) == 1
+        ):  # 3 is Thursday (Monday=0)
+            gitlab_gag = True
+
     return {
         "layout": {
             "num_hosts": hosts.count(),
@@ -61,6 +68,7 @@ def layout_context(request):
             "num_critical_alerts": all_alerts.filter(level=AlertLevel.CRITICAL).count(),
             "oidc_enabled": oidc_enabled,
             "wild_wasteland": wild_wasteland,
+            "gitlab_gag": gitlab_gag,
             "tag_line": tag_line,
         }
     }
