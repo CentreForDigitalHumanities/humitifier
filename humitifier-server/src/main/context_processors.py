@@ -39,6 +39,17 @@ def layout_context(request):
             "Hum-IT CMDB",
             "Made for Itanium™",
             "I'm on a horse",
+            "Keep calm and reboot",
+            "Is it plugged in?",
+            "Running on hope and caffeine",
+            "Results may vary",
+            "As seen on TV",
+            "Not a flamethrower",
+            "Some assembly required",
+            "100% Functional Guarantee until it breakage",
+            "Do not use if seal is broken",
+            "Objects in mirror may be closer than they appear",
+            "Your wish is our segfault",
         ]
         tag_line = random.choice(jokes)
 
