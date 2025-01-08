@@ -1,3 +1,5 @@
+import uuid
+
 from django.db import models
 from django.db.models import Case, F, Value, When
 from django.utils.safestring import mark_safe
@@ -76,6 +78,12 @@ class DataSource(models.Model):
         ordering = ["name"]
 
     objects = DatasSourceManager()
+
+    identifier = models.UUIDField(
+        null=False,
+        unique=True,
+        default=uuid.uuid4,
+    )
 
     name = models.CharField(max_length=255)
 
