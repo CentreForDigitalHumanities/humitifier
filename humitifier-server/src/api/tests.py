@@ -1,6 +1,8 @@
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from hosts.models import DataSource, DataSourceType, Host
+
 
 class ApiTestCaseMixin:
     fixtures = [
@@ -38,6 +40,18 @@ class ApiTestCaseMixin:
         self.read_token = read_token_req.json()["access_token"]
         self.read_client.credentials(HTTP_AUTHORIZATION="Bearer %s" % self.read_token)
 
+    def assertRequestSuccessful(self, request):
+        message = request.data
+        self.assertEqual(
+            request.status_code, 200, f"Request was not successful: {message}"
+        )
+
+    def assertRequestUnsuccessful(self, request):
+        message = request.data
+        self.assertGreaterEqual(
+            request.status_code, 400, f"Request was successful: {message}"
+        )
+
 
 class OAuthTestCase(ApiTestCaseMixin, TestCase):
 
@@ -64,3 +78,209 @@ class OAuthTestCase(ApiTestCaseMixin, TestCase):
         test_request = self.system_client.get("/api/hosts/")
 
         self.assertEqual(test_request.status_code, 403)
+
+
+class HostSyncTestCase(ApiTestCaseMixin, TestCase):
+
+    def setUp(self):
+        super().setUp()
+
+        self.data_source = DataSource.objects.filter(
+            source_type=DataSourceType.API
+        ).first()
+
+    def _create_host(self, overrides: dict = None):
+        host_data = {
+            "fqdn": "example.org",
+            "data_source": self.data_source,
+            # TODO: more keys
+        }
+
+        if overrides:
+            host_data.update(overrides)
+
+        Host.objects.create(**host_data)
+
+    def _send_sync(self, hosts):
+        return self.system_client.post(
+            "/api/inventory_sync/",
+            data={
+                "data_source": self.data_source.identifier,
+                "hosts": hosts,
+            },
+            format="json",
+        )
+
+    def test_new_host(self):
+        self.assertEqual(self.data_source.hosts.count(), 0)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Example",
+                    "customer": "Example",
+                    "contact": "x@example.org",
+                    "has_tofu_config": False,
+                    "otap_stage": "development",
+                },
+            ]
+        )
+
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], [])
+        self.assertEqual(response["created"], ["example.org"])
+        self.assertEqual(response["archived"], [])
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+    def test_existing_host_update(self):
+        self._create_host()
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Example",
+                    "customer": "Example",
+                    "contact": "x@example.org",
+                    "has_tofu_config": False,
+                    "otap_stage": "development",
+                },
+            ]
+        )
+
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], ["example.org"])
+        self.assertEqual(response["created"], [])
+        self.assertEqual(response["archived"], [])
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        # TODO: check if stuff is actually changed
+
+    def test_archive_host(self):
+        self._create_host()
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        test_request = self._send_sync([])
+
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], [])
+        self.assertEqual(response["created"], [])
+        self.assertEqual(response["archived"], ["example.org"])
+
+        # It shouldn't have been deleted
+        self.assertEqual(self.data_source.hosts.count(), 1)
+        # But it should now have archived=True
+        self.assertEqual(self.data_source.hosts.filter(archived=False).count(), 0)
+
+    def test_unarchive_host(self):
+        self._create_host({"archived": True})
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+        self.assertEqual(self.data_source.hosts.filter(archived=False).count(), 0)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Example",
+                    "customer": "Example",
+                    "contact": "x@example.org",
+                    "has_tofu_config": False,
+                    "otap_stage": "development",
+                },
+            ]
+        )
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], ["example.org"])
+        self.assertEqual(response["created"], [])
+        self.assertEqual(response["archived"], [])
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+        self.assertEqual(self.data_source.hosts.filter(archived=False).count(), 1)
+
+    def test_ignore_other_hosts(self):
+        other_data_source = DataSource.objects.create()
+        self._create_host({"data_source": other_data_source})
+
+        self.assertEqual(Host.objects.count(), 1)
+        self.assertEqual(self.data_source.hosts.count(), 0)
+
+        test_request = self._send_sync([])
+
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], [])
+        self.assertEqual(response["created"], [])
+        self.assertEqual(response["archived"], [])
+
+        self.assertEqual(Host.objects.count(), 1)
+        self.assertEqual(self.data_source.hosts.count(), 0)
+
+    def test_fail_already_claimed_host(self):
+        other_data_source = DataSource.objects.create()
+        self._create_host({"data_source": other_data_source})
+
+        self.assertEqual(Host.objects.count(), 1)
+        self.assertEqual(self.data_source.hosts.count(), 0)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Example",
+                    "customer": "Example",
+                    "contact": "x@example.org",
+                    "has_tofu_config": False,
+                    "otap_stage": "development",
+                },
+            ]
+        )
+
+        self.assertRequestUnsuccessful(test_request)
+
+        self.assertEqual(Host.objects.count(), 1)
+        self.assertEqual(self.data_source.hosts.count(), 0)
+
+    def test_claim_unclaimed_host(self):
+        self._create_host({"data_source": None})
+
+        self.assertEqual(Host.objects.count(), 1)
+        self.assertEqual(self.data_source.hosts.count(), 0)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Example",
+                    "customer": "Example",
+                    "contact": "x@example.org",
+                    "has_tofu_config": False,
+                    "otap_stage": "development",
+                },
+            ]
+        )
+
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], ["example.org"])
+        self.assertEqual(response["created"], [])
+        self.assertEqual(response["archived"], [])
+
+        self.assertEqual(Host.objects.count(), 1)
+        self.assertEqual(self.data_source.hosts.count(), 1)

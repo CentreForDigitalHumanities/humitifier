@@ -6,7 +6,7 @@ from .views import (
     CreateOAuthApplicationView,
     DeleteOAuthApplicationView,
     EditOAuthApplicationView,
-    InventorySync,
+    DatastoreSyncView,
     UploadScans,
     OAuthApplicationsView,
 )
@@ -17,7 +17,7 @@ app_name = "api"
 urlpatterns = [
     # API Endpoints
     path("upload_scans/", UploadScans.as_view(), name="upload_scans"),
-    path("inventory_sync/", InventorySync.as_view(), name="inventory_sync"),
+    path("inventory_sync/", DatastoreSyncView.as_view(), name="inventory_sync"),
     # OAuth2
     path("oauth/authorize/", oauth_views.AuthorizationView.as_view(), name="authorize"),
     path("oauth/token/", oauth_views.TokenView.as_view(), name="token"),
