@@ -1,0 +1,46 @@
+[
+    {
+      "model": "api.oauth2application",
+      "pk": 1,
+      "fields": {
+        "client_id": "read",
+        "user": null,
+        "redirect_uris": "",
+        "post_logout_redirect_uris": "",
+        "client_type": "confidential",
+        "authorization_grant_type": "client-credentials",
+        "client_secret": "topsy_krets",
+        "hash_client_secret": false,
+        "name": "Read",
+        "skip_authorization": false,
+        "created": "2024-11-11T19:57:02.958Z",
+        "updated": "2024-11-12T12:53:36.853Z",
+        "algorithm": "",
+        "allowed_origins": "",
+        "access_profile": 1,
+        "allowed_scopes": "[\"read\"]"
+      }
+    },
+    {
+      "model": "api.oauth2application",
+      "pk": 3,
+      "fields": {
+        "client_id": "system",
+        "user": null,
+        "redirect_uris": "",
+        "post_logout_redirect_uris": "",
+        "client_type": "confidential",
+        "authorization_grant_type": "client-credentials",
+        "client_secret": "topsy_krets",
+        "hash_client_secret": false,
+        "name": "System",
+        "skip_authorization": false,
+        "created": "2024-11-12T13:00:36.707Z",
+        "updated": "2025-01-08T13:57:59.931Z",
+        "algorithm": "",
+        "allowed_origins": "",
+        "access_profile": 1,
+        "allowed_scopes": "[\"system\"]"
+      }
+    }
+]

@@ -1,0 +1,15 @@
+[
+    {
+      "model": "main.accessprofile",
+      "pk": 1,
+      "fields": {
+        "name": "test",
+        "description": "Test",
+        "departments": "[\"\\\"Test\\\"\",\"\\\"Example\\\"\"]",
+        "data_sources": [
+            1,
+            2
+        ]
+      }
+    }
+]
