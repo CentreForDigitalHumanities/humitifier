@@ -87,6 +87,7 @@ class AccessProfilesTable(BaseTable):
             "name",
             "description",
             "departments",
+            "data_sources",
             "actions",
         ]
         no_data_message = "No access profiles found. Please check your filters."
@@ -110,3 +111,9 @@ class AccessProfilesTable(BaseTable):
             ),
         ],
     )
+
+    data_sources = MethodColumn("Data sources", method_name="get_data_sources")
+
+    @staticmethod
+    def get_data_sources(obj: AccessProfile):
+        return ", ".join(obj.data_sources.values_list("name", flat=True))
