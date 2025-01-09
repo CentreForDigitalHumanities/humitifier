@@ -157,6 +157,19 @@ class Host(models.Model):
         null=True,
     )
 
+    ##
+    ## Static host info
+    ##
+
+    has_tofu_config = models.BooleanField(
+        default=False,
+    )
+
+    otap_stage = models.CharField(
+        null=True,
+        blank=True,
+    )
+
     department = models.CharField(
         max_length=255,
         null=True,
