@@ -17,7 +17,7 @@ COPY humitifier-common/* /humitifier-common/
 # Annoying poetry fix
 # https://github.com/python-poetry/poetry/issues/1168
 RUN sed -i 's/develop = true/develop = false/g' pyproject.toml
-RUN poetry lock --no-update
+RUN poetry lock
 
 RUN poetry install --without dev --with=production -vvv
 
