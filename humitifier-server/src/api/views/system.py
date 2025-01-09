@@ -177,10 +177,11 @@ class DatastoreSyncView(APIView):
             fqdn__in=hosts_dict.keys(),
         )
 
-        #
+        archived_hosts = []
         for removed_host in removed_hosts:
             if not removed_host.archived:
                 removed_host.archive()
+                archived_hosts.append(removed_host.fqdn)
 
         # Then, let's update our existing hosts
         for host in existing_hosts:
@@ -218,6 +219,6 @@ class DatastoreSyncView(APIView):
             {
                 "updated": [host.fqdn for host in existing_hosts],
                 "created": new_hosts,
-                "archived": [host.fqdn for host in removed_hosts],
+                "archived": archived_hosts,
             }
         )

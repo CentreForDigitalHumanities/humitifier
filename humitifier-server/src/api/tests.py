@@ -220,6 +220,24 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         self.assertEqual(self.data_source.hosts.count(), 1)
         self.assertEqual(self.data_source.hosts.filter(archived=False).count(), 1)
 
+    def test_archive_host_twice(self):
+        # This test makes sure we only display an archived server if it was archived during this sync
+        self._create_host()
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        self._send_sync([])
+
+        test_request = self._send_sync([])
+
+        response = test_request.data
+
+        self.assertEqual(response["updated"], [])
+        self.assertEqual(response["created"], [])
+        self.assertEqual(response["archived"], [])
+
+        self.assertRequestSuccessful(test_request)
+
     def test_ignore_other_hosts(self):
         other_data_source = DataSource.objects.create()
         self._create_host({"data_source": other_data_source})
