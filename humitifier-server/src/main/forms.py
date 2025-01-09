@@ -158,3 +158,9 @@ class AccessProfileForm(forms.ModelForm):
             "customers": CustomersWidget,
             "data_sources": forms.CheckboxSelectMultiple,
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Make sure data_sources isn't actually required
+        self.fields["data_sources"].required = False
