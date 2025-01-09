@@ -118,7 +118,7 @@ class SetPasswordForm(forms.ModelForm):
         return super().save(commit=commit)
 
 
-class DepartmentsWidget(forms.CheckboxSelectMultiple):
+class CustomersWidget(forms.CheckboxSelectMultiple):
 
     def format_value(self, value):
         if value is None:
@@ -128,10 +128,10 @@ class DepartmentsWidget(forms.CheckboxSelectMultiple):
     def optgroups(self, name, value, attrs=None):
         # First, reset the choices with the current options from the DB
         # This cannot be done in __init__ because the choices change over time
-        self.choices = _get_choices("department")
+        self.choices = _get_choices("customer", strip_quotes=False)
 
         # Then, add any values that are not in the choices (but are in the
-        # value) to the options, as they might be departments that were removed
+        # value) to the options, as they might be customers that were removed
         # from the dataset at some point
         for val in value:
             if val not in dict(self.choices):
@@ -151,10 +151,10 @@ class AccessProfileForm(forms.ModelForm):
         fields = [
             "name",
             "description",
-            "departments",
+            "customers",
             "data_sources",
         ]
         widgets = {
-            "departments": DepartmentsWidget,
+            "customers": CustomersWidget,
             "data_sources": forms.CheckboxSelectMultiple,
         }

@@ -12,6 +12,7 @@ class HostSerializer(serializers.ModelSerializer):
             "archived",
             "archival_date",
             "department",
+            "customer",
             "contact",
             "os",
             "link",

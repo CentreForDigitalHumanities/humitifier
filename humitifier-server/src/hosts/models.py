@@ -106,9 +106,7 @@ class HostManager(models.Manager):
             return self.get_queryset()
 
         if user.access_profiles.exists():
-            return self.get_queryset().filter(
-                department__in=user.departments_for_filter
-            )
+            return self.get_queryset().filter(customer__in=user.customers_for_filter)
 
         # When a non-superuser has no access profile, THEY GET NOTHING
         # They lose! Good day sir!
@@ -119,7 +117,7 @@ class HostManager(models.Manager):
             return self.get_queryset().none()
 
         return self.get_queryset().filter(
-            department__in=application.access_profile.departments_for_filter
+            customer__in=application.access_profile.customers_for_filter
         )
 
 
@@ -159,24 +157,30 @@ class Host(models.Model):
         null=True,
     )
 
+    department = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+
+    customer = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+
+    contact = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+
     ##
     ## Generated fields
     ## These fields are derived from the last scan cache, and are generated
     ## by the database itself. THis way, we have a very performant way
     ## to filter on these values
     ##
-
-    department = models.GeneratedField(
-        expression=_json_value("last_scan_cache__HostMeta__department"),
-        output_field=models.CharField(max_length=255),
-        db_persist=True,
-    )
-
-    contact = models.GeneratedField(
-        expression=_json_value("last_scan_cache__HostMeta__contact"),
-        output_field=models.CharField(max_length=255),
-        db_persist=True,
-    )
 
     os = models.GeneratedField(
         expression=_json_value("last_scan_cache__HostnameCtl__os"),
@@ -254,6 +258,11 @@ class Host(models.Model):
         if not self.department:
             return mark_safe("<span class='italic'>Unknown</span>")
         return strip_quotes(self.department)
+
+    def get_customer_display(self):
+        if not self.customer:
+            return mark_safe("<span class='italic'>Unknown</span>")
+        return strip_quotes(self.customer)
 
     def get_contact_display(self):
         if not self.contact:
@@ -341,7 +350,7 @@ class AlertManager(models.Manager):
 
         if user.access_profiles.exists():
             return self.get_queryset().filter(
-                host__department__in=user.departments_for_filter
+                host__customer__in=user.customers_for_filter
             )
 
         # When a non-superuser has no access profile, THEY GET NOTHING

@@ -40,6 +40,7 @@ class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
         "fqdn": "Hostname",
         "os": "Operating System",
         "department": "Department",
+        "customer": "Customer",
         "contact": "Contact",
         "last_scan_date": "Last Scan Date",
     }
@@ -107,6 +108,7 @@ class HostExportView(LoginRequiredMixin, FilteredListView):
                 "fqdn": "Hostname",
                 "os": "Operating System",
                 "department": "Department",
+                "customer": "Customer",
                 "contact": "Contact",
                 "created_at": "Created At",
                 "archived": "Archived",
@@ -122,6 +124,7 @@ class HostExportView(LoginRequiredMixin, FilteredListView):
                     "fqdn": host.fqdn,
                     "os": host.os,
                     "department": host.department,
+                    "customer": host.customer,
                     "contact": host.contact,
                     "created_at": host.created_at,
                     "archived": host.archived,

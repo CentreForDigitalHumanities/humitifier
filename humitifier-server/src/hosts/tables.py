@@ -37,7 +37,7 @@ class HostsTable(BaseTable):
             "os",
             "last_scan_date",
             "created_at",
-            "department",
+            "customer",
             "status",
         ]
         column_type_overrides = {
@@ -56,7 +56,7 @@ class HostsTable(BaseTable):
             "os": "lg",
             "last_scan_date": "xl",
             "created_at": "2xl",
-            "department": "lg",
+            "customer": "lg",
         }
         no_data_message = "No hosts found. Please check your filters."
         no_data_message_wild_wasteland = "Oh no! Where have our hosts gone?"

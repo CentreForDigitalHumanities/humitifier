@@ -146,14 +146,21 @@ class HostFilters(django_filters.FilterSet):
     department = django_filters.MultipleChoiceFilter(
         label="Department",
         field_name="department",
-        choices=lambda: _get_choices("department"),
+        choices=lambda: _get_choices("department", strip_quotes=False),
+        widget=MultipleChoiceFilterWidget,
+    )
+
+    customer = django_filters.MultipleChoiceFilter(
+        label="Customer",
+        field_name="customer",
+        choices=lambda: _get_choices("customer", strip_quotes=False),
         widget=MultipleChoiceFilterWidget,
     )
 
     contact = django_filters.MultipleChoiceFilter(
         label="Contact",
         field_name="contact",
-        choices=lambda: _get_choices("contact"),
+        choices=lambda: _get_choices("contact", strip_quotes=False),
         widget=MultipleChoiceFilterWidget,
     )
 

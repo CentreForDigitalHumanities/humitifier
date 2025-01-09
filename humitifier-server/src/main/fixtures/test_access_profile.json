@@ -5,7 +5,7 @@
       "fields": {
         "name": "test",
         "description": "Test",
-        "departments": "[\"\\\"Test\\\"\",\"\\\"Example\\\"\"]",
+        "customers": "[\"Test\",\"Example\"]",
         "data_sources": [
             1,
             2

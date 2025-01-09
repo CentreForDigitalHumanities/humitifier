@@ -207,10 +207,10 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
             .values("os")
             .annotate(count=Count("os"))
         )
-        context["department_stats"] = (
+        context["customer_stats"] = (
             Host.objects.get_for_user(self.request.user)
-            .values("department")
-            .annotate(count=Count("department"))
+            .values("customer")
+            .annotate(count=Count("customer"))
         )
 
         return context

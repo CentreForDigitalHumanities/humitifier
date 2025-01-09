@@ -86,7 +86,7 @@ class AccessProfilesTable(BaseTable):
         columns = [
             "name",
             "description",
-            "departments",
+            "customers",
             "data_sources",
             "actions",
         ]

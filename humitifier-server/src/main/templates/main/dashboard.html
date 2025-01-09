@@ -72,19 +72,19 @@
                     },
                 },
             });
-            let department = document.getElementById('departmentChart');
-            new Chart(department, {
+            let customer = document.getElementById('customerChart');
+            new Chart(customer, {
                 type: 'pie',
                 data: {
                     labels: [
-                        {% for os in department_stats %}
-                            '{{ os.department|strip_quotes }}',
+                        {% for os in customer_stats %}
+                            '{{ os.customer|strip_quotes }}',
                         {% endfor %}
                     ],
                     datasets: [{
                         label: 'Operating Systems',
                         data: [
-                            {% for os in department_stats %}
+                            {% for os in customer_stats %}
                                 {{ os.count }},
                             {% endfor %}
                         ],
@@ -99,7 +99,7 @@
                         },
                         title: {
                             display: true,
-                            text: 'Servers by department',
+                            text: 'Servers by customer',
                         }
                     },
                 },
@@ -117,7 +117,7 @@
             <canvas id="osChart"></canvas>
         </div>
         <div class="section">
-            <canvas id="departmentChart"></canvas>
+            <canvas id="customerChart"></canvas>
         </div>
     </div>
     <div class="p-3">
