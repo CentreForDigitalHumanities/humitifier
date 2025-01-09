@@ -209,11 +209,17 @@ class DatastoreSyncView(APIView):
         for fqdn in new_hosts:
             new_data = hosts_dict.get(fqdn)
 
-            # TODO: set any relevant info
-            Host.objects.create(
-                fqdn=fqdn,
-                data_source=data_source,
-            )
+            data = {
+                "fqdn": fqdn,
+                "data_source": data_source,
+                "department": new_data.get("department"),
+                "customer": new_data.get("customer"),
+                "contact": new_data.get("contact"),
+                "has_tofu_config": new_data.get("has_tofu_config"),
+                "otap_stage": new_data.get("otap_stage"),
+            }
+
+            Host.objects.create(**data)
 
         return Response(
             {

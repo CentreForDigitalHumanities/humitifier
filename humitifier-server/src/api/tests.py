@@ -140,6 +140,13 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
 
         self.assertEqual(self.data_source.hosts.count(), 1)
 
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.department, "Example")
+        self.assertEqual(host.customer, "Example")
+        self.assertEqual(host.contact, "x@example.org")
+        self.assertEqual(host.has_tofu_config, False)
+        self.assertEqual(host.otap_stage, "development")
+
     def test_existing_host_update(self):
         self._create_host()
 
