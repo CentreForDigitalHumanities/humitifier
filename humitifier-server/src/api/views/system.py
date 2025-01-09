@@ -186,7 +186,14 @@ class DatastoreSyncView(APIView):
         for host in existing_hosts:
             new_data = hosts_dict.get(host.fqdn)
 
-            # TODO: update any relevant info
+            # Update our ownership info
+            host.department = new_data.get("department", host.department)
+            host.customer = new_data.get("customer", host.customer)
+            host.contact = new_data.get("contact", host.contact)
+
+            # Update other static info
+            host.has_tofu_config = new_data.get("has_tofu_config", host.has_tofu_config)
+            host.otap_stage = new_data.get("otap_stage", host.otap_stage)
 
             # If this host is unclaimed, we set the data_source attr to claim it
             if host.data_source is None:

@@ -93,7 +93,11 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         host_data = {
             "fqdn": "example.org",
             "data_source": self.data_source,
-            # TODO: more keys
+            "department": "Example",
+            "customer": "Example",
+            "contact": "x@example.org",
+            "has_tofu_config": False,
+            "otap_stage": "test",
         }
 
         if overrides:
@@ -145,10 +149,10 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
             [
                 {
                     "fqdn": "example.org",
-                    "department": "Example",
-                    "customer": "Example",
-                    "contact": "x@example.org",
-                    "has_tofu_config": False,
+                    "department": "Another department",
+                    "customer": "Another customer",
+                    "contact": "y@example.org",
+                    "has_tofu_config": True,
                     "otap_stage": "development",
                 },
             ]
@@ -163,7 +167,11 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
 
         self.assertEqual(self.data_source.hosts.count(), 1)
 
-        # TODO: check if stuff is actually changed
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.department, "Another department")
+        self.assertEqual(host.contact, "y@example.org")
+        self.assertEqual(host.has_tofu_config, True)
+        self.assertEqual(host.otap_stage, "development")
 
     def test_archive_host(self):
         self._create_host()
