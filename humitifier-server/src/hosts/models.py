@@ -1,5 +1,6 @@
 import dataclasses
 import uuid
+from datetime import datetime
 from functools import cached_property
 
 from django.db import models
@@ -17,17 +18,18 @@ from main.templatetags.strip_quotes import strip_quotes
 @dataclasses.dataclass
 class ScanData:
     version: int
+    scan_date: datetime
     raw_data: dict
 
     @classmethod
-    def from_raw_scan(cls, raw_scan: dict) -> "ScanData":
+    def from_raw_scan(cls, raw_scan: dict, created: datetime) -> "ScanData":
         # Version 1 doesn't have a version field, so we default to one and
         # override with any specified version if available
         version = 1
         if "version" in raw_scan:
             version = raw_scan["version"]
 
-        return cls(version=version, raw_data=raw_scan)
+        return cls(version=version, raw_data=raw_scan, scan_date=created)
 
     @cached_property
     def parsed_data(self) -> ScanOutput | None:
@@ -267,7 +269,7 @@ class Host(models.Model):
         return scan
 
     def get_scan_object(self) -> ScanData:
-        return ScanData.from_raw_scan(self.last_scan_cache)
+        return ScanData.from_raw_scan(self.last_scan_cache, self.last_scan_date)
 
     def regenerate_alerts(self):
         from hosts import alerts
@@ -395,7 +397,7 @@ class Scan(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def get_scan_object(self) -> ScanData:
-        return ScanData.from_raw_scan(self.data)
+        return ScanData.from_raw_scan(self.data, self.created_at)
 
 
 class AlertManager(models.Manager):

@@ -8,7 +8,6 @@ from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.forms import Form
 from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse
-from django.utils import timezone
 from django.views import View
 from django.views.generic import TemplateView, UpdateView
 from django.views.generic.detail import (
@@ -23,6 +22,7 @@ from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 from .filters import DataSourceFilters, HostFilters
 from .forms import DataSourceForm
 from .models import DataSource, Host
+from .scan_visualizers import get_scan_visualizer
 from .tables import DataSourcesTable, HostsTable
 
 ##
@@ -156,7 +156,7 @@ class HostDetailView(LoginRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
 
         host = Host.objects.get_for_user(self.request.user).get(fqdn=kwargs["fqdn"])
-        scan_data = host.last_scan_cache
+        scan_data = host.get_scan_object()
         current_scan = self.get_current_scan()
         current_scan_date = host.last_scan_date
         scan = None
@@ -164,7 +164,7 @@ class HostDetailView(LoginRequiredMixin, TemplateView):
         try:
             if current_scan != self.LATEST_KEY:
                 scan = host.scans.get(created_at=current_scan)
-                scan_data = scan.data
+                scan_data = scan.get_scan_object()
                 current_scan_date = scan.created_at
         except (ValidationError, ObjectDoesNotExist):
             current_scan = self.LATEST_KEY
@@ -173,8 +173,11 @@ class HostDetailView(LoginRequiredMixin, TemplateView):
             current_scan == self.LATEST_KEY or scan.created_at == host.last_scan_date
         )
 
+        visualizer = get_scan_visualizer(scan_data)
+        visualizer.request = self.request
+
         context["host"] = host
-        context["scan_data"] = scan_data
+        context["scan_visualizer"] = visualizer
         context["current_scan"] = current_scan
         context["current_scan_date"] = current_scan_date
         context["all_scans"] = host.scans.values_list("created_at", flat=True)

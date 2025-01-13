@@ -59,34 +59,5 @@
         {% endwith %}
     {% endif %}
 
-    <div class="p-3 columns-1 lg:columns-2 xl:columns-2 2xl:columns-3 ultrawide:columns-4 gap-3">
-        <div class="break-inside-avoid mb-3">
-            {% include 'hosts/host_detail_parts/facts/host_meta.html' %}
-        </div>
-        {% if scan_data.HostMeta and scan_data.HostMeta.vhosts %}
-            <div  class="break-inside-avoid mb-3">
-                {% include 'hosts/host_detail_parts/facts/vhosts.html' %}
-            </div>
-        {% endif %}
-        {% if scan_data.HostMeta and scan_data.HostMeta.databases %}
-            <div  class="break-inside-avoid mb-3">
-                {% include 'hosts/host_detail_parts/facts/databases.html' %}
-            </div>
-        {% endif %}
-        <div  class="break-inside-avoid mb-3">
-            {% include 'hosts/host_detail_parts/facts/blocks.html' %}
-        </div>
-        <div  class="break-inside-avoid mb-3">
-            {% include 'hosts/host_detail_parts/facts/memory.html' %}
-        </div>
-        <div class="break-inside-avoid mb-3">
-            {% include 'hosts/host_detail_parts/facts/packages.html' %}
-        </div>
-        <div class="break-inside-avoid mb-3">
-            {% include 'hosts/host_detail_parts/facts/users.html' %}
-        </div>
-        <div class="break-inside-avoid mb-3">
-            {% include 'hosts/host_detail_parts/facts/groups.html' %}
-        </div>
-    </div>
+    {{ scan_visualizer.render }}
 {% endblock %}
