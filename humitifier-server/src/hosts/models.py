@@ -33,7 +33,9 @@ class Scan:
     def parsed_data(self) -> ScanOutput | None:
         # Not supported by version 1 of the scan output format :(
         if self.version == 1:
-            logger.debug("Someone tried to get a parsed scan output from a v1 scan. This is not supported or possible.")
+            logger.debug(
+                "Someone tried to get a parsed scan output from a v1 scan. This is not supported or possible."
+            )
             return None
 
         return ScanOutput(**self.raw_data)
