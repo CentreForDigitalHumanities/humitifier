@@ -1,15 +1,15 @@
 from dataclasses import dataclass
 from typing import Any, Type, TypeVar
 
-from humitifier_common.facts.registry.registry import FactType
+from humitifier_common.artefacts.registry.registry import ArtefactType
 from humitifier_scanner.exceptions import FatalCollectorError
 from humitifier_scanner.executor import Executors
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 from humitifier_scanner.logger import logger
-from humitifier_common.facts import registry as facts_registry
+from humitifier_common.artefacts import registry as artefacts_registry
 from humitifier_common.scan_data import ErrorTypeEnum, ScanError, ScanErrorMetadata
 
-_BASE_FACT_COLLECTORS = [
+_BASE_COLLECTORS = [
     "Collector",
     "ShellCollector",
 ]
@@ -25,14 +25,14 @@ class CollectorMetaclass(type):
     ensuring they are correctly set and do not conflict. Furthermore, it ensures
     that all required facts are registered and available in the facts registry.
 
-    :ivar _fact: Internal attribute representing the validated `fact` or `metric` assigned
+    :ivar _artefact: Internal attribute representing the validated `fact` or `metric` assigned
         to the collector class.
-    :type _fact: Optional[Fact]
+    :type _artefact: Optional[Artefact]
     """
 
     def __new__(cls, name, bases, dct):
         """
-        :param cls: The metaclass being executed, typically 'FactCollectorMeta'.
+        :param cls: The metaclass being executed, typically 'CollectorMetaclass'.
         :param name: The name of the newly created class.
         :param bases: A tuple containing the base classes for the new class.
         :param dct: A dictionary containing all attributes, methods, and properties for
@@ -46,18 +46,18 @@ class CollectorMetaclass(type):
         new_cls = super().__new__(cls, name, bases, dct)
 
         # Skip the check if the class is a base FactCollector class
-        if name in _BASE_FACT_COLLECTORS:
+        if name in _BASE_COLLECTORS:
             return new_cls
 
-        new_cls._fact = None
+        new_cls._artefact = None
 
         # Validate and set the 'fact' attribute for the Collector class.
         # Ensure that it is neither a metric nor incorrectly defined.
         if new_cls.fact and cls._is_fact_or_metric(new_cls.fact):
-            new_cls._fact = new_cls.fact
+            new_cls._artefact = new_cls.fact
             new_cls.metric = None
 
-            if new_cls.fact.__fact_type__ != FactType.FACT:
+            if new_cls.fact.__artefact_type__ != ArtefactType.FACT:
                 raise ValueError(
                     "Collector was given a metric as a fact. Please use the 'metric' attribute instead"
                 )
@@ -66,11 +66,11 @@ class CollectorMetaclass(type):
         # Ensure that it is correctly defined, is not set as a fact, and
         # does not include required facts (as metrics may not have dependencies).
         if new_cls.metric and cls._is_fact_or_metric(new_cls.metric):
-            new_cls._fact = new_cls.metric
+            new_cls._artefact = new_cls.metric
             # Set it to none, as it will be a weird Type[T] otherwise
             new_cls.fact = None
 
-            if new_cls.metric.__fact_type__ != FactType.METRIC:
+            if new_cls.metric.__artefact_type__ != ArtefactType.METRIC:
                 raise ValueError(
                     "Collector was given a fact as a metric. Please use "
                     "the 'fact' attribute instead"
@@ -80,15 +80,15 @@ class CollectorMetaclass(type):
                 raise ValueError("Metrics are not allowed to have required facts!")
 
         # Final check, see if we managed to resolve the facts
-        if new_cls._fact is None:
+        if new_cls._artefact is None:
             raise ValueError(
                 "FactCollector must define a 'fact' or a 'metric' attribute"
             )
-        cls._check_if_fact_exists(new_cls, new_cls._fact, "fact")
+        cls._check_if_artefact_exists(new_cls, new_cls._artefact, "fact")
 
         # Check if all the required facts resolve
         for required_fact in new_cls.required_facts:
-            cls._check_if_fact_exists(new_cls, required_fact, "required_facts")
+            cls._check_if_artefact_exists(new_cls, required_fact, "required_facts")
 
         from .registry import registry
 
@@ -111,32 +111,32 @@ class CollectorMetaclass(type):
             `__fact_type__` attributes, otherwise `False`.
         :rtype: bool
         """
-        return hasattr(obj, "__fact_name__") and hasattr(obj, "__fact_type__")
+        return hasattr(obj, "__artefact_name__") and hasattr(obj, "__artefact_type__")
 
-    def _check_if_fact_exists(cls, fact, attribute: str):
+    def _check_if_artefact_exists(cls, artefact, attribute: str):
         """
-        Check if a given fact exists in the registry for a specific class attribute.
+        Check if a given artefact exists in the registry for a specific class attribute.
 
-        This method verifies whether the provided fact has a `__fact_name__`
-        attribute and ensures it is registered within the `facts_registry`.
-        If the fact is missing the `__fact_name__` attribute or is not registered,
+        This method verifies whether the provided artefact has a `__artefact_name__`
+        attribute and ensures it is registered within the `registry`.
+        If the artefact is missing the `__artefact_type__` attribute or is not registered,
         a `ValueError` is raised.
 
-        :param fact: The object representing the fact to verify.
-        :param attribute: The name of the attribute for which the fact is being
+        :param artefact: The object representing the artefact to verify.
+        :param attribute: The name of the attribute for which the artefact is being
             checked.
         :type attribute: str
-        :raises ValueError: If the fact lacks the `__fact_name__` attribute or if
-            the fact is not registered in the `facts_registry`.
+        :raises ValueError: If the artefact lacks the `__artefact_name__` attribute or if
+            the artefact is not registered in the `registry`.
         """
-        if not cls._is_fact_or_metric(fact):
+        if not cls._is_fact_or_metric(artefact):
             raise ValueError(
-                f"Fact {fact} does not appear to be a valid fact or metric"
+                f"Artefact {artefact} does not appear to be a valid fact or metric"
             )
 
-        if not facts_registry.get(fact.__fact_name__):
+        if not artefacts_registry.get(artefact.__artefact_name__):
             raise ValueError(
-                f"Fact {fact.__fact_name__} is not registered in the facts "
+                f"Artefact {artefact.__artefact_name__} is not registered in the facts "
                 f"registry for {cls.__name__}.{attribute}"
             )
 
@@ -152,7 +152,7 @@ class Collector(metaclass=CollectorMetaclass):
     Collector class
 
     The Collector class serves as a fundamental unit for implementing specific logic
-    to gather information or metrics. This class is designed to handle facts and
+    to gather information or metrics. This class is designed to handle artefacts and
     their respective collectors. The core functionality involves executing the logic
     defined in the `collect` method while providing mechanisms for safe error
     handling, logging, and error reporting.
@@ -211,8 +211,8 @@ class Collector(metaclass=CollectorMetaclass):
             self.errors.append(
                 ScanError(
                     message=str(e),
-                    fact=self.fact.__fact_name__,
-                    collector_implementation=f"{self.fact.__fact_name__}:{self.variant}",
+                    artefact=self.artefact_name(),
+                    collector_implementation=f"{self.artefact_name()}:{self.variant}",
                     metadata=ScanErrorMetadata(py_exception=e.__class__.__name__),
                 )
             )
@@ -229,7 +229,7 @@ class Collector(metaclass=CollectorMetaclass):
     ):
         """Log an error to the collector.
 
-        If `fatal` is True, execution will be halted and the fact will return
+        If `fatal` is True, execution will be halted and the artefact will return
         'None' as the output. (And the error will be reported in the scan output)
 
         This can be used to report 'soft' errors that don't necessarily need to
@@ -238,8 +238,8 @@ class Collector(metaclass=CollectorMetaclass):
         self.errors.append(
             ScanError(
                 message=message,
-                fact=self.fact.__fact_name__,
-                collector_implementation=f"{self.fact.__fact_name__}:{self.variant}",
+                artefact=self.artefact_name(),
+                collector_implementation=f"{self.artefact_name()}:{self.variant}",
                 metadata=metadata,
                 type=error_type,
             )
@@ -250,37 +250,25 @@ class Collector(metaclass=CollectorMetaclass):
 
     def collect(self, info: CollectInfo) -> T:
         """Implement your collector logic here."""
-        raise NotImplementedError("FactCollector must implement a collect method")
+        raise NotImplementedError("Collector must implement a collect method")
 
     @classmethod
-    def fact_name(cls) -> str:
+    def artefact_name(cls) -> str:
         """
-        Retrieves the name of the fact associated with the class.
+        Retrieves the name of the artefact associated with the class.
 
-        Functionally identical to `metric_name`. Both are provided for semantic reasons.
+        :return: The artefact name as a string.
         :rtype: str
         """
-        return cls._fact.__fact_name__
+        return cls._artefact.__artefact_name__
 
     @classmethod
-    def metric_name(cls) -> str:
+    def artefact_type(cls) -> ArtefactType:
         """
-        Retrieves the name of the metric associated with the class.
-
-        Functionally identical to `fact_name`. Both are provided for semantic reasons.
-
-        :return: The metric name as a string.
-        :rtype: str
-        """
-        return cls._fact.__fact_name__
-
-    @classmethod
-    def fact_type(cls) -> FactType:
-        """
-        Retrieves the type of the fact associated with the class.
+        Retrieves the type of the artefact associated with the class.
         :return:
         """
-        return cls._fact.__fact_type__
+        return cls._artefact.__artefact_type__
 
 
 class ShellCollector(Collector):
@@ -317,5 +305,5 @@ class ShellCollector(Collector):
     ) -> T:
         """Implement your shell-based collector logic here."""
         raise NotImplementedError(
-            "FactCollector must implement a collect_from_shell method"
+            "Collector must implement a collect_from_shell method"
         )

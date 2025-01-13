@@ -4,7 +4,7 @@ A collection of facts that are generic and can be collected on any system.
 
 from dataclasses import dataclass
 
-from humitifier_common.facts.registry import fact, metric
+from humitifier_common.artefacts.registry import fact, metric
 
 ##
 ## Storage

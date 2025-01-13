@@ -20,8 +20,8 @@ from humitifier_scanner.config import (
     _SECRETS_DIR,
 )
 from humitifier_scanner.scanner import scan
-from humitifier_common.scan_data import FactScanOptions, ScanInput
-from humitifier_common.facts import registry as fact_registry
+from humitifier_common.scan_data import ArtefactScanOptions, ScanInput
+from humitifier_common.artefacts import registry as artefact_registry
 from humitifier_scanner.logger import logger
 
 
@@ -34,14 +34,14 @@ class Scan(BaseModel):
         description="Hostname to scan; defaults to the local host",
     )
 
-    fact: list[str] = Field(
-        [],
+    artefact: list[str] = Field(
+        default_factory=list,
         description="Fact to scan; multiple can be specified by repeating the "
         "option. If used in combination with the 'fact_group' "
         "option, add an '!' prefix to explicitly disable one fact in a group.",
     )
-    fact_group: list[str] = Field(
-        [],
+    artefact_group: list[str] = Field(
+        default_factory=list,
         description="Fact group to scan; multiple can be specified by "
         "repeating the option. Individual facts can still be overridden with "
         "the 'fact' option. ",
@@ -66,53 +66,56 @@ class Scan(BaseModel):
         if not self.host:
             self.host = "localhost"
 
-        # Collect all requested facts
+        # Collect all requested artefacts
 
-        requested_facts = []
+        requested_artefacts = []
         # Add all facts from the requested groups
-        for group in self.fact_group:
-            requested_facts.extend(
-                [fact.__fact_name__ for fact in fact_registry.get_all_in_group(group)]
+        for group in self.artefact_group:
+            requested_artefacts.extend(
+                [
+                    fact.__artefact_name__
+                    for fact in artefact_registry.get_all_in_group(group)
+                ]
             )
 
         # Add any individual facts
-        for fact in self.fact:
-            fact_name = fact
-            knockout = fact_name.startswith("!")
+        for artefact in self.artefact:
+            artefact_name = artefact
+            knockout = artefact_name.startswith("!")
             variant = "default"
 
             # Remove the knockout prefix
             if knockout:
-                fact_name = fact_name[1:]
+                artefact_name = artefact_name[1:]
 
-            if ":" in fact:
-                fact_name, variant = fact.split(":", 1)
+            if ":" in artefact:
+                artefact_name, variant = artefact.split(":", 1)
 
-            # Check if the fact is already in the requested facts list
-            # If so, remove it and add the explicitly specified fact
+            # Check if the artefact is already in the requested facts list
+            # If so, remove it and add the explicitly specified artefact
             # (This makes sure we can manually override the used variant)
-            if fact_name in requested_facts:
-                requested_facts.remove(fact_name)
+            if artefact_name in requested_artefacts:
+                requested_artefacts.remove(artefact_name)
 
             if not knockout:
-                requested_facts.append(f"{fact_name}:{variant}")
+                requested_artefacts.append(f"{artefact_name}:{variant}")
 
         # Transform the requested facts into the instructions for the scanner
 
-        facts: dict[str, FactScanOptions] = {}
+        artefacts: dict[str, ArtefactScanOptions] = {}
 
-        for fact in requested_facts:
+        for artefact in requested_artefacts:
             options = {}
-            if ":" in fact:
-                fact, variant = fact.split(":", 1)
+            if ":" in artefact:
+                artefact, variant = artefact.split(":", 1)
                 options["variant"] = variant
-            facts[fact] = FactScanOptions(**options)
+            artefacts[artefact] = ArtefactScanOptions(**options)
 
         # Run the scan
 
         scan_input = ScanInput(
             hostname=self.host,
-            facts=facts,
+            artefacts=artefacts,
         )
 
         result = scan(scan_input)

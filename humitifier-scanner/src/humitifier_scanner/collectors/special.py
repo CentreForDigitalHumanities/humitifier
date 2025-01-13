@@ -1,4 +1,4 @@
-from humitifier_common.facts import ZFS, ZFSPool, ZFSVolume
+from humitifier_common.artefacts import ZFS, ZFSPool, ZFSVolume
 from humitifier_scanner.collectors import CollectInfo, ShellCollector
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 

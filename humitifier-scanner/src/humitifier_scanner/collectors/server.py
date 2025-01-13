@@ -6,7 +6,7 @@ from datetime import datetime
 
 from humitifier_scanner.collectors import CollectInfo, ShellCollector
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
-from humitifier_common.facts import HostMeta, IsWordpress, PuppetAgent, Uptime
+from humitifier_common.artefacts import HostMeta, IsWordpress, PuppetAgent, Uptime
 
 
 class HostMetaFactCollector(ShellCollector):

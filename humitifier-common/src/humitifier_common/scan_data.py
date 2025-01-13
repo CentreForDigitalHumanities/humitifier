@@ -4,8 +4,8 @@ from typing import Any
 from pydantic import BaseModel
 
 
-class FactScanOptions(BaseModel):
-    """A class representing any config option for a fact-collect-request.
+class ArtefactScanOptions(BaseModel):
+    """A class representing any config option for an artefact-collect-request.
 
     :ivar variant: Used to request a specific collector variant for a scan.
     :type variant: str
@@ -18,20 +18,20 @@ class ScanInput(BaseModel):
     """
     Represents the input model for scanning operations.
 
-    This class holds the hostname and facts required for initiating a scan.
+    This class holds the hostname and artefacts required for initiating a scan.
     The hostname identifies the target system, and the facts provide
     a list of facts (and metrics) to collect.
 
     :ivar hostname: The name of the host that will be scanned.
     :type hostname: str
-    :ivar facts: A dictionary containing requested facts and config options, where
+    :ivar artefacts: A dictionary containing requested facts and config options, where
         each key represents the fact type and the value provides corresponding
         scanning options.
-    :type facts: dict[str, FactScanOptions]
+    :type artefacts: dict[str, ArtefactScanOptions]
     """
 
     hostname: str
-    facts: dict[str, FactScanOptions]
+    artefacts: dict[str, ArtefactScanOptions]
 
 
 class ScanErrorMetadata(BaseModel):
@@ -99,9 +99,9 @@ class ScanError(BaseModel):
 
     :ivar message: The error message describing the nature of the scan error.
     :type message: str
-    :ivar fact: Optional additional information or context related to the scan
+    :ivar artefact: Optional additional information or context related to the scan
         error, if available.
-    :type fact: str | None
+    :type artefact: str | None
     :ivar collector_implementation: The name of the collector implementation
         where the error occurred, if applicable.
     :type collector_implementation: str | None
@@ -116,7 +116,7 @@ class ScanError(BaseModel):
     """
 
     message: str
-    fact: str | None = None
+    artefact: str | None = None
     collector_implementation: str | None = None
     global_error: bool = False
     metadata: ScanErrorMetadata | None = None

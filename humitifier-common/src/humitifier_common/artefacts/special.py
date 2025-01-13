@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from humitifier_common.facts.registry import metric
+from humitifier_common.artefacts.registry import metric
 
 ##
 ## ZFS list

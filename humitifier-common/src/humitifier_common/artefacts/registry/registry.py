@@ -11,14 +11,14 @@ from enum import Enum
 ##
 
 
-class FactType(Enum):
+class ArtefactType(Enum):
     FACT = "fact"
     METRIC = "metric"
 
 
-class _FactsRegistry:
+class _ArtefactRegistry:
     """
-    Class to manage the registration and retrieval of facts and metrics.
+    Class to manage the registration and retrieval of facts and metrics (artefacts).
 
     This class serves as a registry to store, organize, and manage facts and metrics.
     Facts and metrics can be categorized by group, and the class provides
@@ -33,7 +33,11 @@ class _FactsRegistry:
         self._registry = {}
 
     def register(
-        self, name: str, group: str, fact, fact_type: FactType = FactType.FACT
+        self,
+        name: str,
+        group: str,
+        artefact,
+        artefact_type: ArtefactType = ArtefactType.FACT,
     ):
         """
         Registers a fact in the internal registry for a given group and name. Ensures that
@@ -46,10 +50,10 @@ class _FactsRegistry:
         :type name: str
         :param group: The group under which the fact is registered. Facilitates grouping.
         :type group: str
-        :param fact: The fact object to be associated with the registry entry.
-        :type fact: Any
-        :param fact_type: The type classification of the fact, defaulting to FactType.FACT.
-        :type fact_type: FactType
+        :param artefact: The fact object to be associated with the registry entry.
+        :type artefact: Any
+        :param artefact_type: The type classification of the fact, defaulting to FactType.FACT.
+        :type artefact_type: ArtefactType
         :return: None
         :raises ValueError: If a fact with the given name and group is already registered.
         """
@@ -57,14 +61,17 @@ class _FactsRegistry:
         if key in self._registry:
             raise ValueError(f"Fact {name} already registered in group {group}")
 
-        self._registry[key] = fact
+        self._registry[key] = artefact
 
-        # add meta-variable to the fact class
-        fact.__fact_name__ = f"{group}.{name}"
-        fact.__fact_type__ = fact_type
+        # add meta-variable to the artefact class
+        artefact.__artefact_name__ = f"{group}.{name}"
+        artefact.__artefact_type__ = artefact_type
 
     def get(
-        self, name: str, group: str | None = None, fact_type: FactType | None = None
+        self,
+        name: str,
+        group: str | None = None,
+        artefact_type: ArtefactType | None = None,
     ):
         """
         Retrieve an item from the registry based on the provided name, group, and fact type.
@@ -83,24 +90,27 @@ class _FactsRegistry:
         :param group: Optional. Group the item belongs to. If None, the function attempts
                       to determine the group by processing the name.
         :type group: Union[str, None]
-        :param fact_type: Optional. Type of fact the item should match. If None, the
+        :param artefact_type: Optional. Type of fact the item should match. If None, the
                           fact type is not checked.
-        :type fact_type: Union[FactType, None]
+        :type artefact_type: Union[FactType, None]
         :return: The item from the registry if a match is found, otherwise None.
         :rtype: Optional[Any]
         """
         if group is None:
             if "." in name:
                 group, name = name.split(".", 1)
-                return self.get(name, group, fact_type)
+                return self.get(name, group, artefact_type)
 
             for key in self._registry:
                 if key[0] == name:
                     item = self._registry[key]
 
-                    # check if the fact type matches
+                    # check if the artefact type matches
                     # if not, the user requested the wrong type
-                    if fact_type is not None and item.__fact_type__ != fact_type:
+                    if (
+                        artefact_type is not None
+                        and item.__artefact_type__ != artefact_type
+                    ):
                         break
 
                     return item
@@ -110,26 +120,26 @@ class _FactsRegistry:
 
             # check if the fact type matches
             # if not, the user requested the wrong type
-            if fact_type is None or item.__fact_type__ == fact_type:
+            if artefact_type is None or item.__fact_type__ == artefact_type:
                 return item
 
         return None
 
-    def all(self, fact_type: FactType | None = None):
+    def all(self, artefact_type: ArtefactType | None = None):
         """
-        Retrieve all facts from the registry. If a specific fact type is provided, filters
-        the results based on the fact type.
+        Retrieve all artefacts from the registry. If a specific artefact type is provided,
+        filters the results based on the artefact type.
 
-        :param fact_type: The specific type of facts to filter by. If None, returns all
+        :param artefact_type: The specific type of facts to filter by. If None, returns all
             registered facts.
         :returns: A list of facts filtered by the provided type if specified, otherwise
             all facts from the registry.
         """
-        if fact_type is not None:
+        if artefact_type is not None:
             return [
-                fact
-                for fact in self._registry.values()
-                if fact.__fact_type__ == fact_type
+                artefact
+                for artefact in self._registry.values()
+                if artefact.__artefact_type__ == artefact_type
             ]
 
         return self._registry.values()
@@ -144,7 +154,7 @@ class _FactsRegistry:
         :return: A list of all stored facts marked as `FactType.FACT`.
         :rtype: list
         """
-        return self.all(FactType.FACT)
+        return self.all(ArtefactType.FACT)
 
     def all_metrics(self):
         """
@@ -156,9 +166,9 @@ class _FactsRegistry:
         :return: A collection of all facts identified as METRIC.
         :rtype: list or generator
         """
-        return self.all(FactType.METRIC)
+        return self.all(ArtefactType.METRIC)
 
-    def get_all_in_group(self, group: str, fact_type: FactType | None = None):
+    def get_all_in_group(self, group: str, artefact_type: ArtefactType | None = None):
         """
         Retrieve all items in a given group, optionally filtered by fact type.
 
@@ -168,8 +178,8 @@ class _FactsRegistry:
 
         :param group: The name of the group to retrieve items from.
         :type group: str
-        :param fact_type: Optional; specifies the fact type to filter the results.
-        :type fact_type: FactType | None
+        :param artefact_type: Optional; specifies the fact type to filter the results.
+        :type artefact_type: ArtefactType | None
         :return: A list of items belonging to the specified group, potentially
             filtered by the provided fact type.
         :rtype: list
@@ -180,10 +190,10 @@ class _FactsRegistry:
             if _group == group
         ]
 
-        if fact_type is None:
+        if artefact_type is None:
             return items
 
-        return [item for item in items if item.__fact_type__ == fact_type]
+        return [item for item in items if item.__artefact_type__ == artefact_type]
 
     def get_all_facts_in_group(self, group: str):
         """
@@ -200,7 +210,7 @@ class _FactsRegistry:
         :return: A list of facts found within the specified group.
         :rtype: list
         """
-        return self.get_all_in_group(group, FactType.FACT)
+        return self.get_all_in_group(group, ArtefactType.FACT)
 
     def get_all_metrics_in_group(self, group: str):
         """
@@ -217,7 +227,7 @@ class _FactsRegistry:
                  filtered by the metric type.
         :rtype: List
         """
-        return self.get_all_in_group(group, FactType.METRIC)
+        return self.get_all_in_group(group, ArtefactType.METRIC)
 
     @property
     def available_groups(self):
@@ -258,7 +268,7 @@ class _FactsRegistry:
         return [
             f"{group}.{name}"
             for (name, group), _fact in self._registry.items()
-            if _fact.__fact_type__ == FactType.FACT
+            if _fact.__artefact_type__ == ArtefactType.FACT
         ]
 
     @property
@@ -274,11 +284,11 @@ class _FactsRegistry:
         return [
             f"{group}.{name}"
             for (name, group), _fact in self._registry.items()
-            if _fact.__fact_type__ == FactType.METRIC
+            if _fact.__artefact_type__ == ArtefactType.METRIC
         ]
 
 
-registry = _FactsRegistry()
+registry = _ArtefactRegistry()
 
 ##
 ## Decorators
@@ -304,7 +314,7 @@ def fact(*, group: str, name: str | None = None):
 
     def decorator(fact_cls):
         actual_name = name or fact_cls.__name__
-        registry.register(actual_name, group, fact_cls, fact_type=FactType.FACT)
+        registry.register(actual_name, group, fact_cls, artefact_type=ArtefactType.FACT)
         return fact_cls
 
     return decorator
@@ -330,7 +340,9 @@ def metric(*, group: str, name: str | None = None):
 
     def decorator(metric_cls):
         actual_name = name or metric_cls.__name__
-        registry.register(actual_name, group, metric_cls, fact_type=FactType.METRIC)
+        registry.register(
+            actual_name, group, metric_cls, artefact_type=ArtefactType.METRIC
+        )
         return metric_cls
 
     return decorator

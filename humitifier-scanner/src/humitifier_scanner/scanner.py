@@ -1,6 +1,6 @@
 from typing import Any, Type
 
-from humitifier_common.facts.registry.registry import FactType
+from humitifier_common.artefacts.registry.registry import ArtefactType
 from humitifier_scanner.collectors import CollectInfo, registry
 from humitifier_scanner.collectors.backend import Collector
 from humitifier_scanner.exceptions import (
@@ -23,7 +23,7 @@ def scan(input_data: ScanInput) -> ScanOutput:
     except MissingRequiredFactError as e:
         error = ScanError(
             global_error=True,
-            message=f"Required fact {e.fact_name} not requested!",
+            message=f"Required fact {e.artefact_name} not requested!",
             type=ErrorTypeEnum.INVALID_SCAN_CONFIGURATION,
             metadata=ScanErrorMetadata(
                 py_exception=e.name(),
@@ -51,9 +51,9 @@ def scan(input_data: ScanInput) -> ScanOutput:
         )
 
         if collector.fact:
-            output.facts[collector.fact.__fact_name__] = collector_output
+            output.facts[collector.artefact_name()] = collector_output
         elif collector.metric:
-            output.metrics[collector.metric.__fact_name__] = collector_output
+            output.metrics[collector.artefact_name()] = collector_output
 
         output.errors.extend(collector_errors)
 
@@ -68,16 +68,16 @@ def _get_scan_order(
     collectors = []
     errors = []
 
-    for fact, options in input_data.facts.items():
+    for artefact, options in input_data.artefacts.items():
         variant = options.variant
 
-        collector = registry.get(fact, variant)
+        collector = registry.get(artefact, variant)
         if not collector:
             errors.append(
                 ScanError(
-                    fact=fact,
-                    collector_implementation=f"{fact}:{variant}",
-                    message=f"Could not find collector for {fact} with variant {variant}",
+                    artefact=artefact,
+                    collector_implementation=f"{artefact}:{variant}",
+                    message=f"Could not find collector for {artefact} with variant {variant}",
                     type=ErrorTypeEnum.COLLECTOR_NOT_FOUND,
                 )
             )
@@ -86,24 +86,24 @@ def _get_scan_order(
         collectors.append(collector)
 
     requested_facts = [
-        collector.fact_name()
+        collector.artefact_name()
         for collector in collectors
-        if collector.fact_type() == FactType.FACT
+        if collector.artefact_type() == ArtefactType.FACT
     ]
 
     for collector in collectors:
         for required_fact in collector.required_facts:
-            if required_fact.__fact_name__ not in requested_facts:
+            if required_fact.__artefact_name__ not in requested_facts:
                 raise MissingRequiredFactError(
-                    f"Required fact {required_fact.__fact_name__ } not requested!",
-                    required_fact.__fact_name__,
+                    f"Required artefact {required_fact.__artefact_name__ } not requested!",
+                    required_fact.__artefact_name__,
                 )
 
     # make sure that any collector that requires another collector is
     # scanned after the required collector
     for collector in collectors.copy():
         for required_fact in collector.required_facts:
-            required_implementation = registry.get(required_fact.__fact_name__)
+            required_implementation = registry.get(required_fact.__artefact_name__)
             required_index = collectors.index(required_implementation)
             implementation_index = collectors.index(collector)
 
@@ -111,8 +111,8 @@ def _get_scan_order(
                 collectors.remove(collector)
                 collectors.insert(required_index, collector)
 
-    scan_order = [collector.fact_name() for collector in collectors]
-    logger.debug(f"Resolved fact-scan order: {scan_order}")
+    scan_order = [collector.artefact_name() for collector in collectors]
+    logger.debug(f"Resolved artefact-scan order: {scan_order}")
 
     return collectors, errors
 
@@ -123,7 +123,7 @@ def _run_collector(
     output = None
     errors = []
 
-    logger.debug(f"Starting collector {collector.fact_name()}:{collector.variant}")
+    logger.debug(f"Starting collector {collector.artefact_name()}:{collector.variant}")
 
     required_executors, exc_errors = _get_executors(collector, input_data)
     required_facts, fact_errors = _get_required_fact_data(collector, current_output)
@@ -150,9 +150,9 @@ def _run_collector(
             exc_info=True,
         )
         error = ScanError(
-            fact=collector.fact.__fact_name__,
+            artefact=collector.artefact_name(),
             collector_implementation=collector.__class__.__name__,
-            message="An error occurred while collecting fact",
+            message="An error occurred while collecting artefact",
             metadata=ScanErrorMetadata(
                 py_exception=e.__class__.__name__,
             ),
@@ -177,7 +177,7 @@ def _get_executors(
             exc_info=True,
         )
         error = ScanError(
-            fact=collector.fact.__fact_name__,
+            artefact=collector.artefact_name(),
             collector_implementation=collector.__class__.__name__,
             message="An error occurred while getting executors: " + str(e),
             type=ErrorTypeEnum.EXECUTION_ERROR,
@@ -204,16 +204,16 @@ def _get_required_fact_data(
     for required_fact in collector.required_facts:
         try:
             required_fact_data[required_fact] = current_output.facts[
-                required_fact.__fact_name__
+                required_fact.__artefact_name__
             ]
         except KeyError as e:
             collected_facts = ", ".join(current_output.facts.keys())
             logger.debug(
-                f"Required fact '{required_fact.__fact_name__}' not found in already collected facts: {collected_facts}",
+                f"Required fact '{required_fact.__artefact_name__}' not found in already collected facts: {collected_facts}",
                 exc_info=True,
             )
             error = ScanError(
-                fact=collector.fact.__fact_name__,
+                fact=collector.artefact_name(),
                 collector_implementation=collector.__class__.__name__,
                 message="Required fact not found in already collected facts",
                 metadata=ScanErrorMetadata(
