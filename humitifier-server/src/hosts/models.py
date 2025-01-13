@@ -15,12 +15,12 @@ from main.templatetags.strip_quotes import strip_quotes
 
 
 @dataclasses.dataclass
-class Scan:
+class ScanData:
     version: int
     raw_data: dict
 
     @classmethod
-    def from_raw_scan(cls, raw_scan: dict) -> "Scan":
+    def from_raw_scan(cls, raw_scan: dict) -> "ScanData":
         # Version 1 doesn't have a version field, so we default to one and
         # override with any specified version if available
         version = 1
@@ -266,8 +266,8 @@ class Host(models.Model):
 
         return scan
 
-    def get_scan_object(self) -> Scan:
-        return Scan.from_raw_scan(self.last_scan_cache)
+    def get_scan_object(self) -> ScanData:
+        return ScanData.from_raw_scan(self.last_scan_cache)
 
     def regenerate_alerts(self):
         from hosts import alerts
@@ -394,8 +394,8 @@ class Scan(models.Model):
 
     created_at = models.DateTimeField(auto_now_add=True)
 
-    def get_scan_object(self) -> Scan:
-        return Scan.from_raw_scan(self.data)
+    def get_scan_object(self) -> ScanData:
+        return ScanData.from_raw_scan(self.data)
 
 
 class AlertManager(models.Manager):
