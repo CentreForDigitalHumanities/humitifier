@@ -14,4 +14,4 @@ def build_scan_input(hostname: str | Host) -> ScanInput:
 
     requested_facts = {fact: ArtefactScanOptions() for fact in all_facts}
 
-    return ScanInput(hostname=host.fqdn, facts=requested_facts)
+    return ScanInput(hostname=host.fqdn, artefacts=requested_facts)
