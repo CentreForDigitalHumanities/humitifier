@@ -46,6 +46,11 @@ class DataSourceType(models.TextChoices):
     MANUAL = ("manual", "Manual entry")
 
 
+class ScanScheduling(models.TextChoices):
+    MANUAL = ("manual", "Manual/host initiated scanning")
+    SCHEDULED = ("scheduled", "Scheduled scanning")
+
+
 class AlertLevel(models.TextChoices):
     INFO = "info"
     WARNING = "warning"
@@ -121,6 +126,10 @@ class DataSource(models.Model):
 
     source_type = models.CharField(
         max_length=255, choices=DataSourceType.choices, default=DataSourceType.MANUAL
+    )
+
+    scan_scheduling = models.CharField(
+        max_length=255, choices=ScanScheduling.choices, default=ScanScheduling.SCHEDULED
     )
 
     def __str__(self):

@@ -8,7 +8,7 @@ from rest_framework.views import APIView
 
 from api.permissions import TokenHasApplication
 from api.serializers import DataSourceSyncSerializer
-from hosts.models import DataSource, DataSourceType, Host
+from hosts.models import DataSource, DataSourceType, Host, ScanScheduling
 
 
 class UploadScans(APIView):
@@ -41,7 +41,14 @@ class UploadScans(APIView):
             if "host" not in scan or "data" not in scan:
                 raise APIException("Invalid scan data")
 
-            host, created = Host.objects.get_or_create(fqdn=scan["host"])
+            host, created = Host.objects.get(fqdn=scan["host"])
+
+            if (
+                host.data_source
+                and host.data_source.scan_scheduling != ScanScheduling.MANUAL
+            ):
+                return Response("Cannot upload scan for non-manually scheduled hosts", status=status.HTTP_400_BAD_REQUEST)
+
             host.add_scan(scan["data"])
 
             hosts.append(host)
