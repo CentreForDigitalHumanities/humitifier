@@ -1,7 +1,5 @@
 import logging
 
-__all__ = [
-    "logger"
-]
+__all__ = ["logger"]
 
-logger = logging.getLogger('humitifier-server')
+logger = logging.getLogger("humitifier-server")

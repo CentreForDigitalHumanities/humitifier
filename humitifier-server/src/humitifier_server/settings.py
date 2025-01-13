@@ -282,7 +282,7 @@ LOGGING = {
             "handlers": ["console"],
             "level": env.get("DJANGO_LOG_LEVEL", default="INFO"),
             "propagate": False,
-        }
+        },
     },
 }
 
