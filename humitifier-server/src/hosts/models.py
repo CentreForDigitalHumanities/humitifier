@@ -308,6 +308,22 @@ class Host(models.Model):
             return qs.count()
         return qs
 
+    @property
+    def can_manually_edit(self):
+        # If it's unclaimed, it's fair game
+        if not self.data_source:
+            return True
+
+        return self.data_source.source_type == DataSourceType.MANUAL
+
+    @property
+    def can_schedule_scan(self):
+        # We have no idea!
+        if not self.data_source:
+            return False
+
+        return self.data_source.scan_scheduling == ScanScheduling.SCHEDULED
+
     ##
     ## Display methods
     ##

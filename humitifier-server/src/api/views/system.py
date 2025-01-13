@@ -43,11 +43,11 @@ class UploadScans(APIView):
 
             host, created = Host.objects.get(fqdn=scan["host"])
 
-            if (
-                host.data_source
-                and host.data_source.scan_scheduling != ScanScheduling.MANUAL
-            ):
-                return Response("Cannot upload scan for non-manually scheduled hosts", status=status.HTTP_400_BAD_REQUEST)
+            if host.can_schedule_scan:
+                return Response(
+                    "Cannot upload scan for non-manually scheduled hosts",
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
 
             host.add_scan(scan["data"])
 

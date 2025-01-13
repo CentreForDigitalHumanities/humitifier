@@ -1,6 +1,6 @@
 from django.core.management.base import BaseCommand, CommandError
 
-from hosts.models import Host, ScanScheduling
+from hosts.models import Host
 
 
 class Command(BaseCommand):
@@ -13,10 +13,7 @@ class Command(BaseCommand):
 
         host = Host.objects.get(fqdn=options["host"])
 
-        if (
-            host.data_source
-            and host.data_source.scan_scheduling != ScanScheduling.SCHEDULED
-        ):
+        if not host.can_schedule_scan:
             raise CommandError(
                 "Cannot queue scans for hosts using non-scheduled scheduling"
             )
