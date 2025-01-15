@@ -3,9 +3,11 @@ from .backend import CollectInfo, ShellCollector, T
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor, ShellOutput
 from humitifier_common.artefacts import (
     Block,
+    BlockDevice,
     Blocks,
     Group,
     Groups,
+    Hardware,
     HostnameCtl,
     Memory,
     Package,
@@ -15,6 +17,61 @@ from humitifier_common.artefacts import (
 )
 from ..constants import DEB_OS_LIST, RPM_OS_LIST
 from ..utils import os_in_list
+
+
+class HardwareFactCollector(ShellCollector):
+    fact = Hardware
+
+    def collect_from_shell(
+        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    ) -> Hardware:
+
+        num_cpus_cmd = shell_executor.execute("nproc")
+        try:
+            num_cpus = num_cpus_cmd.stdout
+            num_cpus = int(num_cpus[0])
+        except (ValueError, IndexError):
+            num_cpus = -1
+            self.add_error("Could not determine number of CPUs", fatal=False)
+
+        # Yes, this is a different command from the memory-usage metric
+        # I'm lazy and this oneliner can just be copy-pasted
+        memory_cmd = shell_executor.execute("awk '/MemTotal/ {print $2}' /proc/meminfo")
+        try:
+            memory = memory_cmd.stdout
+            memory = int(memory[0])
+        except (ValueError, IndexError):
+            memory = -1
+            self.add_error("Could not determine memory size", fatal=False)
+
+        block_devices_cmd = shell_executor.execute("lsblk -o KNAME,TYPE,SIZE,MODEL")
+        block_devices = []
+        try:
+            # The first line is a header, hence the [1:] slice
+            for block_device in block_devices_cmd.stdout[1:]:
+                items = block_device.split()
+                name = items[0]
+                type_ = items[1]
+                size = items[2]
+                model = items[3] if len(items) > 3 else ""
+
+                block_devices.append(
+                    BlockDevice(name=name, type=type_, size=size, model=model)
+                )
+        except (ValueError, IndexError):
+            self.add_error("Could not determine block devices", fatal=False)
+
+        pci_devices = shell_executor.execute("lspci")
+
+        usb_devices = shell_executor.execute("lsusb")
+
+        return Hardware(
+            num_cpus=num_cpus,
+            memory=memory,
+            block_devices=block_devices,
+            pci_devices=pci_devices.stdout,
+            usb_devices=usb_devices.stdout,
+        )
 
 
 class BlocksMetricCollector(ShellCollector):

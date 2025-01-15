@@ -7,6 +7,29 @@ from dataclasses import dataclass
 from humitifier_common.artefacts.registry import fact, metric
 
 ##
+## Hardware
+##
+
+
+@dataclass
+class BlockDevice:
+    name: str
+    type: str
+    size: str
+    model: str
+
+
+@fact(group="generic")
+@dataclass
+class Hardware:
+    num_cpus: int
+    memory: int
+    block_devices: list[BlockDevice]
+    pci_devices: list[str]
+    usb_devices: list[str]
+
+
+##
 ## Storage
 ##
 
