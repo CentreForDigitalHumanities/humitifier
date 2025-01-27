@@ -1,0 +1,37 @@
+<div class="section p-0 break-inside-avoid mb-3" x-data="{ collapsed: false, {% for setting, value in alpinejs_settings.items %}{{ setting }}: {{ value }},{% endfor %} }">
+
+    <div
+        class="flex justify-between items-center p-3 pl-5 border-gray-300 dark:border-b-gray-800 cursor-pointer"
+        x-bind:class="collapsed ? '' : 'border-b'"
+        @click="collapsed = !collapsed"
+    >
+        <div class="font-bold text-lg">{{ title }}</div>
+        {% block header %}{% endblock %}
+        <div class="flex gap-2">
+            {% if is_metric %}
+                <div>
+                    {% include 'icons/reload.html' %}
+                </div>
+            {% endif %}
+
+            <div>
+                <div x-show="collapsed">
+                    {% with icon_size='size-5' %}
+                        {% include 'icons/chevron-up.html' %}
+                    {% endwith %}
+                </div>
+                <div x-show="!collapsed">
+                    {% with icon_size='size-5' %}
+                        {% include 'icons/chevron-down.html' %}
+                    {% endwith %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="p-5" x-bind:class="collapsed ? 'h-0 !p-0 overflow-hidden' : ''">
+        {% block content %}
+            {{ content }}
+        {% endblock %}
+    </div>
+</div>

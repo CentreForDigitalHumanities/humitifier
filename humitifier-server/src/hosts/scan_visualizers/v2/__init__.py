@@ -1,1 +1,1 @@
-from .visualizer import V2ScanVisualizer
+from .scan_visualizer import V2ScanVisualizer

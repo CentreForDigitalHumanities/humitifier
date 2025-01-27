@@ -1,3 +1,61 @@
+{% load param_replace %}
+
+<div class="flex gap-4 flex-col xl:flex-row xl:items-center bg border-b border-gray-300 dark:border-gray-700 px-6 py-4 sticky top-0 z-10">
+    <div class="font-bold text-xl">{{ host.fqdn }}</div>
+    <div class="text-gray-500 text-xl">
+        {{ current_scan_date|date:"Y-m-d H:i" }}
+    </div>
+    <div class="xl:ml-auto flex gap-3 items-center">
+        <form method="get" class="flex gap-3 items-center flex-grow" x-data="{}" x-ref="scanForm">
+            <label for="scan" class="text-nowrap">Select scan:</label>
+            <select id="scan" name="scan" class="input xl:w-40" @change="$refs.scanForm.submit()">
+                <option {% if current_scan == 'latest' %}selected{% endif %} value="latest">
+                    Last scan
+                </option>
+                {% for scan in all_scans %}
+                    <option value="{{ scan.isoformat }}" {% if current_scan == scan.isoformat %}selected{% endif%}>
+                        {{ scan|date:"Y-m-d H:i" }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+        <a class="btn btn-sm light:btn-primary dark:btn-outline hidden md:block" href="{% url 'hosts:download_raw' host.fqdn %}?{% param_replace %}">
+            Download raw data
+        </a>
+        {% if host.can_manually_edit %}
+            <a class="btn btn-sm light:btn-primary dark:btn-outline hidden md:block" href="{% url 'hosts:archive' host.fqdn %}">
+                {% if host.archived %}
+                    Un-archive
+                {% else %}
+                    Archive
+                {% endif %}
+            </a>
+        {% endif %}
+    </div>
+</div>
+
+{% if is_latest_scan %}
+    {% for alert in alerts %}
+        {% if alert.level == 'critical' %}
+            {% include 'hosts/host_detail_parts/alerts/critical.html' %}
+        {% elif alert.level == 'warning' %}
+            {% include 'hosts/host_detail_parts/alerts/warning.html' %}
+        {% elif alert.level == 'info' %}
+            {% include 'hosts/host_detail_parts/alerts/info.html' %}
+        {% endif %}
+    {% endfor %}
+{% else %}
+    {% with alert="This is historical data, it does not reflect the current configuration." %}
+        {% include 'hosts/host_detail_parts/alerts/warning.html' %}
+    {% endwith %}
+{% endif %}
+
+{% if host.archived %}
+    {% with alert=host.archived_string %}
+        {% include 'hosts/host_detail_parts/alerts/info.html' %}
+    {% endwith %}
+{% endif %}
+
 <div class="p-3 columns-1 lg:columns-2 xl:columns-2 2xl:columns-3 ultrawide:columns-4 gap-3">
     <div class="break-inside-avoid mb-3">
         {% include 'hosts/scan_visualizer/v1/host_meta.html' %}

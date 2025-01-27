@@ -173,16 +173,19 @@ class HostDetailView(LoginRequiredMixin, TemplateView):
             current_scan == self.LATEST_KEY or scan.created_at == host.last_scan_date
         )
 
-        visualizer = get_scan_visualizer(scan_data)
+        visualizer_context = {
+            "current_scan": current_scan,
+            "current_scan_date": current_scan_date,
+            "all_scans": host.scans.values_list("created_at", flat=True),
+            "is_latest_scan": is_latest_scan,
+            "alerts": host.alerts.order_by("level"),
+        }
+
+        visualizer = get_scan_visualizer(host, scan_data, visualizer_context)
         visualizer.request = self.request
 
         context["host"] = host
         context["scan_visualizer"] = visualizer
-        context["current_scan"] = current_scan
-        context["current_scan_date"] = current_scan_date
-        context["all_scans"] = host.scans.values_list("created_at", flat=True)
-        context["is_latest_scan"] = is_latest_scan
-        context["alerts"] = host.alerts.order_by("level")
 
         return context
 
