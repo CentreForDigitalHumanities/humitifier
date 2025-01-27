@@ -2,7 +2,7 @@
 A collection of facts that only make sense to collect on a server.
 """
 
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 from humitifier_common.artefacts.registry import fact, metric
 
@@ -12,16 +12,21 @@ from humitifier_common.artefacts.registry import fact, metric
 ##
 
 
+class VHost(BaseModel):
+    docroot: str
+    servername: str
+    serveraliases: list[str] | None = None
+
+
 @fact(group="server")
-@dataclass
-class HostMeta:
+class HostMeta(BaseModel):
     department: str | None = None
     contact: str | None = None
     update_policy: dict[str, bool] | None = None
     webdav: str | None = None
-    vhosts: list[dict] | None = None  # TODO: figure out what dict fields are needed
+    vhosts: list[dict[str, VHost]] | None = None
     fileservers: list[str] | None = None
-    databases: dict[dict[str, list[str]]] | None = None
+    databases: dict[str, list[str]] | None = None
 
 
 ##
@@ -40,8 +45,7 @@ class Uptime(float):
 
 
 @fact(group="server")
-@dataclass
-class PuppetAgent:
+class PuppetAgent(BaseModel):
     enabled: bool
     disabled_message: str | None = None
     code_roles: list[str] | None = None
@@ -59,6 +63,5 @@ class PuppetAgent:
 
 
 @fact(group="server")
-@dataclass
-class IsWordpress:
+class IsWordpress(BaseModel):
     is_wp: bool

@@ -2,7 +2,9 @@
 A collection of facts that are generic and can be collected on any system.
 """
 
-from dataclasses import dataclass
+from typing import Literal
+
+from pydantic import BaseModel
 
 from humitifier_common.artefacts.registry import fact, metric
 
@@ -11,19 +13,25 @@ from humitifier_common.artefacts.registry import fact, metric
 ##
 
 
-@dataclass
-class BlockDevice:
+class BlockDevice(BaseModel):
     name: str
     type: str
     size: str
     model: str
 
 
+class MemoryRange(BaseModel):
+    range: str
+    size: int
+    state: Literal["online", "offline"]
+    removable: bool
+    block: str
+
+
 @fact(group="generic")
-@dataclass
-class Hardware:
+class Hardware(BaseModel):
     num_cpus: int
-    memory: int
+    memory: list[MemoryRange]
     block_devices: list[BlockDevice]
     pci_devices: list[str]
     usb_devices: list[str]
@@ -34,8 +42,7 @@ class Hardware:
 ##
 
 
-@dataclass
-class Block:
+class Block(BaseModel):
     name: str
     size_mb: int
     used_mb: int
@@ -54,8 +61,7 @@ class Blocks(list[Block]):
 ##
 
 
-@dataclass
-class Group:
+class Group(BaseModel):
     name: str
     gid: int
     users: list[str]
@@ -66,8 +72,7 @@ class Groups(list[Group]):
     pass
 
 
-@dataclass
-class User:
+class User(BaseModel):
     name: str
     uid: int
     gid: int
@@ -87,8 +92,7 @@ class Users(list[User]):
 
 
 @fact(group="generic")
-@dataclass
-class HostnameCtl:
+class HostnameCtl(BaseModel):
     hostname: str
     os: str
     cpe_os_name: str | None
@@ -102,8 +106,7 @@ class HostnameCtl:
 
 
 @metric(group="generic")
-@dataclass
-class Memory:
+class Memory(BaseModel):
     total_mb: int
     used_mb: int
     free_mb: int
@@ -117,8 +120,7 @@ class Memory:
 ##
 
 
-@dataclass
-class Package:
+class Package(BaseModel):
     name: str
     version: str
 
