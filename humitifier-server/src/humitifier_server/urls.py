@@ -17,6 +17,7 @@ Including another URLconf
 
 from django.conf import settings
 from django.contrib import admin
+from django.contrib.auth.views import LogoutView
 from django.urls import include, path
 from mozilla_django_oidc.urls import OIDCAuthenticateClass, OIDCCallbackClass
 from mozilla_django_oidc.views import OIDCLogoutView
@@ -49,4 +50,9 @@ if hasattr(settings, "OIDC_RP_CLIENT_ID"):
             name="oidc_authentication_init",
         ),
         path("oidc/logout/", OIDCLogoutView.as_view(), name="oidc_logout"),
+    ]
+else:
+    # URL name is wrong obviously, can't be bothered to fix that
+    urlpatterns += [
+        path("logout", LogoutView.as_view(), name="oidc_logout"),
     ]
