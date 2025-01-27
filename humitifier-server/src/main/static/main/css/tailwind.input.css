@@ -4,12 +4,17 @@
 
 @layer components {
     .bg {
-        @apply bg-gray-50 dark:bg-gray-900;
+        @apply bg-gray-50 dark:bg-gray-900 transition duration-150;
     }
 
     .h-full--header
     {
         @apply min-h-[calc(100vh-3.5rem)];
+    }
+
+    .h-max-full--header
+    {
+        @apply h-[calc(100vh-3.5rem)];
     }
 
     .top-header
@@ -18,7 +23,7 @@
     }
 
     .section {
-        @apply bg p-7 pt-5 rounded;
+        @apply bg p-7 pt-5 rounded border border-gray-300 dark:border-gray-700;
     }
 
     .text-green {
@@ -59,6 +64,10 @@
 
     .btn-sm {
         @apply px-3 py-2 text-sm h-[36px];
+    }
+
+    .btn-xs {
+        @apply px-2 py-1 text-sm;
     }
 
     .btn-outline {
