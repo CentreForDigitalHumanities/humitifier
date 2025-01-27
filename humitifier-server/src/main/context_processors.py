@@ -2,6 +2,7 @@ import random
 from datetime import datetime
 
 from django.conf import settings
+from django.utils.safestring import mark_safe
 
 from hosts.models import Alert, AlertLevel, Host
 
@@ -51,9 +52,28 @@ def layout_context(request):
             "Some assembly required",
             "100% Functional Guarantee until it breaks",
             "Do not use if seal is broken",
+            "Do not use if seal is unbroken",
             "Objects in mirror may be closer than they appear",
             "Your wish is our segfault",
             "Not a humidifier",
+            "We've been trying to contact you about your servers extended warranty",
+            "CAUTION: This site originated from inside of Utrecht University. Do click links or open attachments unless you recognize the sender or know the content is unsafe.",
+            "Do you hear wolves?",
+            "Я просто пташка",
+            mark_safe("- What is my purpose?<br/>- You pass butter"),
+            "Have a break, have a Humitifier",  # Credits: some weird shopify tool
+            "E",
+            "Are you even reading this?",
+            "Finland has the most heavy metal bands per capita",
+            "A cat's ear contains 32 muscles",
+            "Ravens know when someone is spying on them",
+            "Flamingos can only eat with their heads upside down",
+            "A group of crows is a 'murder'",
+            "In the 1870s, cats were being trained in Belgium to deliver mail to replace homing pigeons",
+            "Antarctica’s international telephone dialling code is +672",
+            "Thousands of rabbits once attacked Napoleon. The rabbits won.",
+            "There’s a tiny home in Virginia called the “Spite House” because that’s why it was built",
+            "Playing dance music can help ward off mosquitoes",
         ]
         tag_line = random.choice(jokes)
 
