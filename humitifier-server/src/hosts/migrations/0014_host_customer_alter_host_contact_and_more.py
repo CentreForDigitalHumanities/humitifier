@@ -7,12 +7,14 @@ def set_new_values(apps, schema_editor):
     Host = apps.get_model("hosts", "Host")
 
     for host in Host.objects.all():
-        host_meta = host.last_scan_cache.get("HostMeta", None)
-        if host_meta:
-            # customer is the new department, as department now has different semantics
-            host.customer = host_meta.get("department", None)
-            host.contact = host_meta.get("contact", None)
-            host.save()
+        try:
+            host_meta = host.last_scan_cache.get("HostMeta", None)
+            if host_meta:
+                # customer is the new department, as department now has different semantics
+                host.customer = host_meta.get("department", None)
+                host.contact = host_meta.get("contact", None)
+                host.save()
+        except: pass
 
 
 class Migration(migrations.Migration):
