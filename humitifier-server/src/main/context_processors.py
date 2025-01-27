@@ -39,6 +39,7 @@ def layout_context(request):
             "CAUTION: This email originated from outside of Utrecht University. Do not click links or open attachments unless you recognize the sender and know the content is safe.",
             "Needs more cowbell",
             "Hum-IT CMDB",
+            "Humanities-IT Services Systems Team Labs ICT Configuration Management Database Status Viewer Application",
             "Made for Itanium™",
             "I'm on a horse",
             "Keep calm and reboot",
@@ -48,10 +49,11 @@ def layout_context(request):
             "As seen on TV",
             "Not a flamethrower",
             "Some assembly required",
-            "100% Functional Guarantee until it breakage",
+            "100% Functional Guarantee until it breaks",
             "Do not use if seal is broken",
             "Objects in mirror may be closer than they appear",
             "Your wish is our segfault",
+            "Not a humidifier",
         ]
         tag_line = random.choice(jokes)
 
