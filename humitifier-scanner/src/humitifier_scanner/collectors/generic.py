@@ -1,3 +1,5 @@
+import json
+
 from humitifier_common.scan_data import ScanErrorMetadata
 from .backend import CollectInfo, ShellCollector, T
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor, ShellOutput
@@ -10,6 +12,7 @@ from humitifier_common.artefacts import (
     Hardware,
     HostnameCtl,
     Memory,
+    MemoryRange,
     Package,
     PackageList,
     User,
@@ -36,13 +39,18 @@ class HardwareFactCollector(ShellCollector):
 
         # Yes, this is a different command from the memory-usage metric
         # I'm lazy and this oneliner can just be copy-pasted
-        memory_cmd = shell_executor.execute("awk '/MemTotal/ {print $2}' /proc/meminfo")
+        memory_cmd = shell_executor.execute("lsmem --json --bytes")
         try:
-            memory = memory_cmd.stdout
-            memory = int(memory[0])
-        except (ValueError, IndexError):
-            memory = -1
-            self.add_error("Could not determine memory size", fatal=False)
+            output_str = "".join(memory_cmd.stdout)
+            output_json = json.loads(output_str)
+            memory = []
+            if "memory" in output_json:
+                for memory_range in output_json["memory"]:
+                    memory.append(MemoryRange(**memory_range))
+
+        except (ValueError, IndexError, TypeError) as e:
+            memory = []
+            self.add_error(f"Could not determine memory size: {e}", fatal=False)
 
         block_devices_cmd = shell_executor.execute("lsblk -o KNAME,TYPE,SIZE,MODEL")
         block_devices = []
