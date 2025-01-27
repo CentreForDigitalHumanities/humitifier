@@ -28,7 +28,7 @@
         </div>
 
         {% if page_sizes %}
-            <select name="page_size" class="input" @change="$refs.actual_page_size_field.value=$event.target.value;$refs.actual_page_field.value=1;$refs.filtering_form.submit()">
+            <select name="page_size" class="input select" @change="$refs.actual_page_size_field.value=$event.target.value;$refs.actual_page_field.value=1;$refs.filtering_form.submit()">
                 {% for size in page_sizes %}
                     <option value="{{ size }}" {% if size == paginator.per_page %}selected{% endif %}>{{ size }}</option>
                 {% endfor %}
@@ -36,7 +36,7 @@
         {% endif %}
 
         {% if ordering_fields %}
-            <select name="ordering" class="input" @change="$refs.actual_ordering_field.value=$event.target.value;$refs.filtering_form.submit()">
+            <select name="ordering" class="input select" @change="$refs.actual_ordering_field.value=$event.target.value;$refs.filtering_form.submit()">
                 {% for field, label in ordering_fields.items %}
                     <option value="{{ field }}" {% if field == ordering %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
