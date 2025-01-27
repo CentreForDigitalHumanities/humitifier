@@ -2,6 +2,7 @@ import dataclasses
 import uuid
 from datetime import datetime
 from functools import cached_property
+from typing import get_args
 
 from django.db import models
 from django.db.models import Case, F, Value, When
@@ -9,6 +10,9 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from api.models import OAuth2Application
+from humitifier_common.artefacts.registry.registry import (
+    registry as artefact_registry,
+)
 from humitifier_common.scan_data import ScanOutput
 from humitifier_server.logger import logger
 from main.models import User
@@ -40,7 +44,33 @@ class ScanData:
             )
             return None
 
-        return ScanOutput(**self.raw_data)
+        output = ScanOutput(**self.raw_data)
+
+        output.facts = {
+            name: self._parse_artefact(name, data)
+            for name, data in output.facts.items()
+        }
+        output.metrics = {
+            name: self._parse_artefact(name, data)
+            for name, data in output.metrics.items()
+        }
+
+        return output
+
+    @staticmethod
+    def _parse_artefact(artefact_name, data):
+        artefact = artefact_registry.get(artefact_name)
+
+        if isinstance(data, dict):
+            return artefact(**data)
+
+        if isinstance(data, list):
+            inner_type = get_args(artefact.__orig_bases__[0])[0]
+            if inner_type:
+                return artefact([inner_type(**datum) for datum in data])
+            return artefact(data)
+
+        return artefact(data) if data else None
 
 
 class DataSourceType(models.TextChoices):
