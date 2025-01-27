@@ -2,7 +2,7 @@ const colors = require('tailwindcss/colors')
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
-    content: ["./src/*/templates/**/*.html"],
+    content: ["./src/*/templates/**/*.html", './src/**/*.py'],
     safelist: [
         'sm:table-cell',
         'md:table-cell',
