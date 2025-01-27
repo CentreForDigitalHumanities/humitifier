@@ -183,6 +183,8 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
             "columns": self.columns,
             "rows": rows,
             "has_pagination": paginator is not None,
+            "is_paginated": paginator is not None and paginator.num_pages > 0,
+            "request": self.request,
             "paginator": paginator,
             "page_obj": self.page_object,
             "page_sizes": self.page_sizes,
