@@ -30,7 +30,10 @@ class ScanData:
         # Version 1 doesn't have a version field, so we default to one and
         # override with any specified version if available
         version = 1
-        if "version" in raw_scan:
+        # If we don't have any data, set version to None
+        if not raw_scan:
+            version = None
+        elif "version" in raw_scan:
             version = raw_scan["version"]
 
         return cls(version=version, raw_data=raw_scan, scan_date=created)
