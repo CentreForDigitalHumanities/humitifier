@@ -7,6 +7,8 @@ RUN pip install poetry && poetry config virtualenvs.in-project true
 WORKDIR /app
 
 COPY humitifier-scanner/pyproject.toml humitifier-scanner/poetry.lock .
+# Needed for poetry....
+COPY humitifier-scanner/README.md ./
 COPY humitifier-scanner/src/ ./src
 
 RUN mkdir /humitifier-common
