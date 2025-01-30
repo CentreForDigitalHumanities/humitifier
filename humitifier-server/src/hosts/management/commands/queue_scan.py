@@ -7,18 +7,24 @@ from humitifier_server import settings
 class Command(BaseCommand):
 
     def add_arguments(self, parser):
-        parser.add_argument("host")
+        parser.add_argument("--host")
         parser.add_argument("--force", action="store_true")
+        parser.add_argument("--all", action="store_true")
 
     def handle(self, *args, **options):
         from hosts.tasks import start_scan
 
-        host = Host.objects.get(fqdn=options["host"])
+        if options["all"]:
+            hosts = Host.objects.all()
+        else:
+            hosts = Host.objects.filter(fqdn=options["host"])
 
-        if not host.can_schedule_scan:
-            if not settings.DEBUG and not options["force"]:
-                raise CommandError(
-                    "Cannot queue scans for hosts using non-scheduled scheduling"
-                )
+        for host in hosts:
+            if not host.can_schedule_scan:
+                if not settings.DEBUG and not options["force"]:
+                    print(
+                        host.fqdn,
+                        "Cannot queue scans for hosts using non-scheduled scheduling",
+                    )
 
-        start_scan.delay(host.fqdn)
+            start_scan.delay(host.fqdn)
