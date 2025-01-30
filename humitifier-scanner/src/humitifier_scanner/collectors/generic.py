@@ -4,6 +4,7 @@ from humitifier_common.scan_data import ScanErrorMetadata
 from .backend import CollectInfo, ShellCollector
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor, ShellOutput
 from humitifier_common.artefacts import (
+    AddressInfo,
     Block,
     BlockDevice,
     Blocks,
@@ -13,6 +14,8 @@ from humitifier_common.artefacts import (
     HostnameCtl,
     Memory,
     MemoryRange,
+    NetworkInterface,
+    NetworkInterfaces,
     Package,
     PackageList,
     User,
@@ -297,3 +300,43 @@ class PackageListFactCollector(ShellCollector):
             packages.append(Package(name=name, version=version))
 
         return PackageList(packages)
+
+
+class NetworkInterfacesFactCollector(ShellCollector):
+    fact = NetworkInterfaces
+
+    def collect_from_shell(
+        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    ) -> NetworkInterfaces:
+
+        ip_cmd = shell_executor.execute("ip -j addr show")
+
+        json_str = "".join(ip_cmd.stdout)
+
+        data = json.loads(json_str)
+
+        interfaces = []
+
+        for interface in data:
+            addresses = []
+            for address in interface["addr_info"]:
+                addresses.append(
+                    AddressInfo(
+                        family=address["family"],
+                        address=f"{address['local']}/{address['prefixlen']}",
+                        scope=address["scope"],
+                    )
+                )
+
+            interfaces.append(
+                NetworkInterface(
+                    name=interface["ifname"],
+                    altnames=interface.get("altnames", []),
+                    link_type=interface["link_type"],
+                    mac_address=interface["address"],
+                    flags=interface["flags"],
+                    addresses=addresses,
+                )
+            )
+
+        return NetworkInterfaces(interfaces)

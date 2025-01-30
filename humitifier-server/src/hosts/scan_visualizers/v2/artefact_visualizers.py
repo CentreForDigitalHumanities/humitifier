@@ -21,6 +21,7 @@ from humitifier_common.artefacts import (
     HostnameCtl,
     IsWordpress,
     Memory,
+    NetworkInterfaces,
     PackageList,
     PuppetAgent,
     Uptime,
@@ -304,6 +305,36 @@ class HardwareVisualizer(ArtefactVisualizer):
         context["total_memory"] = total_memory
 
         return context
+
+
+class NetworkInterfacesVisualizer(SearchableCardsVisualizer):
+    title = "Network Interfaces"
+    artefact = NetworkInterfaces
+
+    def get_items(self) -> list[Card]:
+        output = []
+
+        for interface in self.artefact_data:
+            content_items = {
+                "Altnames": ", ".join(interface.altnames),
+                "Link type": interface.link_type,
+                "Flags": ", ".join(interface.flags),
+            }
+            search_value = f"{interface.name} {interface.altnames}"
+            for address in interface.addresses:
+                search_value += f" {address.address}"
+                content_items[address.family] = address.address
+
+            output.append(
+                Card(
+                    title=interface.name,
+                    aside=interface.mac_address,
+                    content_items=content_items,
+                    search_value=search_value,
+                )
+            )
+
+        return output
 
 
 class ZFSVisualizer(ArtefactVisualizer):

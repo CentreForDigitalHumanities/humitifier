@@ -128,3 +128,28 @@ class Package(BaseModel):
 @fact(group="generic")
 class PackageList(list[Package]):
     pass
+
+
+##
+## Network info
+##
+
+
+class AddressInfo(BaseModel):
+    family: str
+    address: str
+    scope: str
+
+
+class NetworkInterface(BaseModel):
+    name: str
+    altnames: list[str]
+    link_type: str
+    mac_address: str
+    flags: list[str]
+    addresses: list[AddressInfo]
+
+
+@fact(group="generic")
+class NetworkInterfaces(list[NetworkInterface]):
+    pass
