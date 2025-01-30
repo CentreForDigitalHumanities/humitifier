@@ -35,7 +35,7 @@ class ZFSVolumesMetricCollector(ShellCollector):
                     self.add_error("Failed to parse zpool list output")
 
         volumes_cmd = shell_executor.execute(
-            "/sbin/zfs list -p -H -o name,used,avail,mountpoint"
+            "/sbin/zfs list -p -H -o name,refer,avail,mountpoint"
         )
 
         if volumes_cmd.return_code != 0:
@@ -43,18 +43,18 @@ class ZFSVolumesMetricCollector(ShellCollector):
         else:
             for output_line in volumes_cmd.stdout:
                 try:
-                    name, used, available, mount = output_line.strip().split()
+                    name, referred, available, mount = output_line.strip().split()
 
-                    used = self._parse_to_mb(used)
+                    referred = self._parse_to_mb(referred)
                     available = self._parse_to_mb(available)
 
-                    size = used + available
+                    size = referred + available
 
                     volumes.append(
                         ZFSVolume(
                             name=name.strip(),
                             size_mb=size,
-                            used_mb=used,
+                            used_mb=referred,
                             mount=mount.strip(),
                         )
                     )
