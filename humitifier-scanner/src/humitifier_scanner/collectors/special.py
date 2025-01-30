@@ -8,7 +8,7 @@ class ZFSVolumesMetricCollector(ShellCollector):
 
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
-    ) -> ZFS:
+    ) -> ZFS | None:
         pools = []
         volumes = []
 
@@ -60,6 +60,10 @@ class ZFSVolumesMetricCollector(ShellCollector):
                     )
                 except ValueError:
                     self.add_error("Failed to parse zfs list output")
+
+        # Don't return anything if we didn't find any pools nor any volumes
+        if not pools and not volumes:
+            return None
 
         return ZFS(pools=pools, volumes=volumes)
 
