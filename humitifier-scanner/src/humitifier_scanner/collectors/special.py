@@ -19,16 +19,16 @@ class ZFSVolumesMetricCollector(ShellCollector):
         else:
             for output_line in zpool_cmd.stdout:
                 try:
-                    name, size, used = output_line.strip().split()
+                    name, size, allocated = output_line.strip().split()
 
-                    size = self._parse_to_kb(size)
-                    used = self._parse_to_kb(used)
+                    size = self._parse_to_mb(size)
+                    allocated = self._parse_to_mb(allocated)
 
                     pools.append(
                         ZFSPool(
                             name=name.strip(),
                             size_mb=size,
-                            used_mb=used,
+                            used_mb=allocated,
                         )
                     )
                 except ValueError:
@@ -45,8 +45,8 @@ class ZFSVolumesMetricCollector(ShellCollector):
                 try:
                     name, used, available, mount = output_line.strip().split()
 
-                    used = self._parse_to_kb(used)
-                    available = self._parse_to_kb(available)
+                    used = self._parse_to_mb(used)
+                    available = self._parse_to_mb(available)
 
                     size = used + available
 
@@ -64,6 +64,6 @@ class ZFSVolumesMetricCollector(ShellCollector):
         return ZFS(pools=pools, volumes=volumes)
 
     @staticmethod
-    def _parse_to_kb(value: str) -> int:
+    def _parse_to_mb(value: str) -> int:
         byte_value = int(value)
         return byte_value // 1024 // 1024
