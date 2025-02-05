@@ -67,7 +67,7 @@ class LocalLinuxShellExecutor(LinuxShellExecutor):
 
         if process.returncode != 0:
             log_cmd = logger.debug if fail_silent else logger.error
-            log_cmd(f"Command failed with return code {process.returncode}")
+            log_cmd(f"Command '{command}' failed with return code {process.returncode}")
 
         return ShellOutput(
             stdout_lines,
@@ -184,7 +184,8 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         if stdout.channel.recv_exit_status() != 0:
             log_cmd = logger.debug if fail_silent else logger.error
             log_cmd(
-                f"Command failed with return code {stdout.channel.recv_exit_status()}. Stderr: {stderr.read().decode()}"
+                f"Command '{command}' failed with return code"
+                f" {stdout.channel.recv_exit_status()}. Stderr: {stderr.read().decode()}"
             )
 
         return stdin, stdout, stderr
