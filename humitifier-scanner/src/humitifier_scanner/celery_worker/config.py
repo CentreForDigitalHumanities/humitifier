@@ -1,4 +1,6 @@
 from celery import Celery
+from humitifier_common.celery.task_routes import task_routes
+
 
 from humitifier_scanner.config import CONFIG
 
@@ -15,7 +17,4 @@ app = Celery(
     broker_connection_retry_on_startup=True,
 )
 
-app.conf.task_routes = {
-    "scanner.*": {"queue": "scanner"},
-    "server.*": {"queue": "default"},
-}
+app.conf.task_routes = task_routes
