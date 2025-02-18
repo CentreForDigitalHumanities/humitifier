@@ -1,7 +1,7 @@
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 
 
 class ArtefactScanOptions(BaseModel):
@@ -10,6 +10,8 @@ class ArtefactScanOptions(BaseModel):
     :ivar variant: Used to request a specific collector variant for a scan.
     :type variant: str
     """
+
+    model_config = ConfigDict(extra="allow")
 
     variant: str = "default"
 
