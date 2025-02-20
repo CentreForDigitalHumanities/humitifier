@@ -15,7 +15,7 @@ from main.easy_tables import (
 class DataSourcesTable(BaseTable):
     class Meta:
         model = DataSource
-        columns = ["name", "identifier", "source_type", "actions"]
+        columns = ["name", "identifier", "source_type", "default_scan_spec", "actions"]
 
     actions = CompoundColumn(
         "Actions",

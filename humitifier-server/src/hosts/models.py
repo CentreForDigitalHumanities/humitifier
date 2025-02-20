@@ -13,10 +13,11 @@ from api.models import OAuth2Application
 from humitifier_common.artefacts.registry.registry import (
     registry as artefact_registry,
 )
-from humitifier_common.scan_data import ScanOutput
+from humitifier_common.scan_data import ScanInput, ScanOutput
 from humitifier_server.logger import logger
 from main.models import User
 from main.templatetags.strip_quotes import strip_quotes
+from scanning.models import ScanSpec
 
 
 @dataclasses.dataclass
@@ -167,6 +168,14 @@ class DataSource(models.Model):
         max_length=255, choices=ScanScheduling.choices, default=ScanScheduling.SCHEDULED
     )
 
+    default_scan_spec = models.ForeignKey(
+        ScanSpec,
+        on_delete=models.PROTECT,
+        related_name="datasources",
+        null=True,
+        blank=True,
+    )
+
     def __str__(self):
         return self.name
 
@@ -230,6 +239,14 @@ class Host(models.Model):
         on_delete=models.SET_NULL,
         related_name="hosts",
         null=True,
+    )
+
+    scan_spec_override = models.ForeignKey(
+        ScanSpec,
+        on_delete=models.PROTECT,
+        related_name="hosts",
+        null=True,
+        blank=True,
     )
 
     ##
@@ -427,6 +444,21 @@ class Host(models.Model):
         self.archival_date = None
         self.save()
         self.regenerate_alerts()
+
+    def get_scan_spec(self) -> ScanSpec | None:
+        if self.scan_spec_override:
+            return self.scan_spec_override
+
+        if self.data_source:
+            return self.data_source.default_scan_spec
+
+        return None
+
+    def get_scan_input(self) -> ScanInput | None:
+        if scan_spec := self.get_scan_spec():
+            return scan_spec.build_scan_input(self)
+
+        return None
 
     def __str__(self):
         return self.fqdn

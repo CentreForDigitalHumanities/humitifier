@@ -255,10 +255,6 @@ class TasksView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = "main/not_implemented.html"
 
 
-class ScanProfilesView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
-    template_name = "main/not_implemented.html"
-
-
 ##
 ## Data source views
 ##

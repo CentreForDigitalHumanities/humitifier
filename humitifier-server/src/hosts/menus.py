@@ -27,17 +27,6 @@ Menu.add_item(
 Menu.add_item(
     "main",
     MenuItem(
-        "Scan profiles",
-        reverse("hosts:scan_profiles"),
-        weight=10,
-        icon="icons/terminal.html",
-        check=lambda request: request.user.is_superuser,
-    ),
-)
-
-Menu.add_item(
-    "main",
-    MenuItem(
         "Data sources",
         reverse("hosts:data_sources"),
         weight=10,

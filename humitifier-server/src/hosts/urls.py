@@ -9,7 +9,6 @@ from .views import (
     HostExportView,
     HostsListView,
     HostsRawDownloadView,
-    ScanProfilesView,
     TasksView,
 )
 
@@ -22,7 +21,6 @@ urlpatterns = [
     path("host/<fqdn>/raw/", HostsRawDownloadView.as_view(), name="download_raw"),
     path("host/<fqdn>/archive/", ArchiveHostView.as_view(), name="archive"),
     path("tasks/", TasksView.as_view(), name="tasks"),
-    path("scan-profiles/", ScanProfilesView.as_view(), name="scan_profiles"),
     path("data-sources/", DataSourcesView.as_view(), name="data_sources"),
     path(
         "data-sources/create/",

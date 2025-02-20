@@ -69,6 +69,7 @@ INSTALLED_APPS = [
     # Local apps
     "hosts",
     "api",
+    "scanning",
 ]
 
 
