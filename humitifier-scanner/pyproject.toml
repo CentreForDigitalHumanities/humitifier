@@ -9,7 +9,7 @@ readme = "README.md"
 python = "^3.11"
 paramiko = "^3.5.0"
 toml = "^0.10.2"
-pydantic-settings = "^2.6.1"
+pydantic-settings = "^2.8.0"
 humitifier-common = { path = "../humitifier-common", develop = true }
 pyyaml = "^6.0.2"
 
@@ -25,7 +25,7 @@ optional = true
 optional = true
 
 [tool.poetry.group.celery.dependencies]
-celery = "5.5.0rc3"
+celery = "5.5.0rc4"
 
 [build-system]
 requires = ["poetry-core"]
