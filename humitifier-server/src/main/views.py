@@ -22,7 +22,7 @@ from django.views.generic.edit import CreateView, FormMixin
 from rest_framework.reverse import reverse_lazy
 
 from hosts.filters import AlertFilters
-from hosts.models import Alert, Host
+from hosts.models import Alert, AlertLevel, AlertType, Host
 from main.filters import AccessProfileFilters, UserFilters
 from main.forms import (
     AccessProfileForm,
@@ -199,6 +199,32 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
 
         return filtered_qs.distinct()
 
+    def get_alert_stats(self):
+        num_critical = Host.objects.filter(
+            alerts__level=AlertLevel.CRITICAL,
+        ).count()
+        num_warning = (
+            Host.objects.filter(
+                alerts__level=AlertLevel.WARNING,
+            )
+            .exclude(
+                alerts__level=AlertLevel.CRITICAL,
+            )
+            .count()
+        )
+        num_info = (
+            Host.objects.filter(
+                alerts__level=AlertLevel.INFO,
+            )
+            .exclude(
+                alerts__level__in=[AlertLevel.WARNING, AlertLevel.CRITICAL],
+            )
+            .count()
+        )
+        num_fine = Host.objects.filter(alerts__isnull=True).count()
+
+        return num_critical, num_warning, num_info, num_fine
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -212,6 +238,13 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
             .values("customer")
             .annotate(count=Count("customer"))
         )
+
+        num_critical, num_warning, num_info, num_fine = self.get_alert_stats()
+
+        context["num_critical"] = num_critical
+        context["num_warning"] = num_warning
+        context["num_info"] = num_info
+        context["num_fine"] = num_fine
 
         return context
 

@@ -15,6 +15,7 @@
                 type: 'pie',
                 data: {
                     labels: [
+                        'No alert',
                         'Info',
                         'Warning',
                         'Critical',
@@ -22,7 +23,8 @@
                     datasets: [
                         {
                             label: 'Alert levels',
-                            data: [{{ layout.num_info_alerts }}, {{ layout.num_warning_alerts }}, {{ layout.num_critical_alerts }}],
+                            data: [{{ num_fine }}, {{ num_info }}, {{ num_warning }}, {{ num_critical }}],
+                            backgroundColor: ["#44ef44", "#93c5fd", "#f97316", "#ef4444"]
                         },
                     ]
                 },
