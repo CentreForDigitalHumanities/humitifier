@@ -12,7 +12,7 @@ class Command(BaseCommand):
         parser.add_argument("--all", action="store_true")
 
     def handle(self, *args, **options):
-        from hosts.tasks import start_scan
+        from scanning.tasks import start_scan
 
         if options["all"]:
             hosts = Host.objects.all()
