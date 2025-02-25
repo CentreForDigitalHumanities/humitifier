@@ -369,7 +369,9 @@ if DSN:
 ## Celery
 
 ### Broker
-CELERY_BROKER_URL = env.get("CELERY_BROKER_URL", default="amqp://guest@localhost//")
+CELERY_BROKER_URL = env.get(
+    "CELERY_BROKER_URL", default="amqp://humitifier:humitifier@localhost//"
+)
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 ### Result backend
