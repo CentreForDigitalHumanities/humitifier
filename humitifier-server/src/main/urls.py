@@ -13,6 +13,8 @@ from .views import (
     EditUserView,
     HomeRedirectView,
     SetPasswordView,
+    TaskResultDetailView,
+    TasksView,
     UserProfileView,
     UsersView,
 )
@@ -56,4 +58,6 @@ urlpatterns = [
         name="delete_access_profile",
     ),
     path("login", LoginView.as_view(), name="login"),
+    path("tasks/", TasksView.as_view(), name="tasks"),
+    path("task/<slug:task_id>/", TaskResultDetailView.as_view(), name="task_details"),
 ]

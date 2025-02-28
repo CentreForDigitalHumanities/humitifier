@@ -43,7 +43,19 @@ Menu.add_item(
         weight=999,
         icon="icons/admin.html",
         check=lambda request: request.user.is_superuser,
-        separator=True,
         target="_blank",
+    ),
+)
+
+
+Menu.add_item(
+    "main",
+    MenuItem(
+        "Tasks",
+        reverse("main:tasks"),
+        weight=998,
+        icon="icons/tasks.html",
+        separator=True,
+        check=lambda request: request.user.is_superuser,
     ),
 )

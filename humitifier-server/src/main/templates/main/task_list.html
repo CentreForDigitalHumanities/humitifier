@@ -1,0 +1,74 @@
+{% extends "base/base_page_template.html" %}
+
+{% load humanize %}
+{% load param_replace %}
+
+{% block page_title %}Tasks | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg transition ease-in-out duration-150">
+        <div class="px-7 py-5">
+            <h1 class="text-3xl font-bold">Tasks</h1>
+            <h2 class="text-2xl font-bold my-8">Current tasks</h2>
+        </div>
+        <table class="w-full table-auto">
+            <thead>
+            <tr class="text-left">
+
+                <th class="pl-7 py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
+                    Task ID
+                </th>
+
+                <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
+                    Task Name
+                </th>
+
+                <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
+                    Task State
+                </th>
+
+                <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
+                    Worker
+                </th>
+
+                <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
+                    Created DateTime
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for task in current_tasks %}
+                <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+                    <td class="pl-7 py-5 ">
+                        {{ task.id }}
+                    </td>
+                    <td class="py-5">
+                        {{ task.name }}
+                    </td>
+                    <td class="py-5">
+                        {{ task.type }}
+                    </td>
+                    <td class="py-5">
+                        {{ task.hostname }}
+                    </td>
+                    <td class="pr-7 py-5 ">
+                        {{ task.time_start }}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+                    <td colspan="5" class="text-center px-7 py-5">
+                        {% if layout.wild_wasteland %}
+                            The swarm has not been instructed to do anything. Be cautious of swarm-boredom!
+                        {% else %}
+                            No tasks currently running or scheduled
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <h2 class="text-2xl font-bold px-7 py-5 mt-8">Completed tasks</h2>
+        {{ table.render }}
+    </div>
+{% endblock %}

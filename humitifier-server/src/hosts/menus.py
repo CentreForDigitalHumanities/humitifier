@@ -16,17 +16,6 @@ Menu.add_item(
 Menu.add_item(
     "main",
     MenuItem(
-        "Tasks",
-        reverse("hosts:tasks"),
-        weight=10,
-        icon="icons/tasks.html",
-        check=lambda request: request.user.is_superuser,
-    ),
-)
-
-Menu.add_item(
-    "main",
-    MenuItem(
         "Data sources",
         reverse("hosts:data_sources"),
         weight=10,

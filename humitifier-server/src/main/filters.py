@@ -73,3 +73,7 @@ class AccessProfileFilters(django_filters.FilterSet):
         field_name="departments",
         lookup_expr="icontains",
     )
+
+
+class TaskResultFilters(django_filters.FilterSet):
+    pass

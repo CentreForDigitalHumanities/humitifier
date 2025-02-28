@@ -1,0 +1,60 @@
+{% extends "base/base_page_template.html" %}
+
+{% load humanize %}
+{% load param_replace %}
+
+{% block page_title %}{{ taskresult.task_id }} | Tasks | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg transition ease-in-out duration-150">
+        <div class="px-7 pt-5">
+            <h1 class="text-3xl font-bold">Task details for '{{ taskresult.task_id }}'</h1>
+            <h3 class="text-xl font-bold mb-2 mt-4">Metadata</h3>
+        </div>
+        <div class="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 ultrawide:grid-cols-4  px-7 py-3 gap-3">
+            <div class="p-2 flex justify-between items-center border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded gap-5">
+                <span class=font-bold>Task name</span>
+                <span>{{ taskresult.task_name }}</span>
+            </div>
+            {% if taskresult.periodic_task_name %}
+                <div class="p-2 flex justify-between items-center border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded gap-5">
+                    <span class=font-bold>Periodic task name</span>
+                    <span>{{ taskresult.periodic_task_name }}</span>
+                </div>
+            {% endif %}
+            <div class="p-2 flex justify-between items-center border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded gap-5">
+                <span class=font-bold>Status</span>
+                <span>{{ taskresult.status }}</span>
+            </div>
+            <div class="p-2 flex justify-between items-center border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded gap-5">
+                <span class=font-bold>Worker</span>
+                <span>{{ taskresult.worker }}</span>
+            </div>
+            <div class="p-2 flex justify-between items-center border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded gap-5">
+                <span class=font-bold>Date created</span>
+                <span>{{ taskresult.date_created }}</span>
+            </div>
+            <div class="p-2 flex justify-between items-center border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700 rounded gap-5">
+                <span class=font-bold>Date done</span>
+                <span>{{ taskresult.date_done }}</span>
+            </div>
+        </div>
+
+        <div class="px-7 py-5">
+            <h3 class="text-xl font-bold mb-4">Celery meta</h3>
+            <div class="p-5 rounded border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700">{{ taskresult.meta }}</div>
+        </div>
+        <div class="px-7 py-5">
+            <h3 class="text-xl font-bold mb-4">Task args</h3>
+            <div class="p-5 rounded border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700">{{ taskresult.task_args }}</div>
+        </div>
+        <div class="px-7 py-5">
+            <h3 class="text-xl font-bold mb-4">Task kwargs</h3>
+            <div class="p-5 rounded border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700">{{ taskresult.task_kwargs }}</div>
+        </div>
+        <div class="px-7 py-5">
+            <h3 class="text-xl font-bold mb-4">Task results</h3>
+            <div class="p-5 rounded border bg-gray-200 dark:bg-gray-800 border-gray-300 dark:border-gray-700">{{ taskresult.result }}</div>
+        </div>
+    </div>
+{% endblock %}

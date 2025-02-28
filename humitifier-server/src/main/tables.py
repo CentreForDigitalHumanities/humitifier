@@ -1,5 +1,6 @@
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django_celery_results.models import TaskResult
 
 from main.easy_tables import (
     BooleanColumn,
@@ -117,3 +118,28 @@ class AccessProfilesTable(BaseTable):
     @staticmethod
     def get_data_sources(obj: AccessProfile):
         return ", ".join(obj.data_sources.values_list("name", flat=True))
+
+
+class TaskTable(BaseTable):
+    class Meta:
+        model = TaskResult
+        columns = [
+            "task_id",
+            "task_name",
+            "status",
+            "worker",
+            "date_created",
+            "date_done",
+            "actions",
+        ]
+
+    actions = CompoundColumn(
+        "Actions",
+        columns=[
+            ButtonColumn(
+                text="View details",
+                button_class="btn light:btn-primary dark:btn-outline",
+                url=lambda obj: reverse("main:task_details", args=[obj.task_id]),
+            ),
+        ],
+    )

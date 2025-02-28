@@ -1,3 +1,4 @@
+from datetime import datetime
 from urllib.parse import urlparse
 
 from django.contrib.auth.mixins import AccessMixin, LoginRequiredMixin
@@ -11,19 +12,21 @@ from django.views.generic import (
     DeleteView,
     ListView,
     RedirectView,
-    TemplateView,
     UpdateView,
 )
 from django.views.generic.detail import (
     BaseDetailView,
+    DetailView,
     SingleObjectTemplateResponseMixin,
 )
 from django.views.generic.edit import CreateView, FormMixin
+from django_celery_results.models import TaskResult
 from rest_framework.reverse import reverse_lazy
 
+from humitifier_server import celery_app
 from hosts.filters import AlertFilters
 from hosts.models import Alert, AlertLevel, AlertType, Host
-from main.filters import AccessProfileFilters, UserFilters
+from main.filters import AccessProfileFilters, TaskResultFilters, UserFilters
 from main.forms import (
     AccessProfileForm,
     CreateSolisUserForm,
@@ -32,7 +35,7 @@ from main.forms import (
     UserProfileForm,
 )
 from main.models import AccessProfile, HomeOptions, User
-from main.tables import AccessProfilesTable, UsersTable
+from main.tables import AccessProfilesTable, TaskTable, UsersTable
 
 
 ###
@@ -404,3 +407,56 @@ class EditAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateVi
 class DeleteAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
     model = AccessProfile
     success_url = reverse_lazy("main:access_profiles")
+
+
+class TasksView(
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+):
+    model = TaskResult
+    table_class = TaskTable
+    filterset_class = TaskResultFilters
+    paginate_by = 50
+    template_name = "main/task_list.html"
+    ordering = "-date_created"
+    ordering_fields = {
+        "date_created": "date_created",
+        "date_done": "date_done",
+    }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        inspector = celery_app.control.inspect()
+
+        active_tasks = inspector.active()
+        scheduled_tasks = inspector.scheduled()
+
+        tasks = self.transform_tasks(scheduled_tasks, "SCHEDULED")
+        tasks += self.transform_tasks(active_tasks, "ACTIVE")
+
+        context["current_tasks"] = tasks
+
+        return context
+
+    def transform_tasks(self, tasks_data, _type):
+        output = []
+        for _, tasks in tasks_data.items():
+            for task in tasks:
+                task["type"] = _type
+                if "time_start" in task and isinstance(
+                    task["time_start"], (int, float)
+                ):
+                    task["time_start"] = datetime.fromtimestamp(
+                        task["time_start"]
+                    ).strftime("%Y-%m-%d %H:%M:%S")
+
+                output.append(task)
+
+        return output
+
+
+class TaskResultDetailView(LoginRequiredMixin, SuperuserRequiredMixin, DetailView):
+    model = TaskResult
+    slug_field = "task_id"
+    slug_url_kwarg = "task_id"
+    template_name = "main/taskresult_details.html"
