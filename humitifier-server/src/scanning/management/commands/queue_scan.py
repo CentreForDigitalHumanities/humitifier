@@ -1,3 +1,6 @@
+import sys
+from datetime import UTC, datetime, timedelta
+
 from django.core.management.base import BaseCommand, CommandError
 
 from hosts.models import Host
@@ -10,6 +13,7 @@ class Command(BaseCommand):
         parser.add_argument("--host")
         parser.add_argument("--force", action="store_true")
         parser.add_argument("--all", action="store_true")
+        parser.add_argument("--delay")
 
     def handle(self, *args, **options):
         from scanning.tasks import start_scan
@@ -27,4 +31,12 @@ class Command(BaseCommand):
                         "Cannot queue scans for hosts using non-scheduled scheduling",
                     )
 
-            start_scan.delay(host.fqdn)
+            eta = None
+            if options["delay"]:
+                try:
+                    eta = datetime.now(UTC) + timedelta(seconds=int(options["delay"]))
+                except ValueError:
+                    print("Invalid eta value")
+                    sys.exit(1)
+
+            start_scan.apply_async(args=[host.fqdn], eta=eta)
