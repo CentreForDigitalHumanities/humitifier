@@ -34,6 +34,6 @@ def process_scan_output(scan_output: ScanOutput):
 
 
 @shared_task(name=SCANNING_SCAN_HANDLE_ERROR)
-def on_scan_error(request, exc, traceback):
-    logger.error(f"Error during task {request.id}: {exc}")
+def on_scan_error(id, **kwargs):
+    logger.error(f"Error during task id: %s", kwargs)
     # TODO: add alert
