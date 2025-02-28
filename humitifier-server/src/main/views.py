@@ -431,10 +431,11 @@ class TasksView(
         active_tasks = inspector.active()
         scheduled_tasks = inspector.scheduled()
 
-        tasks = self.transform_tasks(scheduled_tasks, "SCHEDULED")
-        tasks += self.transform_tasks(active_tasks, "ACTIVE")
+        active_tasks = self.transform_tasks(active_tasks, "SCHEDULED")
+        scheduled_tasks = self.transform_tasks(scheduled_tasks, "ACTIVE")
 
-        context["current_tasks"] = tasks
+        context["current_tasks"] = active_tasks
+        context["scheduled_tasks"] = scheduled_tasks
 
         return context
 

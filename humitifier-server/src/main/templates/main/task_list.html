@@ -9,7 +9,12 @@
     <div class="h-full--header w-full bg transition ease-in-out duration-150">
         <div class="px-7 py-5">
             <h1 class="text-3xl font-bold">Tasks</h1>
-            <h2 class="text-2xl font-bold my-8">Current tasks</h2>
+            <h2 class="text-2xl font-bold mt-6">Scheduled tasks</h2>
+            <p class="my-2">
+                Please note that this page only shows scheduled tasks known to
+                the task-broker. There is a secondary schedular for periodic
+                tasks, which is not reflected here.
+            </p>
         </div>
         <table class="w-full table-auto">
             <thead>
@@ -24,7 +29,55 @@
                 </th>
 
                 <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
-                    Task State
+                    Acknowledged by worker
+                </th>
+
+                <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
+                    Scheduled for
+                </th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for task in scheduled_tasks %}
+                <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+                    <td class="pl-7 py-5 ">
+                        {{ task.request.id }}
+                    </td>
+                    <td class="py-5">
+                        {{ task.request.name }}
+                    </td>
+                    <td class="py-5">
+                        {{ task.request.acknowledged|yesno }}
+                    </td>
+                    <td class="pr-7 py-5 ">
+                        {{ task.eta }}
+                    </td>
+                </tr>
+            {% empty %}
+                <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+                    <td colspan="5" class="text-center px-7 py-5">
+                        {% if layout.wild_wasteland %}
+                            The swarm is eagerly awaiting work
+                        {% else %}
+                            No tasks currently scheduled
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+
+        <h2 class="text-2xl font-bold px-7 py-5 mt-8">Running tasks</h2>
+        <table class="w-full table-auto">
+            <thead>
+            <tr class="text-left">
+
+                <th class="pl-7 py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
+                    Task ID
+                </th>
+
+                <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
+                    Task Name
                 </th>
 
                 <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
@@ -32,7 +85,7 @@
                 </th>
 
                 <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 ">
-                    Created DateTime
+                    Created on
                 </th>
             </tr>
             </thead>
@@ -46,29 +99,34 @@
                         {{ task.name }}
                     </td>
                     <td class="py-5">
-                        {{ task.type }}
-                    </td>
-                    <td class="py-5">
                         {{ task.hostname }}
                     </td>
                     <td class="pr-7 py-5 ">
-                        {{ task.time_start }}
+                        {{ task.time_start|date }}
                     </td>
                 </tr>
             {% empty %}
                 <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
                     <td colspan="5" class="text-center px-7 py-5">
                         {% if layout.wild_wasteland %}
-                            The swarm has not been instructed to do anything. Be cautious of swarm-boredom!
+                            The swarm has not been instructed to do anything. Be
+                            cautious of swarm-boredom!
                         {% else %}
-                            No tasks currently running or scheduled
+                            No tasks currently running
                         {% endif %}
                     </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
-        <h2 class="text-2xl font-bold px-7 py-5 mt-8">Completed tasks</h2>
+        <div class="px-7 pt-5">
+            <h2 class="text-2xl font-bold mt-6">Completed tasks</h2>
+            <p class="mt-2">
+                This overview does not contain the results of the
+                scanner-worker, as they are not stored after processing for
+                security reasons.
+            </p>
+        </div>
         {{ table.render }}
     </div>
 {% endblock %}

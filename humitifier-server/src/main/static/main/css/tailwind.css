@@ -940,11 +940,6 @@ video {
   margin-bottom: 0.5rem;
 }
 
-.my-8 {
-  margin-top: 2rem;
-  margin-bottom: 2rem;
-}
-
 .mb-0 {
   margin-bottom: 0px;
 }
@@ -999,6 +994,10 @@ video {
 
 .mt-1 {
   margin-top: 0.25rem;
+}
+
+.mt-2 {
+  margin-top: 0.5rem;
 }
 
 .mt-3 {
@@ -1260,14 +1259,6 @@ video {
   grid-template-columns: repeat(auto-fit,1fr);
 }
 
-.grid-cols-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-
-.grid-rows-4 {
-  grid-template-rows: repeat(4, minmax(0, 1fr));
-}
-
 .grid-rows-\[3\.5rem\2c 1fr\] {
   grid-template-rows: 3.5rem 1fr;
 }
@@ -1328,12 +1319,12 @@ video {
   gap: 1rem;
 }
 
-.gap-8 {
-  gap: 2rem;
-}
-
 .gap-5 {
   gap: 1.25rem;
+}
+
+.gap-8 {
+  gap: 2rem;
 }
 
 .gap-x-2 {
@@ -1563,16 +1554,6 @@ video {
 .bg-white {
   --tw-bg-opacity: 1;
   background-color: rgb(255 255 255 / var(--tw-bg-opacity));
-}
-
-.bg-gray-500 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(113 113 122 / var(--tw-bg-opacity));
-}
-
-.bg-gray-300 {
-  --tw-bg-opacity: 1;
-  background-color: rgb(212 212 216 / var(--tw-bg-opacity));
 }
 
 .bg-opacity-20 {
@@ -2064,12 +2045,12 @@ html:not(.dark) .light\:btn-primary:hover:where(.dark, .dark *) {
          columns: 2;
   }
 
-  .lg\:grid-cols-\[auto\2c 400px\] {
-    grid-template-columns: auto 400px;
-  }
-
   .lg\:grid-cols-2 {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .lg\:grid-cols-\[auto\2c 400px\] {
+    grid-template-columns: auto 400px;
   }
 
   .lg\:flex-row {
@@ -2191,11 +2172,6 @@ html:not(.dark) .light\:btn-primary:hover:where(.dark, .dark *) {
   border-color: rgb(39 39 42 / var(--tw-border-opacity));
 }
 
-.dark\:border-gray-500:where(.dark, .dark *) {
-  --tw-border-opacity: 1;
-  border-color: rgb(113 113 122 / var(--tw-border-opacity));
-}
-
 .dark\:border-b-gray-800:where(.dark, .dark *) {
   --tw-border-opacity: 1;
   border-bottom-color: rgb(39 39 42 / var(--tw-border-opacity));
@@ -2254,11 +2230,6 @@ html:not(.dark) .light\:btn-primary:hover:where(.dark, .dark *) {
 .dark\:bg-red-800:where(.dark, .dark *) {
   --tw-bg-opacity: 1;
   background-color: rgb(153 27 27 / var(--tw-bg-opacity));
-}
-
-.dark\:bg-gray-600:where(.dark, .dark *) {
-  --tw-bg-opacity: 1;
-  background-color: rgb(82 82 91 / var(--tw-bg-opacity));
 }
 
 .dark\:text-blue-300:where(.dark, .dark *) {
