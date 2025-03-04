@@ -177,6 +177,13 @@ class HostFilters(django_filters.FilterSet):
         ],
     )
 
+    data_source = django_filters.ModelMultipleChoiceFilter(
+        label="Data Source",
+        field_name="data_source",
+        queryset=DataSource.objects.all(),
+        widget=MultipleChoiceFilterWidget,
+    )
+
     archived = IncludeArchivedFilter(
         empty_label="Exclude archived servers",
     )
