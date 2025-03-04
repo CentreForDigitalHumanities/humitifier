@@ -1,3 +1,5 @@
+import subprocess
+import sys
 from typing import Any, Type
 
 from humitifier_common.artefacts.registry.registry import ArtefactType
@@ -45,17 +47,25 @@ def scan(input_data: ScanInput) -> ScanOutput:
         original_input=input_data,
     )
 
-    for collector in collectors:
-        collector_output, collector_errors = _run_collector(
-            collector, input_data, output
+    if _check_host_online(input_data.hostname):
+        for collector in collectors:
+            collector_output, collector_errors = _run_collector(
+                collector, input_data, output
+            )
+
+            if collector.fact:
+                output.facts[collector.artefact_name()] = collector_output
+            elif collector.metric:
+                output.metrics[collector.artefact_name()] = collector_output
+
+            output.errors.extend(collector_errors)
+    else:
+        output.errors.append(
+            ScanError(
+                message="The intended host seems to be offline",
+                type=ErrorTypeEnum.HOST_OFFLINE,
+            )
         )
-
-        if collector.fact:
-            output.facts[collector.artefact_name()] = collector_output
-        elif collector.metric:
-            output.metrics[collector.artefact_name()] = collector_output
-
-        output.errors.extend(collector_errors)
 
     _release_executors(input_data)
 
@@ -115,6 +125,30 @@ def _get_scan_order(
     logger.debug(f"Resolved artefact-scan order: {scan_order}")
 
     return collectors, errors
+
+
+def _check_host_online(hostname):
+    # Why are we building in support for Windows? Reasons!
+    ping_count_arg = "-n" if sys.platform.lower() == "win32" else "-c"
+
+    try:
+        result = subprocess.run(
+            ["ping", ping_count_arg, "1", hostname],
+            capture_output=True,
+            text=True,
+        )
+        is_online = result.returncode == 0
+
+        if is_online:
+            logger.debug("Host is online")
+        else:
+            logger.debug("Host is offline :(")
+
+        return is_online
+
+    except Exception as e:
+        logger.error(f"An error occurred while trying to contact host {hostname}: {e}")
+        return False
 
 
 def _run_collector(
