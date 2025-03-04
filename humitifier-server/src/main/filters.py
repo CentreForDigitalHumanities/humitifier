@@ -1,7 +1,40 @@
 import django_filters
 from django.forms import Form, SelectMultiple
+from django_celery_results.models import TaskResult
 
 from main.models import AccessProfile, User
+
+#
+# Helpers
+#
+
+
+def _get_choices(model, field, strip_quotes=True):
+    # The empty order_by() is required to remove the default ordering
+    # which would otherwise mess up the distinct() call.
+    # (It would add the ordering field to the SELECT list, which means postgres
+    # would view every row as distinct.)
+    db_values = model.objects.values_list(field, flat=True).order_by().distinct()
+    # Not needed, but just to be sure
+    db_values = set(db_values)
+    values = []
+
+    for db_value in db_values:
+        if db_value:
+            human_label = db_value
+            if strip_quotes:
+                human_label = human_label[1:-1]
+
+            values.append((db_value, human_label))
+
+    values = sorted(values, key=lambda x: x[1])
+
+    return values
+
+
+#
+# Widgets
+#
 
 
 class MultipleChoiceFilterWidget(SelectMultiple):
@@ -9,6 +42,11 @@ class MultipleChoiceFilterWidget(SelectMultiple):
         js = ["main/js/alpine.multiselect.js"]
 
     template_name = "django/forms/widgets/multi_select_filter.html"
+
+
+#
+# Base Filters
+#
 
 
 class BooleanChoiceFilter(django_filters.ChoiceFilter):
@@ -22,6 +60,11 @@ class BooleanChoiceFilter(django_filters.ChoiceFilter):
         return super().filter(qs, value)
 
 
+#
+# Base filter form
+#
+
+
 class FiltersForm(Form):
     template_name = "base/page_parts/filters_form_template.html"
 
@@ -30,6 +73,11 @@ class FiltersForm(Form):
 
         for field_name, field in self.fields.items():
             self.fields[field_name].widget.attrs["placeholder"] = field.label
+
+
+#
+# Actual filtersets
+#
 
 
 class UserFilters(django_filters.FilterSet):
@@ -76,4 +124,21 @@ class AccessProfileFilters(django_filters.FilterSet):
 
 
 class TaskResultFilters(django_filters.FilterSet):
-    pass
+    class Meta:
+        model = TaskResult
+        fields = []
+        form = FiltersForm
+
+    task_name = django_filters.MultipleChoiceFilter(
+        label="Task name",
+        field_name="task_name",
+        choices=lambda: _get_choices(TaskResult, "task_name", strip_quotes=False),
+        widget=MultipleChoiceFilterWidget,
+    )
+
+    worker = django_filters.MultipleChoiceFilter(
+        label="Worker",
+        field_name="worker",
+        choices=lambda: _get_choices(TaskResult, "worker", strip_quotes=False),
+        widget=MultipleChoiceFilterWidget,
+    )

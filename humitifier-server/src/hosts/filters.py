@@ -3,35 +3,13 @@ from django.db.models.expressions import RawSQL
 from django_filters import ChoiceFilter
 from drf_spectacular.types import OpenApiTypes
 
-from hosts.models import Alert, AlertLevel, AlertType, DataSource, DataSourceType, Host
-from main.filters import BooleanChoiceFilter, FiltersForm, MultipleChoiceFilterWidget
-
-#
-# Helpers
-#
-
-
-def _get_choices(field, strip_quotes=True):
-    # The empty order_by() is required to remove the default ordering
-    # which would otherwise mess up the distinct() call.
-    # (It would add the ordering field to the SELECT list, which means postgres
-    # would view every row as distinct.)
-    db_values = Host.objects.values_list(field, flat=True).order_by().distinct()
-    # Not needed, but just to be sure
-    db_values = set(db_values)
-    values = []
-
-    for db_value in db_values:
-        if db_value:
-            human_label = db_value
-            if strip_quotes:
-                human_label = human_label[1:-1]
-
-            values.append((db_value, human_label))
-
-    values = sorted(values, key=lambda x: x[1])
-
-    return values
+from hosts.models import Alert, AlertLevel, AlertType, DataSource, Host
+from main.filters import (
+    BooleanChoiceFilter,
+    FiltersForm,
+    MultipleChoiceFilterWidget,
+    _get_choices,
+)
 
 
 #
@@ -131,7 +109,7 @@ class HostFilters(django_filters.FilterSet):
     os = django_filters.MultipleChoiceFilter(
         label="Operating System",
         field_name="os",
-        choices=lambda: _get_choices("os"),
+        choices=lambda: _get_choices(Host, "os"),
         widget=MultipleChoiceFilterWidget,
     )
 
@@ -146,21 +124,21 @@ class HostFilters(django_filters.FilterSet):
     department = django_filters.MultipleChoiceFilter(
         label="Department",
         field_name="department",
-        choices=lambda: _get_choices("department", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "department", strip_quotes=False),
         widget=MultipleChoiceFilterWidget,
     )
 
     customer = django_filters.MultipleChoiceFilter(
         label="Customer",
         field_name="customer",
-        choices=lambda: _get_choices("customer", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "customer", strip_quotes=False),
         widget=MultipleChoiceFilterWidget,
     )
 
     contact = django_filters.MultipleChoiceFilter(
         label="Contact",
         field_name="contact",
-        choices=lambda: _get_choices("contact", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "contact", strip_quotes=False),
         widget=MultipleChoiceFilterWidget,
     )
 
