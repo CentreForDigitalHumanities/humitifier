@@ -39,4 +39,4 @@ class Command(BaseCommand):
                     print("Invalid eta value")
                     sys.exit(1)
 
-            start_scan.apply_async(args=[host.fqdn], eta=eta)
+            start_scan.apply_async(args=[host.fqdn, True], eta=eta)
