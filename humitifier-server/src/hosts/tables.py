@@ -9,6 +9,7 @@ from main.easy_tables import (
     LinkColumn,
     ModelValueColumn,
     TemplatedColumn,
+    MethodColumn,
 )
 
 
@@ -21,8 +22,11 @@ class DataSourcesTable(BaseTable):
             "source_type",
             "scan_scheduling",
             "default_scan_spec",
+            "num_hosts",
             "actions",
         ]
+
+    num_hosts = MethodColumn("Number of hosts", method_name="get_num_hosts")
 
     actions = CompoundColumn(
         "Actions",
@@ -34,6 +38,10 @@ class DataSourcesTable(BaseTable):
             ),
         ],
     )
+
+    @staticmethod
+    def get_num_hosts(obj: DataSource):
+        return obj.hosts.count()
 
 
 class HostsTable(BaseTable):
