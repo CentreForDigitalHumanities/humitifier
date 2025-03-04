@@ -288,7 +288,7 @@ class Host(models.Model):
     ##
 
     os = models.GeneratedField(
-        expression=_json_value("last_scan_cache__HostnameCtl__os"),
+        expression=_json_value("last_scan_cache__facts__generic.HostnameCtl__os"),
         output_field=models.CharField(max_length=255),
         db_persist=True,
     )
