@@ -10,6 +10,7 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from api.models import OAuth2Application
+from hosts.json import HostJSONDecoder, HostJSONEncoder
 from humitifier_common.artefacts.registry.registry import (
     registry as artefact_registry,
 )
@@ -215,6 +216,8 @@ class Host(models.Model):
 
     last_scan_cache = models.JSONField(
         null=True,
+        encoder=HostJSONEncoder,
+        decoder=HostJSONDecoder,
     )
 
     last_scan_date = models.DateTimeField(
@@ -475,7 +478,10 @@ class Scan(models.Model):
 
     host = models.ForeignKey(Host, on_delete=models.CASCADE, related_name="scans")
 
-    data = models.JSONField()
+    data = models.JSONField(
+        encoder=HostJSONEncoder,
+        decoder=HostJSONDecoder,
+    )
 
     created_at = models.DateTimeField(auto_now_add=True)
 
