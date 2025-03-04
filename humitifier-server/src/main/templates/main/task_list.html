@@ -125,6 +125,10 @@
                 This overview does not contain the results of the
                 scanner-worker, as they are not stored after processing for
                 security reasons.
+                {% if layout.wild_wasteland %}
+                Oh who am I kidding, it's because it's actually a pain to
+                get the results of the scanner-worker saved in the result-store.
+                {% endif %}
             </p>
         </div>
         {{ table.render }}
