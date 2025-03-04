@@ -232,6 +232,8 @@ class Host(models.Model):
 
     archival_date = models.DateTimeField(null=True)
 
+    last_scan_scheduled = models.DateTimeField(null=True)
+
     data_source = models.ForeignKey(
         DataSource,
         verbose_name="Data source",
