@@ -12,6 +12,8 @@ module.exports = {
         'ultrawide:table-cell',
         'btn-danger',
         'btn-primary',
+        '!flex',
+        '!block',
     ],
     darkMode: ['selector'],
     theme: {
