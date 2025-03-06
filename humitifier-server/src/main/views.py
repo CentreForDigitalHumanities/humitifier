@@ -165,6 +165,9 @@ class FilteredListView(ListView):
 ### Page views
 ###
 
+#
+# Home views
+#
 
 class HomeRedirectView(LoginRequiredMixin, RedirectView):
 
@@ -252,6 +255,9 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
 
         return context
 
+#
+# User management views
+#
 
 class UsersView(
     LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
@@ -378,6 +384,9 @@ class SetPasswordView(
 
         return super().dispatch(request, *args, **kwargs)
 
+#
+# Access profile views
+#
 
 class AccessProfilesView(
     LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
@@ -409,6 +418,9 @@ class DeleteAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, Delete
     model = AccessProfile
     success_url = reverse_lazy("main:access_profiles")
 
+#
+# Celery views
+#
 
 class CurrentTasksView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = "main/currenttasks_list.html"
