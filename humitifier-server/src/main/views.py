@@ -12,6 +12,7 @@ from django.views.generic import (
     DeleteView,
     ListView,
     RedirectView,
+    TemplateView,
     UpdateView,
 )
 from django.views.generic.detail import (
@@ -409,19 +410,8 @@ class DeleteAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, Delete
     success_url = reverse_lazy("main:access_profiles")
 
 
-class TasksView(
-    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
-):
-    model = TaskResult
-    table_class = TaskTable
-    filterset_class = TaskResultFilters
-    paginate_by = 50
-    template_name = "main/task_list.html"
-    ordering = "-date_created"
-    ordering_fields = {
-        "date_created": "date_created",
-        "date_done": "date_done",
-    }
+class CurrentTasksView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    template_name = "main/currenttasks_list.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -454,6 +444,21 @@ class TasksView(
                 output.append(task)
 
         return output
+
+
+class TaskResultsView(
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+):
+    model = TaskResult
+    table_class = TaskTable
+    filterset_class = TaskResultFilters
+    paginate_by = 50
+    template_name = "main/taskresult_list.html"
+    ordering = "-date_created"
+    ordering_fields = {
+        "date_created": "date_created",
+        "date_done": "date_done",
+    }
 
 
 class TaskResultDetailView(LoginRequiredMixin, SuperuserRequiredMixin, DetailView):

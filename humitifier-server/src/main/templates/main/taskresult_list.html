@@ -1,0 +1,24 @@
+{% extends "base/base_page_template.html" %}
+
+{% load humanize %}
+{% load param_replace %}
+
+{% block page_title %}Task results | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg transition ease-in-out duration-150">
+        <div class="px-7 py-5">
+            <h1 class="text-3xl font-bold">Task results</h1>
+            <p class="mt-2">
+                This overview does not contain the results of the
+                scanner-worker, as they are not stored after processing for
+                security reasons.
+                {% if layout.wild_wasteland %}
+                Oh who am I kidding, it's because it's actually a pain to
+                get the results of the scanner-worker saved in the result-store.
+                {% endif %}
+            </p>
+        </div>
+        {{ table.render }}
+    </div>
+{% endblock %}

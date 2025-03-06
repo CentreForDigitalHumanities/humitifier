@@ -43,12 +43,28 @@ Menu.add_item(
 
 Menu.add_item(
     "main",
-    MenuItem(
-        "Tasks",
-        reverse("main:tasks"),
+    HumitifierMenuItem(
+        lambda request: (
+            "The Swarm™" if request.user.wild_wasteland_mode else "Task management"
+        ),
+        None,
         weight=998,
-        icon="icons/tasks.html",
+        icon="icons/cloud.html",
         check=lambda request: request.user.is_superuser,
+        children=[
+            HumitifierMenuItem(
+                "Current tasks",
+                reverse("main:current_tasks"),
+                icon="icons/tasks.html",
+                check=lambda request: request.user.is_superuser,
+            ),
+            HumitifierMenuItem(
+                "Completed tasks",
+                reverse("main:tasks"),
+                icon="icons/document-check.html",
+                check=lambda request: request.user.is_superuser,
+            ),
+        ],
     ),
 )
 

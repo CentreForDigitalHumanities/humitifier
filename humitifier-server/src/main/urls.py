@@ -6,6 +6,7 @@ from .views import (
     CreateAccessProfileView,
     CreateSolisUserView,
     CreateUserView,
+    CurrentTasksView,
     DashboardView,
     DeActivateUserView,
     DeleteAccessProfileView,
@@ -14,7 +15,7 @@ from .views import (
     HomeRedirectView,
     SetPasswordView,
     TaskResultDetailView,
-    TasksView,
+    TaskResultsView,
     UserProfileView,
     UsersView,
 )
@@ -58,6 +59,11 @@ urlpatterns = [
         name="delete_access_profile",
     ),
     path("login", LoginView.as_view(), name="login"),
-    path("tasks/", TasksView.as_view(), name="tasks"),
-    path("task/<slug:task_id>/", TaskResultDetailView.as_view(), name="task_details"),
+    path("tasks/current/", CurrentTasksView.as_view(), name="current_tasks"),
+    path("tasks/results/", TaskResultsView.as_view(), name="tasks"),
+    path(
+        "task/results/<slug:task_id>/",
+        TaskResultDetailView.as_view(),
+        name="task_details",
+    ),
 ]
