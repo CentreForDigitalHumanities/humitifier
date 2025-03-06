@@ -46,34 +46,11 @@
         </a>
     </div>
     <section class="p-3 overflow-y-auto">
-        <ul class="space-y-2">
-            {% block menu %}
+        {% block menu %}
             {% generate_menu %}
-                {% for item in menus.main %}
-                    {% if item.visible %}
-                        {% if item.separator %}
-                            <li class="px-3 py-2">
-                                <div class="border-t w-full border-gray-700"></div>
-                            </li>
-                        {% endif %}
-                        <li>
-                            <a
-                                href="{{ item.url }}"
-                                target="{{ item.target }}"
-                                class="flex gap-3 py-2 px-3 text-white hover:bg-neutral-800 rounded transition ease-in-out duration-150 {% if item.selected %}bg-neutral-800{% endif %}"
-                            >
-                            {% if item.icon %}
-                                {% include item.icon %}
-                            {% endif %}
-                                <span>
-                                    {{ item.title }}
-                                </span>
-                            </a>
-                        </li>
-                    {% endif %}
-                {% endfor %}
-            {% endblock %}
-        </ul>
-
+            {% with menu_items=menus.main %}
+                {% include 'base/page_parts/sidebar_menu.html' %}
+            {% endwith %}
+        {% endblock %}
     </section>
 </aside>

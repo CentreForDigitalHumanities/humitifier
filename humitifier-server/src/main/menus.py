@@ -1,6 +1,8 @@
 from django.urls import reverse
 from simple_menu import Menu, MenuItem
 
+from main.menu_item import HumitifierMenuItem
+
 Menu.add_item(
     "main",
     MenuItem(
@@ -14,26 +16,42 @@ Menu.add_item(
 
 Menu.add_item(
     "main",
-    MenuItem(
-        "Users",
-        reverse("main:users"),
+    HumitifierMenuItem(
+        "Auth",
+        None,
         weight=20,
-        icon="icons/users.html",
-        separator=True,
+        icon="icons/users-alt.html",
         check=lambda request: request.user.is_superuser,
+        children=[
+            HumitifierMenuItem(
+                "Users",
+                reverse("main:users"),
+                weight=20,
+                icon="icons/users.html",
+                check=lambda request: request.user.is_superuser,
+            ),
+            HumitifierMenuItem(
+                "Access profiles",
+                reverse("main:access_profiles"),
+                weight=21,
+                check=lambda request: request.user.is_superuser,
+                icon="icons/shield.html",
+            ),
+        ],
     ),
 )
 
 Menu.add_item(
     "main",
     MenuItem(
-        "Access profiles",
-        reverse("main:access_profiles"),
-        weight=21,
+        "Tasks",
+        reverse("main:tasks"),
+        weight=998,
+        icon="icons/tasks.html",
         check=lambda request: request.user.is_superuser,
-        icon="icons/shield.html",
     ),
 )
+
 
 Menu.add_item(
     "main",
@@ -43,19 +61,7 @@ Menu.add_item(
         weight=999,
         icon="icons/admin.html",
         check=lambda request: request.user.is_superuser,
-        target="_blank",
-    ),
-)
-
-
-Menu.add_item(
-    "main",
-    MenuItem(
-        "Tasks",
-        reverse("main:tasks"),
-        weight=998,
-        icon="icons/tasks.html",
         separator=True,
-        check=lambda request: request.user.is_superuser,
+        target="_blank",
     ),
 )
