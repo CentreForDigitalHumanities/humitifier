@@ -51,6 +51,10 @@ def start_full_scan(hostname: str, force=False):
     # Prepare the scan input, create a task chain for scanning and processing, and handle potential errors.
     scan_input = host.get_scan_input()
 
+    if not scan_input:
+        logger.error("Start-scan: scan requested for host without scan spec set")
+        return
+
     scan_task = signature(SCANNER_RUN_SCAN, args=(scan_input.model_dump(),))
     process_task = process_scan_output.signature()
 
