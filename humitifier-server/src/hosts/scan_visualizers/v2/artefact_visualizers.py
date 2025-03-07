@@ -1,6 +1,10 @@
 from datetime import datetime
 
-from cron_descriptor import Options, get_description as get_cron_description
+from cron_descriptor import (
+    FormatException,
+    Options,
+    get_description as get_cron_description,
+)
 from django.utils.safestring import mark_safe
 
 from hosts.scan_visualizers.base_components import (
@@ -357,6 +361,13 @@ class RebootPolicyVisualizer(ArtefactVisualizer):
     template = "hosts/scan_visualizer/components/reboot_policy.html"
 
     def parse_cron(self) -> str:
+        if not (
+            self.artefact_data.cron_minute
+            and self.artefact_data.cron_hour
+            and self.artefact_data.cron_monthday
+        ):
+            return ""
+
         cron_line = "{} {} {} * *".format(
             self.artefact_data.cron_minute,
             self.artefact_data.cron_hour,
@@ -367,7 +378,10 @@ class RebootPolicyVisualizer(ArtefactVisualizer):
         options.verbose = True
         options.use_24hour_time_format = True
 
-        return get_cron_description(cron_line, options)
+        try:
+            return get_cron_description(cron_line, options)
+        except FormatException:
+            return ""
 
     def get_context(self, **kwargs) -> dict:
         context = super().get_context(**kwargs)
