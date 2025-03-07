@@ -1,5 +1,6 @@
 import django_filters
 from django.forms import Form, SelectMultiple
+from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 
 from main.models import AccessProfile, User
@@ -141,4 +142,20 @@ class TaskResultFilters(django_filters.FilterSet):
         field_name="worker",
         choices=lambda: _get_choices(TaskResult, "worker", strip_quotes=False),
         widget=MultipleChoiceFilterWidget,
+    )
+
+
+class PeriodicTaskFilters(django_filters.FilterSet):
+    class Meta:
+        model = PeriodicTask
+        fields = []
+        form = FiltersForm
+
+    enabled = BooleanChoiceFilter(
+        empty_label="Enabled",
+        field_name="enabled",
+        choices=[
+            (True, "Yes"),
+            (False, "No"),
+        ],
     )

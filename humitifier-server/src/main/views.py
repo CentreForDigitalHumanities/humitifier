@@ -21,13 +21,20 @@ from django.views.generic.detail import (
     SingleObjectTemplateResponseMixin,
 )
 from django.views.generic.edit import CreateView, FormMixin
+from django_celery_beat.admin import PeriodicTaskForm
+from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 from rest_framework.reverse import reverse_lazy
 
 from humitifier_server import celery_app
 from hosts.filters import AlertFilters
-from hosts.models import Alert, AlertLevel, AlertType, Host
-from main.filters import AccessProfileFilters, TaskResultFilters, UserFilters
+from hosts.models import Alert, AlertLevel, Host
+from main.filters import (
+    AccessProfileFilters,
+    PeriodicTaskFilters,
+    TaskResultFilters,
+    UserFilters,
+)
 from main.forms import (
     AccessProfileForm,
     CreateSolisUserForm,
@@ -36,7 +43,12 @@ from main.forms import (
     UserProfileForm,
 )
 from main.models import AccessProfile, HomeOptions, User
-from main.tables import AccessProfilesTable, TaskTable, UsersTable
+from main.tables import (
+    AccessProfilesTable,
+    PeriodicTaskTable,
+    TaskResultTable,
+    UsersTable,
+)
 
 
 ###
@@ -469,7 +481,7 @@ class TaskResultsView(
     LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
 ):
     model = TaskResult
-    table_class = TaskTable
+    table_class = TaskResultTable
     filterset_class = TaskResultFilters
     paginate_by = 50
     template_name = "main/taskresult_list.html"
@@ -485,3 +497,38 @@ class TaskResultDetailView(LoginRequiredMixin, SuperuserRequiredMixin, DetailVie
     slug_field = "task_id"
     slug_url_kwarg = "task_id"
     template_name = "main/taskresult_details.html"
+
+
+class PeriodicTasksView(
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+):
+    model = PeriodicTask
+    table_class = PeriodicTaskTable
+    filterset_class = PeriodicTaskFilters
+    paginate_by = 50
+    template_name = "main/periodictask_list.html"
+    ordering = "name"
+    ordering_fields = {
+        "name": "Name",
+        "last_run_at": "Last run",
+    }
+
+
+class CreatePeriodicTaskView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+    model = PeriodicTask
+    form_class = PeriodicTaskForm
+    success_url = reverse_lazy("main:periodic_tasks")
+    template_name = "main/periodictask_form.html"
+
+
+class EditPeriodicTaskView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+    model = PeriodicTask
+    form_class = PeriodicTaskForm
+    success_url = reverse_lazy("main:periodic_tasks")
+    template_name = "main/periodictask_form.html"
+
+
+class DeletePeriodicTaskView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
+    model = PeriodicTask
+    success_url = reverse_lazy("main:periodic_tasks")
+    template_name = "main/periodictask_confirm_delete.html"

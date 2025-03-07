@@ -64,6 +64,12 @@ Menu.add_item(
                 icon="icons/document-check.html",
                 check=lambda request: request.user.is_superuser,
             ),
+            HumitifierMenuItem(
+                "Periodic tasks",
+                reverse("main:periodic_tasks"),
+                icon="icons/clock.html",
+                check=lambda request: request.user.is_superuser,
+            ),
         ],
     ),
 )

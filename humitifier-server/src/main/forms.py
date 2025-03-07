@@ -167,4 +167,3 @@ class AccessProfileForm(forms.ModelForm):
         self.fields["data_sources"].required = False
         # Make sure customers isn't actually required
         self.fields["customers"].required = False
-
