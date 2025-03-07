@@ -65,3 +65,17 @@ class PuppetAgent(BaseModel):
 @fact(group="server")
 class IsWordpress(BaseModel):
     is_wp: bool
+
+
+##
+## Reboot Policy
+##
+
+
+@fact(group="server")
+class RebootPolicy(BaseModel):
+    configured: bool
+    enabled: bool | None = None
+    cron_minute: str | None = None
+    cron_hour: str | None = None
+    cron_monthday: str | None = None

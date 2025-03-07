@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from cron_descriptor import Options, get_description as get_cron_description
 from django.utils.safestring import mark_safe
 
 from hosts.scan_visualizers.base_components import (
@@ -11,7 +12,6 @@ from hosts.scan_visualizers.base_components import (
     SearchableCardsVisualizer,
 )
 
-from hosts.scan_visualizers.base_visualizer import ComponentScanVisualizer
 from hosts.templatetags.host_tags import size_from_mb, uptime
 from humitifier_common.artefacts import (
     Blocks,
@@ -24,6 +24,7 @@ from humitifier_common.artefacts import (
     NetworkInterfaces,
     PackageList,
     PuppetAgent,
+    RebootPolicy,
     Uptime,
     Users,
     ZFS,
@@ -346,5 +347,32 @@ class ZFSVisualizer(ArtefactVisualizer):
         context = super().get_context(**kwargs)
 
         context["zfs"] = self.artefact_data
+
+        return context
+
+
+class RebootPolicyVisualizer(ArtefactVisualizer):
+    title = "Reboot Policy"
+    artefact = RebootPolicy
+    template = "hosts/scan_visualizer/components/reboot_policy.html"
+
+    def parse_cron(self) -> str:
+        cron_line = "{} {} {} * *".format(
+            self.artefact_data.cron_minute,
+            self.artefact_data.cron_hour,
+            self.artefact_data.cron_monthday,
+        )
+
+        options = Options()
+        options.verbose = True
+        options.use_24hour_time_format = True
+
+        return get_cron_description(cron_line, options)
+
+    def get_context(self, **kwargs) -> dict:
+        context = super().get_context(**kwargs)
+
+        context["reboot_policy"] = self.artefact_data
+        context["cron_description"] = self.parse_cron()
 
         return context

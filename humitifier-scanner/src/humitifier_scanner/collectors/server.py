@@ -6,7 +6,13 @@ from datetime import datetime
 
 from humitifier_scanner.collectors import CollectInfo, ShellCollector
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
-from humitifier_common.artefacts import HostMeta, IsWordpress, PuppetAgent, Uptime
+from humitifier_common.artefacts import (
+    HostMeta,
+    IsWordpress,
+    PuppetAgent,
+    RebootPolicy,
+    Uptime,
+)
 
 
 class HostMetaFactCollector(ShellCollector):
@@ -157,3 +163,34 @@ class IsWordpressFactCollector(ShellCollector):
                         return IsWordpress(is_wp=True)
 
         return IsWordpress(is_wp=False)
+
+
+class RebootPolicyFactCollector(ShellCollector):
+    fact = RebootPolicy
+
+    def collect_from_shell(
+        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    ) -> RebootPolicy | None:
+        result = shell_executor.execute("cat /hum/doc/reboot_policy_facts.json")
+
+        if result.return_code != 0:
+            return None
+
+        json_str = "\n".join(result.stdout)
+        json_args = json.loads(json_str)
+
+        actual_data = json_args["reboot_policy"]
+
+        output = RebootPolicy(
+            configured=actual_data["ensure"] == "present",
+        )
+
+        if "enable" in actual_data:
+            output.enabled = actual_data["enable"]
+
+        for item in ["cron_minute", "cron_hour", "cron_monthday"]:
+            if item in actual_data:
+                val = str(actual_data.get(item))
+                setattr(output, item, val)
+
+        return output

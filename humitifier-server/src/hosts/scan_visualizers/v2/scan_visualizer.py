@@ -14,6 +14,7 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         visualizers.MemoryVisualizer,
         visualizers.ZFSVisualizer,
         visualizers.HardwareVisualizer,
+        visualizers.RebootPolicyVisualizer,
         visualizers.NetworkInterfacesVisualizer,
         visualizers.HostMetaVisualizer,
         visualizers.HostMetaVHostsVisualizer,
