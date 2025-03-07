@@ -3,6 +3,7 @@ from django.forms.renderers import TemplatesSetting
 from django.utils.safestring import mark_safe
 
 from hosts.filters import _get_choices
+from hosts.models import Host
 from main.models import AccessProfile, User
 
 
@@ -128,7 +129,7 @@ class CustomersWidget(forms.CheckboxSelectMultiple):
     def optgroups(self, name, value, attrs=None):
         # First, reset the choices with the current options from the DB
         # This cannot be done in __init__ because the choices change over time
-        self.choices = _get_choices("customer", strip_quotes=False)
+        self.choices = _get_choices(Host, "customer", strip_quotes=False)
 
         # Then, add any values that are not in the choices (but are in the
         # value) to the options, as they might be customers that were removed
@@ -166,3 +167,4 @@ class AccessProfileForm(forms.ModelForm):
         self.fields["data_sources"].required = False
         # Make sure customers isn't actually required
         self.fields["customers"].required = False
+
