@@ -67,14 +67,11 @@ def start_full_scan(hostname: str, force=False):
 @shared_task(name=SCANNING_PROCESS_SCAN, pydantic=True)
 def process_scan_output(scan_output: ScanOutput):
     process_scan(scan_output)
-    # TODO: TypeError('Object of type ErrorTypeEnum is not JSON serializable')
-    # Probably a host-not-found error
 
 
 @shared_task(name=SCANNING_SCAN_HANDLE_ERROR)
 def on_scan_error(id, **kwargs):
     logger.error(f"Error during task id: %s", kwargs)
-    # TODO: add alert
 
 
 @shared_task(name=SCANNING_FULL_SCAN_SCHEDULER)

@@ -3,12 +3,21 @@ This module contains code to build and manage the facts registry.
 Used by agent/server to retrieve the facts dynamically.
 """
 
+from dataclasses import dataclass
 from enum import Enum
 
 
 ##
 ## Registry
 ##
+
+
+@dataclass
+class ArtefactMetadata:
+    # If no data is provided, this is an automatic scan-rejection if true
+    essential: bool = False
+    # If true, absent data from this artefact will not trigger a warning
+    null_is_valid: bool = False
 
 
 class ArtefactType(Enum):
@@ -38,6 +47,7 @@ class _ArtefactRegistry:
         group: str,
         artefact,
         artefact_type: ArtefactType = ArtefactType.FACT,
+        metadata: ArtefactMetadata | None = None,
     ):
         """
         Registers a fact in the internal registry for a given group and name. Ensures that
@@ -54,6 +64,8 @@ class _ArtefactRegistry:
         :type artefact: Any
         :param artefact_type: The type classification of the fact, defaulting to FactType.FACT.
         :type artefact_type: ArtefactType
+        :param metadata:
+        :type metadata: ArtefactMetadata
         :return: None
         :raises ValueError: If a fact with the given name and group is already registered.
         """
@@ -66,6 +78,7 @@ class _ArtefactRegistry:
         # add meta-variable to the artefact class
         artefact.__artefact_name__ = f"{group}.{name}"
         artefact.__artefact_type__ = artefact_type
+        artefact.__artefact_metadata__ = metadata or ArtefactMetadata()
 
     def get(
         self,
@@ -295,7 +308,9 @@ registry = _ArtefactRegistry()
 ##
 
 
-def fact(*, group: str, name: str | None = None):
+def fact(
+    *, group: str, name: str | None = None, metadata: ArtefactMetadata | None = None
+):
     """
     Python decorator to register a fact class in the specified group. The function
     takes a fact class as input and registers it in a central registry for future
@@ -307,6 +322,8 @@ def fact(*, group: str, name: str | None = None):
     :param name: Optional specific name to associate with the fact. Defaults to the
         class name of the fact if not provided.
     :type name: str | None
+    :param metadata:
+    :type metadata: ArtefactMetadata | None
     :return: A decorator function that registers the given class as a fact with the
         specified group and name in the fact registry.
     :rtype: Callable[[Type[object]], Type[object]]
@@ -314,13 +331,22 @@ def fact(*, group: str, name: str | None = None):
 
     def decorator(fact_cls):
         actual_name = name or fact_cls.__name__
-        registry.register(actual_name, group, fact_cls, artefact_type=ArtefactType.FACT)
+
+        registry.register(
+            actual_name,
+            group,
+            fact_cls,
+            artefact_type=ArtefactType.FACT,
+            metadata=metadata,
+        )
         return fact_cls
 
     return decorator
 
 
-def metric(*, group: str, name: str | None = None):
+def metric(
+    *, group: str, name: str | None = None, metadata: ArtefactMetadata | None = None
+):
     """
     Python decorator to register a metric class in the specified group. The function
     takes a metric class as input and registers it in a central registry for future
@@ -333,6 +359,8 @@ def metric(*, group: str, name: str | None = None):
     :param name: An optional custom name for the metric. If not provided, the
       metric class name will be used as the default.
     :type name: str | None
+    :param metadata:
+    :type metadata: ArtefactMetadata | None
     :return: A decorator function that registers the given metric class when
       called. It ensures the metric class is associated with its group and name.
     :rtype: Callable[[Type], Type]
@@ -340,8 +368,13 @@ def metric(*, group: str, name: str | None = None):
 
     def decorator(metric_cls):
         actual_name = name or metric_cls.__name__
+
         registry.register(
-            actual_name, group, metric_cls, artefact_type=ArtefactType.METRIC
+            actual_name,
+            group,
+            metric_cls,
+            artefact_type=ArtefactType.METRIC,
+            metadata=metadata,
         )
         return metric_cls
 
