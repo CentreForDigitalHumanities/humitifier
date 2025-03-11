@@ -74,6 +74,7 @@ def layout_context(request):
             "Thousands of rabbits once attacked Napoleon. The rabbits won.",
             "There’s a tiny home in Virginia called the “Spite House” because that’s why it was built",
             "Playing dance music can help ward off mosquitoes",
+            "“Avoid potential systems fans loop logs” - GPT-4o, 2025",
         ]
         tag_line = random.choice(jokes)
 
