@@ -12,6 +12,7 @@ toml = "^0.10.2"
 pydantic-settings = "^2.8.0"
 humitifier-common = { path = "../humitifier-common", develop = true }
 pyyaml = "^6.0.2"
+sentry-sdk = {extras = ["celery"], version = "^2.22.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"

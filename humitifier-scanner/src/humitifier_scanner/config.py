@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import Tuple, Type
 
-from pydantic import AmqpDsn, BaseModel, Field, Secret
+from pydantic import AmqpDsn, AnyHttpUrl, BaseModel, Field, Secret
 from pydantic_settings import (
     BaseSettings,
     PydanticBaseSettingsSource,
@@ -44,6 +44,10 @@ for loc in _CONFIG_LOCATIONS:
 ##
 class CeleryConfig(BaseModel):
     rabbit_mq_url: AmqpDsn = Field(description="RabbitMQ URL")
+    sentry_dsn: AnyHttpUrl | None = Field(None, description="Sentry DSN")
+    sentry_insecure_cert: bool = Field(
+        False, description="Insecure certificate; for " "local testing"
+    )
     # TODO: rabbitmq auth
 
 

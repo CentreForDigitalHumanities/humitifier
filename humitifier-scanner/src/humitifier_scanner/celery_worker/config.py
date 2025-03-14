@@ -1,7 +1,11 @@
-from celery import Celery
+import socket
+
+from celery import Celery, signals
+import sentry_sdk
+from sentry_sdk import HttpTransport
+from urllib3.connection import HTTPConnection
+
 from humitifier_common.celery.task_routes import task_routes
-
-
 from humitifier_scanner.config import CONFIG
 
 if not CONFIG.celery:
@@ -18,3 +22,25 @@ app = Celery(
 )
 
 app.conf.task_routes = task_routes
+
+
+@signals.celeryd_init.connect
+def init_sentry(**_kwargs):
+    if CONFIG.celery.sentry_dsn:
+
+        class CustomHttpTransport(HttpTransport):
+            def _get_pool_options(self):
+                # This should never be used in production, or even on any server
+                # THis is ONLY for when you're (for some reason) running sentry locally!
+                options = super()._get_pool_options()
+                if CONFIG.celery.sentry_insecure_cert:
+                    options["cert_reqs"] = "CERT_NONE"
+
+                return options
+
+        sentry_sdk.init(
+            dsn=CONFIG.celery.sentry_dsn,
+            send_default_pii=True,
+            traces_sample_rate=1.0,
+            transport=CustomHttpTransport,
+        )
