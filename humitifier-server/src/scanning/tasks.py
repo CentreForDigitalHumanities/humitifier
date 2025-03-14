@@ -10,8 +10,7 @@ from humitifier_common.celery.task_names import SCANNER_RUN_SCAN
 from humitifier_server.celery.task_names import *
 from humitifier_server.logger import logger
 from hosts.models import Host, ScanScheduling
-from scanning.utils.process_scan import process_scan
-from scanning.utils.start_scan import start_full_scan as queue_full_scan
+from scanning.utils import start_full_scan as queue_full_scan
 
 
 @shared_task(name=SCANNING_GET_SCAN_INPUT, pydantic=True)

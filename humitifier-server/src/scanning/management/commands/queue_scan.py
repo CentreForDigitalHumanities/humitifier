@@ -13,7 +13,7 @@ class Command(BaseCommand):
         parser.add_argument("--delay")
 
     def handle(self, *args, **options):
-        from scanning.utils.start_scan import start_full_scan
+        from scanning.utils import start_full_scan
 
         if options["all"]:
             hosts = Host.objects.all()
