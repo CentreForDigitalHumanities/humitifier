@@ -16,6 +16,7 @@ from urllib.parse import urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.reverse import reverse_lazy
+from sentry_sdk import HttpTransport
 
 from . import env
 
@@ -357,6 +358,18 @@ def before_send(event, hint):
 
 DSN = env.get("SENTRY_DSN", default=None)
 if DSN:
+    SENTRY_INSECURE_DSN = env.get_boolean("SENTRY_INSECURE_DSN", False)
+
+    class CustomHttpTransport(HttpTransport):
+        def _get_pool_options(self):
+            # This should never be used in production, or even on any server
+            # THis is ONLY for when you're (for some reason) running sentry locally!
+            options = super()._get_pool_options()
+            if SENTRY_INSECURE_DSN:
+                options["cert_reqs"] = "CERT_NONE"
+
+            return options
+
     sentry_sdk.init(
         dsn=DSN,
         traces_sample_rate=1.0,
@@ -364,6 +377,7 @@ if DSN:
             "continuous_profiling_auto_start": True,
         },
         before_send=before_send,
+        transport=CustomHttpTransport,
     )
 
 ## Celery
