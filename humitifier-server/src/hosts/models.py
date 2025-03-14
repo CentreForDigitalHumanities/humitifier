@@ -49,33 +49,7 @@ class ScanData:
             )
             return None
 
-        output = ScanOutput(**self.raw_data)
-
-        output.facts = {
-            name: self._parse_artefact(name, data)
-            for name, data in output.facts.items()
-        }
-        output.metrics = {
-            name: self._parse_artefact(name, data)
-            for name, data in output.metrics.items()
-        }
-
-        return output
-
-    @staticmethod
-    def _parse_artefact(artefact_name, data):
-        artefact = artefact_registry.get(artefact_name)
-
-        if isinstance(data, dict):
-            return artefact(**data)
-
-        if isinstance(data, list):
-            inner_type = get_args(artefact.__orig_bases__[0])[0]
-            if inner_type:
-                return artefact([inner_type(**datum) for datum in data])
-            return artefact(data)
-
-        return artefact(data) if data else None
+        return ScanOutput(**self.raw_data)
 
 
 class DataSourceType(models.TextChoices):

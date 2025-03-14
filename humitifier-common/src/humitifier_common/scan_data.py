@@ -1,7 +1,11 @@
 from enum import Enum
-from typing import Any
+from typing import Any, get_args
 
 from pydantic import BaseModel, ConfigDict
+
+from humitifier_common.artefacts.registry.registry import (
+    registry as artefact_registry,
+)
 
 
 class ArtefactScanOptions(BaseModel):
@@ -156,3 +160,67 @@ class ScanOutput(BaseModel):
     metrics: dict[str, Any]
     errors: list[ScanError]
     version: int = 2
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+
+        # Make sure any dict-based contents are going to be parsed into their
+        # respective artefact models
+        for key, val in self.facts.items():
+            self.facts[key] = self._parse_artefact(key, val)
+
+        for key, val in self.metrics.items():
+            self.metrics[key] = self._parse_artefact(key, val)
+
+    def get_artefact_data(self, artefact):
+        if not isinstance(artefact, str):
+            if not hasattr(artefact, "__artefact_name__"):
+                raise KeyError
+            artefact = artefact.__artefact_name__
+
+        if artefact in self.facts:
+            data = self.facts[artefact]
+            # Should not do anything, but just in case
+            return self._parse_artefact(artefact, data)
+        if artefact in self.metrics:
+            data = self.metrics[artefact]
+            # Should not do anything, but just in case
+            return self._parse_metrics(artefact, data)
+
+        raise KeyError
+
+    @staticmethod
+    def _parse_artefact(artefact_name, data):
+        """
+        Parses an input data object into a specific artefact instance based on the specified
+        artefact name. This method checks the data's type and adapts it to match the expected
+        format for the target artefact. If the input data is a dictionary or list, it
+        attempts to unpack the contents and initialize the artefact accordingly. If the data
+        is `None`, the method returns `None`.
+
+        :param artefact_name: The name of the artefact to be retrieved from the artefact
+                              registry.
+        :type artefact_name: str
+        :param data: The input data object to be parsed. It may be an existing instance of
+                     the artefact, a dictionary of initialization parameters, or a list of
+                     dictionaries containing initialization parameters.
+        :type data: Any
+        :return: An instance of the artefact corresponding to the provided name and adapted
+                 data. Returns `None` if the input data is `None`.
+        :rtype: Any
+        """
+        artefact = artefact_registry.get(artefact_name)
+
+        if isinstance(data, artefact):
+            return data
+
+        if isinstance(data, dict):
+            return artefact(**data)
+
+        if isinstance(data, list):
+            inner_type = get_args(artefact.__orig_bases__[0])[0]
+            if inner_type:
+                return artefact([inner_type(**datum) for datum in data])
+            return artefact(data)
+
+        return artefact(data) if data else None
