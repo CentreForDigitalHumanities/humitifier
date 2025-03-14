@@ -4,7 +4,7 @@ from celery import shared_task, signature
 from django.db.models import Q
 from django.utils import timezone
 
-from humitifier_common.scan_data import ScanOutput
+from humitifier_common.scan_data import ScanInput, ScanOutput
 from humitifier_common.celery.task_names import SCANNER_RUN_SCAN
 
 from humitifier_server.celery.task_names import *
@@ -14,28 +14,14 @@ from scanning.utils.process_scan import process_scan
 from scanning.utils.start_scan import start_full_scan as queue_full_scan
 
 
-@shared_task(name=SCANNING_START_FULL_SCAN, pydantic=True)
-def start_full_scan(hostname: str, force=False):
-    """
-    Initiates a scanning process for a specified host. The function first attempts to locate the host
-    using its fully qualified domain name (FQDN). If found, it validates whether the host's data
-    source allows scheduled scanning unless explicitly forced. Upon successful validation, the function
-    prepares the scanning input and creates a task chain to execute the scanning and process the
-    scan results.
-
-    :param hostname: The fully qualified domain name (FQDN) of the host to be scanned.
-    :param force: A boolean flag to override scanning restrictions for non-schedulable hosts.
-    :type hostname: str
-    :type force: bool
-    :return: None
-    :rtype: None
-    """
+@shared_task(name=SCANNING_GET_SCAN_INPUT, pydantic=True)
+def get_scan_input_from_host(fqdn: str, force: bool = False) -> ScanInput:
     try:
         # Attempt to fetch the host based on the FQDN. Log an error if the host does not exist.
-        host = Host.objects.get(fqdn=hostname)
-    except Host.DoesNotExist:
-        logger.error(f"Start-scan: Host {hostname} is not found")
-        return
+        host = Host.objects.get(fqdn=fqdn)
+    except Host.DoesNotExist as e:
+        logger.error(f"Start-scan: Host {fqdn} is not found")
+        raise e
 
     # Check if the host's data source allows scheduled scanning, and handle non-schedulable cases unless forced.
     if (
@@ -43,30 +29,47 @@ def start_full_scan(hostname: str, force=False):
         or host.data_source.scan_scheduling != ScanScheduling.SCHEDULED
     ):
         if not force:
-            logger.error(
-                f"Start-scan: scan requested for non-schedulable host {hostname}"
-            )
-            return
+            logger.error(f"Start-scan: scan requested for non-schedulable host {fqdn}")
+            raise RuntimeError("Scan requested for non-schedulable host")
 
     # Prepare the scan input, create a task chain for scanning and processing, and handle potential errors.
     scan_input = host.get_scan_input()
 
     if not scan_input:
         logger.error("Start-scan: scan requested for host without scan spec set")
-        return
+        raise ValueError("Missing scan spec")
+
+    return scan_input
+
+
+@shared_task(name=SCANNING_RUN_SCAN, pydantic=True)
+def run_scan(scan_input: ScanInput) -> ScanOutput:
+    # scan_task = signature(SCANNER_RUN_SCAN, args=(scan_input.model_dump(),))
+    # process_task = process_scan_output.signature()
+    #
+    # chain = scan_task | process_task
+    # chain = chain.on_error(on_scan_error.s())
+    #
+    # chain.apply_async()
 
     scan_task = signature(SCANNER_RUN_SCAN, args=(scan_input.model_dump(),))
-    process_task = process_scan_output.signature()
+    scan_task.on_error(on_scan_error.s())
 
-    chain = scan_task | process_task
-    chain = chain.on_error(on_scan_error.s())
-
-    chain.apply_async()
+    return ScanOutput(**scan_task.apply_async().get())
 
 
-@shared_task(name=SCANNING_PROCESS_SCAN, pydantic=True)
-def process_scan_output(scan_output: ScanOutput):
-    process_scan(scan_output)
+@shared_task(name=SCANNING_SAVE_SCAN, pydantic=True)
+def save_scan(scan_output: ScanOutput):
+    try:
+        host = Host.objects.get(fqdn=scan_output.hostname)
+    except Host.DoesNotExist:
+        logger.error("Received scan output for unknown host")
+        return
+
+    if scan_output.errors:
+        logger.error(f"Errors for {host.fqdn}: {scan_output.errors}")
+
+    host.add_scan(scan_output.model_dump())
 
 
 @shared_task(name=SCANNING_SCAN_HANDLE_ERROR)
