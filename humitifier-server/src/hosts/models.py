@@ -38,6 +38,10 @@ class ScanData:
         elif "version" in raw_scan:
             version = raw_scan["version"]
 
+        if "scan_date" in raw_scan:
+            # Always prefer the recorded time in the scan if we have access to it
+            created = datetime.fromisoformat(raw_scan["scan_date"])
+
         return cls(version=version, raw_data=raw_scan, scan_date=created)
 
     @cached_property
