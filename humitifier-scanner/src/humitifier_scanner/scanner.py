@@ -1,4 +1,6 @@
 import subprocess
+from datetime import datetime
+
 import sys
 from typing import Any, Type
 
@@ -20,6 +22,7 @@ from humitifier_common.scan_data import (
 
 
 def scan(input_data: ScanInput) -> ScanOutput:
+    today = datetime.now().astimezone()
     try:
         collectors, errors = _get_scan_order(input_data)
     except MissingRequiredFactError as e:
@@ -37,6 +40,7 @@ def scan(input_data: ScanInput) -> ScanOutput:
             metrics={},
             original_input=input_data,
             hostname=input_data.hostname,
+            scan_date=today,
         )
 
     output = ScanOutput(
@@ -45,6 +49,7 @@ def scan(input_data: ScanInput) -> ScanOutput:
         metrics={},
         errors=errors,
         original_input=input_data,
+        scan_date=today,
     )
 
     if _check_host_online(input_data.hostname):

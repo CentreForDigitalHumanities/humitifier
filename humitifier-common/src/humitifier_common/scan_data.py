@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Any, get_args
 
@@ -155,6 +156,7 @@ class ScanOutput(BaseModel):
     """
 
     original_input: ScanInput
+    scan_date: datetime
     hostname: str
     facts: dict[str, Any]
     metrics: dict[str, Any]
