@@ -174,6 +174,15 @@ class ScanOutput(BaseModel):
         for key, val in self.metrics.items():
             self.metrics[key] = self._parse_artefact(key, val)
 
+        parsed_errors = []
+        for error in self.errors:
+            if isinstance(error, dict):
+                error = ScanError(**error)
+
+            parsed_errors.append(error)
+
+        self.errors = parsed_errors
+
     def get_artefact_data(self, artefact):
         if not isinstance(artefact, str):
             if not hasattr(artefact, "__artefact_name__"):
