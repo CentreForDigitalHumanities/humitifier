@@ -47,6 +47,7 @@ class Uptime(float):
 @fact(group="server")
 class PuppetAgent(BaseModel):
     enabled: bool
+    running: bool | None
     disabled_message: str | None = None
     code_roles: list[str] | None = None
     profiles: list[str] | None = None

@@ -52,9 +52,24 @@ class PuppetAgentFactCollector(ShellCollector):
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
     ) -> PuppetAgent:
+        # Running has a None state; this is mostly for if systemctl has a problem
+        # systemctl has a tendency to tell you a service is inactive in those cases
+        # (which is not the same thing systemd!)
+        running = None
         # Assume it's enabled unless otherwise known
         enabled = True
         disabled_message = None
+
+        # Figure out if the systemd-service is running
+        service_status_cmd = shell_executor.execute(
+            "systemctl status puppet.service &>/dev/null",
+            fail_silent=True,
+        )
+        # Allow for any problem
+        if service_status_cmd.return_code == 0:
+            running = True
+        elif service_status_cmd.return_code == 3:
+            running = False
 
         # Try to retrieve the agent-disabled lock file
         agent_disabled_info_cmd = shell_executor.execute(
@@ -75,7 +90,11 @@ class PuppetAgentFactCollector(ShellCollector):
                 pass
 
         # Create our final output object
-        output = PuppetAgent(enabled=enabled, disabled_message=disabled_message)
+        output = PuppetAgent(
+            enabled=enabled,
+            running=running,
+            disabled_message=disabled_message,
+        )
 
         # Retrieve the last run report for analysis
         result_report_cmd = shell_executor.execute(
@@ -158,7 +177,7 @@ class IsWordpressFactCollector(ShellCollector):
                 for site, info in vhost.items():
                     result = shell_executor.execute(
                         f"test -f {info.docroot}/wp-config.php",
-                        fail_silent=True, # We expect an error code....
+                        fail_silent=True,  # We expect an error code....
                     )
                     if result.return_code == 0:
                         return IsWordpress(is_wp=True)
