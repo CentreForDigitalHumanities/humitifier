@@ -34,17 +34,7 @@
     </div>
 </div>
 
-{% if is_latest_scan %}
-    {% for alert in alerts %}
-        {% if alert.level == 'critical' %}
-            {% include 'hosts/host_detail_parts/alerts/critical.html' %}
-        {% elif alert.level == 'warning' %}
-            {% include 'hosts/host_detail_parts/alerts/warning.html' %}
-        {% elif alert.level == 'info' %}
-            {% include 'hosts/host_detail_parts/alerts/info.html' %}
-        {% endif %}
-    {% endfor %}
-{% else %}
+{% if not is_latest_scan %}
     {% with alert="This is historical data, it does not reflect the current configuration." %}
         {% include 'hosts/host_detail_parts/alerts/warning.html' %}
     {% endwith %}

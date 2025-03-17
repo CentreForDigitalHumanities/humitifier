@@ -26,9 +26,10 @@ from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 from rest_framework.reverse import reverse_lazy
 
+from alerting.models import Alert, AlertSeverity
 from humitifier_server import celery_app
-from hosts.filters import AlertFilters
-from hosts.models import Alert, AlertLevel, Host
+from alerting.filters import AlertFilters
+from hosts.models import Host
 from main.filters import (
     AccessProfileFilters,
     PeriodicTaskFilters,
@@ -197,7 +198,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
     template_name = "main/dashboard.html"
     ordering_fields = {
         "host": "Hostname",
-        "level": "Alert level",
+        "severity": "Alert severity",
         "type": "Alert type",
     }
 
@@ -221,23 +222,23 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
 
     def get_alert_stats(self):
         num_critical = Host.objects.filter(
-            alerts__level=AlertLevel.CRITICAL,
+            alerts__severity=AlertSeverity.CRITICAL,
         ).count()
         num_warning = (
             Host.objects.filter(
-                alerts__level=AlertLevel.WARNING,
+                alerts__severity=AlertSeverity.WARNING,
             )
             .exclude(
-                alerts__level=AlertLevel.CRITICAL,
+                alerts__severity=AlertSeverity.CRITICAL,
             )
             .count()
         )
         num_info = (
             Host.objects.filter(
-                alerts__level=AlertLevel.INFO,
+                alerts__severity=AlertSeverity.INFO,
             )
             .exclude(
-                alerts__level__in=[AlertLevel.WARNING, AlertLevel.CRITICAL],
+                alerts__severity__in=[AlertSeverity.WARNING, AlertSeverity.CRITICAL],
             )
             .count()
         )

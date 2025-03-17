@@ -74,24 +74,34 @@
     <div class="overflow-auto p-3 pt-0">
         {% if is_latest_scan %}
             {% for alert in alerts %}
-                {% if alert.level == 'critical' %}
-                    {% include 'hosts/host_detail_parts/alerts/critical.html' %}
-                {% elif alert.level == 'warning' %}
-                    {% include 'hosts/host_detail_parts/alerts/warning.html' %}
-                {% elif alert.level == 'info' %}
-                    {% include 'hosts/host_detail_parts/alerts/info.html' %}
+                {% if alert.severity == 'critical' %}
+                    {% include 'hosts/scan_visualizer/alerts/critical.html' %}
+                {% elif alert.severity == 'warning' %}
+                    {% include 'hosts/scan_visualizer/alerts/warning.html' %}
+                {% elif alert.severity == 'info' %}
+                    {% include 'hosts/scan_visualizer/alerts/info.html' %}
                 {% endif %}
             {% endfor %}
         {% else %}
-            {% with alert="This is historical data, it does not reflect the current configuration." %}
-                {% include 'hosts/host_detail_parts/alerts/warning.html' %}
-            {% endwith %}
+            <div class="flex items-center gap-3 p-3 mx-2 my-3 mb-0 rounded bg-orange-300 dark:bg-orange-800">
+                {% include 'icons/warning.html' %}
+                <div>This is historical data, it does not reflect the current configuration.</div>
+            </div>
+        {% endif %}
+
+        {% if host.alert_acknowledgements.exists %}
+            <div class="flex items-center gap-3 p-3 mx-2 my-3 mb-0 rounded bg-blue-300 dark:bg-blue-800">
+                {% include 'icons/info.html' %}
+                <div>There are {{ host.alert_acknowledgements.count }} acknowledged alert(s) for this host.</div>
+                <a href="{% url 'alerting:acknowledgments_list' %}?host={{ host.pk }}" class="btn btn-sm btn-outline ml-auto hover:bg-opacity-50 hover:bg-black hover:border-opacity-50 hover:border-black">View</a>
+            </div>
         {% endif %}
 
         {% if host.archived %}
-            {% with alert=host.archived_string %}
-                {% include 'hosts/host_detail_parts/alerts/info.html' %}
-            {% endwith %}
+            <div class="flex items-center gap-3 p-3 mx-2 my-3 mb-0 rounded bg-blue-300 dark:bg-blue-800">
+                {% include 'icons/info.html' %}
+                <div>{{ host.archived_string }}</div>
+            </div>
         {% endif %}
 
         <div  x-data="{componentSearch: ''}">

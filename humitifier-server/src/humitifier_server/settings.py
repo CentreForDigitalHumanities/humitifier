@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "hosts",
     "api",
     "scanning",
+    "alerting",
 ]
 
 

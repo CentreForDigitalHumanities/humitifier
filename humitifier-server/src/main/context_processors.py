@@ -4,7 +4,8 @@ from datetime import datetime
 from django.conf import settings
 from django.utils.safestring import mark_safe
 
-from hosts.models import Alert, AlertLevel, Host
+from alerting.models import Alert, AlertSeverity
+from hosts.models import Host
 
 
 def layout_context(request):
@@ -14,7 +15,7 @@ def layout_context(request):
     user = request.user
 
     hosts = Host.objects.get_for_user(user).exclude(archived=True)
-    all_alerts = Alert.objects.get_for_user(user)
+    all_alerts = Alert.objects.get_for_user(user).filter(acknowledgement=None)
 
     tag_line = "HumIT CMDB"
 
@@ -87,9 +88,13 @@ def layout_context(request):
     return {
         "layout": {
             "num_hosts": hosts.count(),
-            "num_info_alerts": all_alerts.filter(level=AlertLevel.INFO).count(),
-            "num_warning_alerts": all_alerts.filter(level=AlertLevel.WARNING).count(),
-            "num_critical_alerts": all_alerts.filter(level=AlertLevel.CRITICAL).count(),
+            "num_info_alerts": all_alerts.filter(severity=AlertSeverity.INFO).count(),
+            "num_warning_alerts": all_alerts.filter(
+                severity=AlertSeverity.WARNING
+            ).count(),
+            "num_critical_alerts": all_alerts.filter(
+                severity=AlertSeverity.CRITICAL
+            ).count(),
             "oidc_enabled": oidc_enabled,
             "wild_wasteland": wild_wasteland,
             "gitlab_gag": gitlab_gag,

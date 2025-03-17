@@ -178,7 +178,7 @@ class HostDetailView(LoginRequiredMixin, TemplateView):
             "current_scan_date": current_scan_date,
             "all_scans": host.scans.values_list("created_at", flat=True),
             "is_latest_scan": is_latest_scan,
-            "alerts": host.alerts.order_by("level"),
+            "alerts": host.alerts.filter(acknowledgement=None).order_by("severity"),
         }
 
         visualizer = get_scan_visualizer(host, scan_data, visualizer_context)

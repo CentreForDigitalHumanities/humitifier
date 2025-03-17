@@ -77,7 +77,7 @@ def _start_scan(
     if delay_seconds:
         eta = datetime.now(UTC) + timedelta(seconds=delay_seconds)
 
-    chain.apply_async(eta=eta)
+    return chain.apply_async(eta=eta)
 
 
 def _get_processing_chain(initial_args: tuple | None = None):

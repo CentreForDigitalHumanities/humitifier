@@ -137,7 +137,10 @@
                         Hostname
                     </th>
                     <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
-                        Level
+                        Severity
+                    </th>
+                    <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                        Type
                     </th>
                     <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden lg:table-cell transition ease-in-out duration-150 rounded-tr">
                         Message
@@ -153,7 +156,10 @@
                             </a>
                         </td>
                         <td class="hidden xl:table-cell">
-                            {{ alert.level }}
+                            {{ alert.severity }}
+                        </td>
+                        <td class="hidden xl:table-cell">
+                            {{ alert.short_message }}
                         </td>
                         <td class="hidden lg:table-cell">
                             {{ alert.message }}

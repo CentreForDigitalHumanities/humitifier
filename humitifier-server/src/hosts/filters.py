@@ -3,7 +3,9 @@ from django.db.models.expressions import RawSQL
 from django_filters import ChoiceFilter
 from drf_spectacular.types import OpenApiTypes
 
-from hosts.models import Alert, AlertLevel, AlertType, DataSource, Host
+from alerting.backend.registry import alert_generator_registry
+from alerting.models import AlertSeverity
+from hosts.models import DataSource, Host
 from main.filters import (
     BooleanChoiceFilter,
     FiltersForm,
@@ -55,11 +57,11 @@ class PackageFilter(django_filters.Filter):
         return qs
 
 
-class HostAlertLevelFilter(ChoiceFilter):
+class HostAlertSeverityFilter(ChoiceFilter):
 
     def __init__(self, *args, **kwargs):
-        kwargs["choices"] = AlertLevel.choices
-        kwargs["field_name"] = "alerts__level"
+        kwargs["choices"] = AlertSeverity.choices
+        kwargs["field_name"] = "alerts__severity"
         super().__init__(*args, **kwargs)
 
     def filter(self, qs, value):
@@ -71,13 +73,14 @@ class HostAlertLevelFilter(ChoiceFilter):
 class HostAlertTypeFilter(ChoiceFilter):
 
     def __init__(self, *args, **kwargs):
-        kwargs["choices"] = AlertType.choices
-        kwargs["field_name"] = "alerts__type"
+        choices = alert_generator_registry.get_alert_types()
+        kwargs["choices"] = [(choice, choice) for choice in choices]
+        kwargs["field_name"] = "alerts__short_message"
         super().__init__(*args, **kwargs)
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__type=value)
+            return qs.filter(alerts__short_message=value)
         return qs
 
 
@@ -113,8 +116,8 @@ class HostFilters(django_filters.FilterSet):
         widget=MultipleChoiceFilterWidget,
     )
 
-    alert_level = HostAlertLevelFilter(
-        empty_label="Alert level",
+    alert_severity = HostAlertSeverityFilter(
+        empty_label="Alert severity",
     )
 
     alert_type = HostAlertTypeFilter(
@@ -164,29 +167,4 @@ class HostFilters(django_filters.FilterSet):
 
     archived = IncludeArchivedFilter(
         empty_label="Exclude archived servers",
-    )
-
-
-#
-# Alert filters
-#
-
-
-class AlertFilters(django_filters.FilterSet):
-    class Meta:
-        model = Alert
-        fields = ["level", "type"]
-        form = FiltersForm
-
-    level = django_filters.ChoiceFilter(
-        label="Alert level",
-        field_name="level",
-        choices=AlertLevel.choices,
-        empty_label="Alert level",
-    )
-
-    type = django_filters.MultipleChoiceFilter(
-        label="Alert type",
-        field_name="type",
-        choices=AlertType.choices,
     )

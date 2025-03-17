@@ -2,18 +2,17 @@ import dataclasses
 import uuid
 from datetime import datetime
 from functools import cached_property
-from typing import get_args
 
 from django.db import models
 from django.db.models import Case, F, Value, When
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
+from alerting.models import AlertSeverity
+from alerting.utils import regenerate_alerts
 from api.models import OAuth2Application
 from hosts.json import HostJSONDecoder, HostJSONEncoder
-from humitifier_common.artefacts.registry.registry import (
-    registry as artefact_registry,
-)
+
 from humitifier_common.scan_data import ScanInput, ScanOutput
 from humitifier_server.logger import logger
 from main.models import User
@@ -64,19 +63,6 @@ class DataSourceType(models.TextChoices):
 class ScanScheduling(models.TextChoices):
     MANUAL = ("manual", "Manual/host initiated scanning")
     SCHEDULED = ("scheduled", "Scheduled scanning")
-
-
-class AlertLevel(models.TextChoices):
-    INFO = "info"
-    WARNING = "warning"
-    CRITICAL = "critical"
-
-
-class AlertType(models.TextChoices):
-    OUTDATED_OS = "Outdated OS"
-    FACT_ERROR = "Has fact error"
-    DISABLED_PUPPET = "Puppet agent disabled"
-
 
 def _json_value(field: str):
     """
@@ -281,7 +267,7 @@ class Host(models.Model):
     ##
 
     def add_scan(
-        self, scan_data, *, cache_scan: bool = True, generate_alerts: bool = True
+        self, scan_data, *, cache_scan: bool = True
     ):
         if self.archived:
             return None
@@ -294,20 +280,13 @@ class Host(models.Model):
             self.last_scan_date = scan.created_at
             self.save()
 
-        if generate_alerts:
-            from hosts import alerts
-
-            alerts.generate_alerts(scan_data, self)
-
         return scan
 
     def get_scan_object(self) -> ScanData:
         return ScanData.from_raw_scan(self.last_scan_cache, self.last_scan_date)
 
     def regenerate_alerts(self):
-        from hosts import alerts
-
-        alerts.generate_alerts(self.last_scan_cache, self)
+        regenerate_alerts(self)
 
     ##
     ## Properties
@@ -315,27 +294,27 @@ class Host(models.Model):
 
     @property
     def num_critical_alerts(self):
-        return self._get_alerts_for_level(AlertLevel.CRITICAL, count=True)
+        return self._get_alerts_for_severity(AlertSeverity.CRITICAL, count=True)
 
     @property
     def num_warning_alerts(self):
-        return self._get_alerts_for_level(AlertLevel.WARNING, count=True)
+        return self._get_alerts_for_severity(AlertSeverity.WARNING, count=True)
 
     @property
     def num_info_alerts(self):
-        return self._get_alerts_for_level(AlertLevel.INFO, count=True)
+        return self._get_alerts_for_severity(AlertSeverity.INFO, count=True)
 
-    def _get_alerts_for_level(self, level, count=False):
+    def _get_alerts_for_severity(self, severity, count=False):
         # Use the prefetched objects if they are available
         # It's not quicker for a single query, but it is for multiple queries
         # (Read: the list page)
         if "alerts" in self._prefetched_objects_cache:
-            alerts = [alert for alert in self.alerts.all() if (alert.level == level)]
+            alerts = [alert for alert in self.alerts.all() if (alert.severity == severity)]
             if count:
                 return len(alerts)
             return alerts
 
-        qs = self.alerts.filter(level=level)
+        qs = self.alerts.filter(severity=severity)
 
         if count:
             return qs.count()
@@ -465,45 +444,3 @@ class Scan(models.Model):
 
     def get_scan_object(self) -> ScanData:
         return ScanData.from_raw_scan(self.data, self.created_at)
-
-
-class AlertManager(models.Manager):
-
-    def get_for_user(self, user: User):
-        if user.is_anonymous:
-            return self.get_queryset().none()
-
-        if user.is_superuser:
-            return self.get_queryset()
-
-        if user.access_profiles.exists():
-            return self.get_queryset().filter(
-                host__customer__in=user.customers_for_filter
-            )
-
-        # When a non-superuser has no access profile, THEY GET NOTHING
-        # They lose! Good day sir!
-        return self.get_queryset().none()
-
-
-class Alert(models.Model):
-    class Meta:
-        ordering = ["-created_at"]
-
-    objects = AlertManager()
-
-    host = models.ForeignKey(Host, on_delete=models.CASCADE, related_name="alerts")
-
-    level = models.CharField(max_length=255, choices=AlertLevel.choices)
-
-    type = models.CharField(max_length=255, choices=AlertType.choices)
-
-    message = models.TextField()
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __repr__(self):
-        return f"<Alert: {self.type} for {self.host.fqdn}>"
-
-    def __str__(self):
-        return self.message

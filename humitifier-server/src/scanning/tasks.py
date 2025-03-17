@@ -41,24 +41,12 @@ def get_scan_input_from_host(fqdn: str, force: bool = False) -> ScanInput:
     return scan_input
 
 
-@shared_task(name=SCANNING_RUN_SCAN, pydantic=True)
-def run_scan(scan_input: ScanInput) -> ScanOutput:
-    # scan_task = signature(SCANNER_RUN_SCAN, args=(scan_input.model_dump(),))
-    # process_task = process_scan_output.signature()
-    #
-    # chain = scan_task | process_task
-    # chain = chain.on_error(on_scan_error.s())
-    #
-    # chain.apply_async()
-
-    scan_task = signature(SCANNER_RUN_SCAN, args=(scan_input.model_dump(),))
-    scan_task.on_error(on_scan_error.s())
-
-    return ScanOutput(**scan_task.apply_async().get())
-
-
 @shared_task(name=SCANNING_SAVE_SCAN, pydantic=True)
-def save_scan(scan_output: ScanOutput):
+def save_scan(scan_output: ScanOutput | None):
+    # Happens if the previous step decided that the scan is invalid
+    if scan_output is None:
+        return
+
     try:
         host = Host.objects.get(fqdn=scan_output.hostname)
     except Host.DoesNotExist:
