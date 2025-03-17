@@ -187,7 +187,7 @@ class ScanOutput(BaseModel):
         if artefact in self.metrics:
             data = self.metrics[artefact]
             # Should not do anything, but just in case
-            return self._parse_metrics(artefact, data)
+            return self._parse_artefact(artefact, data)
 
         raise KeyError
 
