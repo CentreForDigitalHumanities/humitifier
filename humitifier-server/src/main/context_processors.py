@@ -75,6 +75,7 @@ def layout_context(request):
             "There’s a tiny home in Virginia called the “Spite House” because that’s why it was built",
             "Playing dance music can help ward off mosquitoes",
             "“Avoid potential systems fans loop logs” - GPT-4o, 2025",
+            "Trotse winnaar van de SPrins 'Gouden API' award 🏆",
         ]
         tag_line = random.choice(jokes)
 
