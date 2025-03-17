@@ -29,7 +29,8 @@ def on_alert_deletion(sender, instance: Alert, **kwargs):
     :param instance: The actual instance of the Alert being deleted
     """
     # If we are deleting an acknowledged alert
-    if ack := instance.acknowledgement:
+    if hasattr(instance, "acknowledgement") and instance.acknowledgement:
+        ack = instance.acknowledgement
         # And it's not a persistent acknowledgment
         if not ack.persistent:
             # Delete the acknowledgment
