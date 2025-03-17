@@ -9,7 +9,6 @@ from django.utils import timezone
 from django.utils.safestring import mark_safe
 
 from alerting.models import AlertSeverity
-from alerting.utils import regenerate_alerts
 from api.models import OAuth2Application
 from hosts.json import HostJSONDecoder, HostJSONEncoder
 
@@ -286,6 +285,8 @@ class Host(models.Model):
         return ScanData.from_raw_scan(self.last_scan_cache, self.last_scan_date)
 
     def regenerate_alerts(self):
+        from alerting.utils import regenerate_alerts
+
         regenerate_alerts(self)
 
     ##
