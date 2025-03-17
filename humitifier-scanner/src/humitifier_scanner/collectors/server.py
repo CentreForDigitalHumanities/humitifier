@@ -157,7 +157,8 @@ class IsWordpressFactCollector(ShellCollector):
             for vhost in host_meta.vhosts:
                 for site, info in vhost.items():
                     result = shell_executor.execute(
-                        f"test -f {info.docroot}/wp-config.php"
+                        f"test -f {info.docroot}/wp-config.php",
+                        fail_silent=True, # We expect an error code....
                     )
                     if result.return_code == 0:
                         return IsWordpress(is_wp=True)
