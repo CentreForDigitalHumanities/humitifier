@@ -42,7 +42,7 @@ class HardwareFactCollector(ShellCollector):
 
         # Yes, this is a different command from the memory-usage metric
         # I'm lazy and this oneliner can just be copy-pasted
-        memory_cmd = shell_executor.execute("lsmem --json --bytes")
+        memory_cmd = shell_executor.execute("lsmem --json --bytes", fail_silent=True)
         try:
             output_str = "".join(memory_cmd.stdout)
             output_json = json.loads(output_str)
@@ -72,9 +72,9 @@ class HardwareFactCollector(ShellCollector):
         except (ValueError, IndexError):
             self.add_error("Could not determine block devices", fatal=False)
 
-        pci_devices = shell_executor.execute("lspci")
+        pci_devices = shell_executor.execute("lspci", fail_silent=True)
 
-        usb_devices = shell_executor.execute("lsusb")
+        usb_devices = shell_executor.execute("lsusb", fail_silent=True)
 
         return Hardware(
             num_cpus=num_cpus,
