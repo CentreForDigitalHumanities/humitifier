@@ -154,6 +154,7 @@ class PeriodicTaskTable(BaseTable):
             "name",
             "task",
             "schedule",
+            "enabled",
             "description",
             "last_run_at",
             "actions",
@@ -163,6 +164,9 @@ class PeriodicTaskTable(BaseTable):
             "last_run_at": "md",
             "description": "lg",
             "id": "xl",
+        }
+        column_type_overrides = {
+            "enabled": BooleanColumn,
         }
 
     schedule = MethodColumn("Schedule", method_name="get_schedule")
