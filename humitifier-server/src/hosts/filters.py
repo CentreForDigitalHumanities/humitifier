@@ -145,6 +145,13 @@ class HostFilters(django_filters.FilterSet):
         widget=MultipleChoiceFilterWidget,
     )
 
+    otap_stage = django_filters.MultipleChoiceFilter(
+        label="OTAP",
+        field_name="otap_stage",
+        choices=lambda: _get_choices(Host, "otap_stage", strip_quotes=False),
+        widget=MultipleChoiceFilterWidget,
+    )
+
     package = PackageFilter(
         label="Package",
     )
