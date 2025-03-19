@@ -32,10 +32,14 @@ class User(AbstractUser):
 
     @property
     def can_view_datasources(self):
-        return (
-            self.is_superuser
-            or self.access_profiles.exclude(data_sources__count=0).exists()
-        )
+        if self.is_superuser:
+            return True
+
+        for access_profile in self.access_profiles.all():
+            if access_profile.data_sources.count() > 0:
+                return True
+
+        return False
 
     @property
     def customers_for_filter(self):
