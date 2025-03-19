@@ -52,12 +52,6 @@
         >
             Queue scan
         </a>
-        <a
-            href="{% url 'hosts:change-scan-spec' host.fqdn %}"
-            class="btn btn-outline"
-        >
-            Change scan specification
-        </a>
 
         {% if host.can_manually_edit %}
             <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-outline">
@@ -66,6 +60,14 @@
             <div class="btn btn-outline">
                 Edit host config
             </div>
+        {% else %}
+            {# If we are not allowed to use the full-edit form, we offer this limited form #}
+            <a
+                href="{% url 'hosts:change-scan-spec' host.fqdn %}"
+                class="btn btn-outline"
+            >
+                Change scan specification
+            </a>
         {% endif %}
     {% endif %}
 
