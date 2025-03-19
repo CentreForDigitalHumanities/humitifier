@@ -4,6 +4,20 @@ from alerting.models import AlertSeverity
 from humitifier_common.scan_data import ErrorTypeEnum
 
 
+class HostOfflineAlertGenerator(BaseScanAlertGenerator):
+
+    verbose_name = "Host Offline"
+
+    def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        for error in self.scan_output.errors:
+            if error.type == ErrorTypeEnum.HOST_OFFLINE:
+                return AlertData(
+                    severity=AlertSeverity.CRITICAL,
+                    message=error.message,
+                    fatal=True,
+                )
+
+
 class ScanErrorAlertGenerator(BaseScanAlertGenerator):
 
     verbose_name = "Scan error"
