@@ -34,3 +34,36 @@ class UptimeAlertGenerator(BaseArtefactAlertGenerator):
             return None
 
         return alert
+
+
+class MemoryAlertGenerator(BaseArtefactAlertGenerator):
+    artefact = Memory
+    verbose_name = "Memory warning"
+
+    # Ordering is important here, criticals should go first, etc
+    # First number is mem threshold, the second is swap; both will need to be
+    # exceeded for an alert to be created with the given severity.
+    THRESHOLDS = {
+        (90, 70): AlertSeverity.CRITICAL,
+        (80, 40): AlertSeverity.WARNING,
+        (70, 30): AlertSeverity.INFO,
+    }
+
+    def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        if not self.artefact_data:
+            return None
+
+        percent_mem = self.artefact_data.used_mb / self.artefact_data.total_mb * 100
+        percent_swap = (
+            self.artefact_data.swap_used_mb / self.artefact_data.swap_total_mb * 100
+        )
+
+        for threshold, severity in self.THRESHOLDS.items():
+            mem_threshold, swap_threshold = threshold
+            if percent_mem > mem_threshold and percent_swap > swap_threshold:
+                return AlertData(
+                    severity=severity,
+                    message=f"Memory usage is {percent_mem:.1f}% (threshold: {mem_threshold}%) and Swap usage is {percent_swap:.1f}% (threshold: {swap_threshold}%)",
+                )
+
+        return None
