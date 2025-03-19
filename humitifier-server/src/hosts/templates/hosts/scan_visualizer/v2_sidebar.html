@@ -52,14 +52,15 @@
         >
             Queue scan
         </a>
+
+        {% if host.can_manually_edit %}
+            <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-outline">
+                Archive
+            </a>
+            <div class="btn btn-outline">
+                Edit host config
+            </div>
+        {% endif %}
     {% endif %}
 
-    {% if host.can_manually_edit %}
-        <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-outline">
-            Archive
-        </a>
-        <div class="btn btn-outline">
-            Edit host config
-        </div>
-    {% endif %}
 </div>
