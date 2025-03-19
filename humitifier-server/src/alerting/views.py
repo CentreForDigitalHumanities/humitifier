@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse
 from django.utils.functional import cached_property
 from django.views.generic import CreateView, DeleteView
@@ -11,10 +12,11 @@ from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 
 
 class AlertAcknowledgmentCreateView(
-    LoginRequiredMixin, SuperuserRequiredMixin, CreateView
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
 ):
     model = AlertAcknowledgment
     form_class = AlertAcknowledgmentForm
+    success_message = "Alert acknowledged"
 
     @cached_property
     def alert(self):
@@ -41,9 +43,10 @@ class AlertAcknowledgmentCreateView(
 
 
 class AlertAcknowledgmentDeleteView(
-    LoginRequiredMixin, SuperuserRequiredMixin, DeleteView
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
 ):
     model = AlertAcknowledgment
+    success_message = "Alert acknowledgement removed"
 
     def get_success_url(self):
         return reverse("hosts:detail", args=[self.object.host.fqdn])

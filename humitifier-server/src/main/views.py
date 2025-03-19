@@ -3,6 +3,7 @@ from urllib.parse import urlparse
 
 from django.contrib.auth.mixins import AccessMixin, LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count
 from django.forms import Form
 from django.http import HttpResponseRedirect
@@ -302,12 +303,14 @@ class DeActivateUserView(
     LoginRequiredMixin,
     SuperuserRequiredMixin,
     SingleObjectTemplateResponseMixin,
+    SuccessMessageMixin,
     FormMixin,
     BaseDetailView,
 ):
     model = User
     form_class = Form
     template_name = "main/user_deactivate.html"
+    success_message = "User deactivated"
 
     def get_success_url(self):
         return reverse("main:users")
@@ -329,18 +332,24 @@ class DeActivateUserView(
         return HttpResponseRedirect(success_url)
 
 
-class CreateUserView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+class CreateUserView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = User
     form_class = UserForm
     success_url = reverse_lazy("main:users")
+    success_message = "User created"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
 
-class CreateSolisUserView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+class CreateSolisUserView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = User
     form_class = CreateSolisUserForm
     success_url = reverse_lazy("main:users")
+    success_message = "User created"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
@@ -356,19 +365,23 @@ class CreateSolisUserView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView
         return super().form_valid(form)
 
 
-class EditUserView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+class EditUserView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
     model = User
     form_class = UserForm
     success_url = reverse_lazy("main:users")
+    success_message = "User edited"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
 
-class UserProfileView(LoginRequiredMixin, UpdateView):
+class UserProfileView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = User
     form_class = UserProfileForm
     success_url = reverse_lazy("main:user_profile")
     template_name = "main/user_profile.html"
+    success_message = "Profile updated"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
@@ -378,12 +391,14 @@ class UserProfileView(LoginRequiredMixin, UpdateView):
 
 class SetPasswordView(
     LoginRequiredMixin,
+    SuccessMessageMixin,
     UpdateView,
 ):
     model = User
     form_class = SetPasswordForm
     template_name = "main/user_set_password_form.html"
     success_url = reverse_lazy("main:users")
+    success_message = "Password updated"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
@@ -420,21 +435,30 @@ class AccessProfilesView(
     }
 
 
-class CreateAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+class CreateAccessProfileView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = AccessProfile
     form_class = AccessProfileForm
     success_url = reverse_lazy("main:access_profiles")
+    success_message = "Access profile created"
 
 
-class EditAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+class EditAccessProfileView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
     model = AccessProfile
     form_class = AccessProfileForm
     success_url = reverse_lazy("main:access_profiles")
+    success_message = "Access profile updated"
 
 
-class DeleteAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
+class DeleteAccessProfileView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+):
     model = AccessProfile
     success_url = reverse_lazy("main:access_profiles")
+    success_message = "Access profile deleted"
 
 
 #
@@ -515,21 +539,30 @@ class PeriodicTasksView(
     }
 
 
-class CreatePeriodicTaskView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+class CreatePeriodicTaskView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = PeriodicTask
     form_class = PeriodicTaskForm
     success_url = reverse_lazy("main:periodic_tasks")
+    success_message = "Periodic task created"
     template_name = "main/periodictask_form.html"
 
 
-class EditPeriodicTaskView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+class EditPeriodicTaskView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
     model = PeriodicTask
     form_class = PeriodicTaskForm
     success_url = reverse_lazy("main:periodic_tasks")
+    success_message = "Periodic task updated"
     template_name = "main/periodictask_form.html"
 
 
-class DeletePeriodicTaskView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
+class DeletePeriodicTaskView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+):
     model = PeriodicTask
     success_url = reverse_lazy("main:periodic_tasks")
+    success_message = "Periodic task deleted"
     template_name = "main/periodictask_confirm_delete.html"

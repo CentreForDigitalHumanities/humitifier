@@ -1,4 +1,5 @@
 from braces.views import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.urls import reverse_lazy
 from django.views.generic import CreateView, DeleteView, UpdateView
 
@@ -24,12 +25,13 @@ class OAuthApplicationsView(
 
 
 class CreateOAuthApplicationView(
-    LoginRequiredMixin, SuperuserRequiredMixin, CreateView
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
 ):
     model = OAuth2Application
     form_class = OAuth2ApplicationForm
     template_name = "api/application_form.html"
     success_url = reverse_lazy("api:oauth_applications")
+    success_message = "OAuth application created"
 
     def form_valid(self, form):
         # We only allow confidential clients with client credentials grant type
@@ -40,16 +42,20 @@ class CreateOAuthApplicationView(
         return super().form_valid(form)
 
 
-class EditOAuthApplicationView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+class EditOAuthApplicationView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
     model = OAuth2Application
     form_class = OAuth2ApplicationForm
     template_name = "api/application_form.html"
     success_url = reverse_lazy("api:oauth_applications")
+    success_message = "OAuth application updated"
 
 
 class DeleteOAuthApplicationView(
-    LoginRequiredMixin, SuperuserRequiredMixin, DeleteView
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
 ):
     model = OAuth2Application
     template_name = "api/application_confirm_delete.html"
     success_url = reverse_lazy("api:oauth_applications")
+    success_message = "OAuth application deleted"

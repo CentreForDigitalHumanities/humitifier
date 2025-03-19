@@ -4,6 +4,7 @@ from datetime import datetime
 from io import StringIO
 
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.forms import Form
 from django.http import HttpResponse, HttpResponseRedirect
@@ -220,6 +221,7 @@ class ArchiveHostView(
     LoginRequiredMixin,
     SuperuserRequiredMixin,
     SingleObjectTemplateResponseMixin,
+    SuccessMessageMixin,
     FormMixin,
     BaseDetailView,
 ):
@@ -228,6 +230,7 @@ class ArchiveHostView(
     template_name = "hosts/host_archive.html"
     slug_field = "fqdn"
     slug_url_kwarg = "fqdn"
+    success_message = "Host (de-)archived successfully"
 
     def get_queryset(self):
         return Host.objects.get_for_user(self.request.user)
@@ -269,15 +272,17 @@ class DataSourcesView(LoginRequiredMixin, TableMixin, FilteredListView):
     paginate_by = 10
 
 
-class DataSourceCreateView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+class DataSourceCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView):
     template_name = "hosts/datasource_form.html"
     model = DataSource
     form_class = DataSourceForm
     success_url = reverse_lazy("hosts:data_sources")
+    success_message = "Data source created"
 
 
-class DataSourceEditView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+class DataSourceEditView(LoginRequiredMixin, SuperuserRequiredMixin,SuccessMessageMixin, UpdateView):
     template_name = "hosts/datasource_form.html"
     model = DataSource
     form_class = DataSourceForm
     success_url = reverse_lazy("hosts:data_sources")
+    success_message = "Data source edited"
