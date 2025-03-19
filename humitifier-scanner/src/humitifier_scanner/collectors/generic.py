@@ -41,17 +41,27 @@ class HardwareFactCollector(ShellCollector):
             self.add_error("Could not determine number of CPUs", fatal=False)
 
         # Yes, this is a different command from the memory-usage metric
-        # I'm lazy and this oneliner can just be copy-pasted
-        memory_cmd = shell_executor.execute("lsmem --json --bytes", fail_silent=True)
+        # This command reads actual physical memory; some of which is reserved by firmware
+        # and thus not visible in the memory metric
+        memory_cmd = shell_executor.execute("lsmem --raw --bytes", fail_silent=True)
         try:
-            output_str = "".join(memory_cmd.stdout)
-            output_json = json.loads(output_str)
             memory = []
-            if "memory" in output_json:
-                for memory_range in output_json["memory"]:
-                    memory.append(MemoryRange(**memory_range))
+            # First line is a header
+            for line in memory_cmd.stdout[1:]:
+                mem_range, size, state, removable, block = line.split()
+                removable = removable == "yes"
+                size = int(size)
+                memory.append(
+                    MemoryRange(
+                        range=mem_range,
+                        size=size,
+                        state=state,
+                        removable=removable,
+                        block=block,
+                    )
+                )
 
-        except (ValueError, IndexError, TypeError) as e:
+        except Exception as e:
             memory = []
             self.add_error(f"Could not determine memory size: {e}", fatal=False)
 
