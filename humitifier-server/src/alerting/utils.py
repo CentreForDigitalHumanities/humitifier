@@ -1,4 +1,5 @@
 from celery import signature
+from pydantic import ValidationError
 
 from hosts.models import Host
 from humitifier_server.celery.task_names import *
@@ -10,7 +11,13 @@ def regenerate_alerts(host: Host):
     if not scan_data:
         return
 
-    scan_output = scan_data.parsed_data
+    try:
+        scan_output = scan_data.parsed_data
+    except ValidationError:
+        return
+
+    if not scan_output:
+        return
 
     # Get our generic log-error handler-task
     log_error_task = signature(MAIN_LOG_ERROR)
