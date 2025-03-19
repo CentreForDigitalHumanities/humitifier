@@ -33,6 +33,7 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         "department": "Department",
         "customer": "Customer",
         "contact": "Contact",
+        "scan_spec": "Scan spec.",
     }
 
     def get_context(self, **kwargs):

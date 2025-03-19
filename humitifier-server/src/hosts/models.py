@@ -365,6 +365,14 @@ class Host(models.Model):
             return mark_safe("<span class='italic'>Unknown</span>")
         return strip_quotes(self.os)
 
+    def get_scan_spec_display(self):
+        if self.scan_spec_override:
+            return self.scan_spec_override.name
+
+        string = self.data_source.default_scan_spec.name
+        string += " <span class='italic'>(Default)</span>"
+        return mark_safe(s=string)
+
     @property
     def archived_string(self):
         if self.archived:
