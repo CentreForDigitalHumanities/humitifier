@@ -40,17 +40,22 @@
 <div class="flex flex-col gap-2">
 
     {% if request.user.is_superuser %}
-        <a class="btn btn-outline"
-           href="{% url 'hosts:download_raw' host.fqdn %}?{% param_replace %}">
+        <a
+            href="{% url 'hosts:download_raw' host.fqdn %}?{% param_replace %}"
+            class="btn btn-outline"
+        >
             Download raw data
         </a>
-        <div class="btn btn-outline">
-            Queue full rescan
-        </div>
+        <a
+            href="{% url 'scanning:start_scan_host' host.fqdn %}"
+            class="btn btn-outline"
+        >
+            Queue scan
+        </a>
     {% endif %}
 
     {% if host.can_manually_edit %}
-        <a class="btn btn-outline" href="{% url 'hosts:archive' host.fqdn %}">
+        <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-outline">
             Archive
         </a>
         <div class="btn btn-outline">

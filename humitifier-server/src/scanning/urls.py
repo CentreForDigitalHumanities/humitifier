@@ -5,6 +5,7 @@ from .views import (
     DeleteScanSpecView,
     EditScanSpecView,
     ScanSpecView,
+    StartHostScanView,
 )
 
 app_name = "scanning"
@@ -19,5 +20,10 @@ urlpatterns = [
         "scan-specs/<int:pk>/delete/",
         DeleteScanSpecView.as_view(),
         name="delete_scan_spec",
+    ),
+    path(
+        "start-scan/<str:fqdn>/",
+        StartHostScanView.as_view(),
+        name="start_scan_host",
     ),
 ]

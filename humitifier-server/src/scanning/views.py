@@ -1,15 +1,43 @@
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import modelformset_factory
 from django.forms.formsets import DELETION_FIELD_NAME
 from django.urls import reverse, reverse_lazy
 from django.utils.functional import cached_property
-from django.views.generic import CreateView, DeleteView, UpdateView
+from django.views.generic import CreateView, DeleteView, RedirectView, UpdateView
 
+from hosts.models import Host
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 from scanning.filters import ScanSpecFilters
 from scanning.forms import ArtefactSpecForm, ScanSpecCreateForm, ScanSpecForm
 from scanning.models import ArtefactSpec, ScanSpec
 from scanning.tables import ScanSpecTable
+from scanning.utils import start_full_scan
+
+
+class StartHostScanView(LoginRequiredMixin, SuperuserRequiredMixin, RedirectView):
+
+    def get_redirect_url(self, *args, **kwargs):
+        host_fqdn = kwargs.get("fqdn", None)
+
+        if not host_fqdn:
+            return "/"
+
+        try:
+            host = Host.objects.get(fqdn=host_fqdn)
+        except Host.DoesNotExist:
+            # Yes, this cannot possibly work. But 404's can be better posted there
+            return reverse("hosts:detail", args=[host_fqdn])
+
+        if host.can_schedule_scan:
+            start_full_scan(host)
+            messages.success(
+                self.request, "Scan scheduled. It may take a few minutes to complete."
+            )
+        else:
+            messages.error(self.request, "Scans cannot be scheduled for this host.")
+
+        return reverse("hosts:detail", args=[host_fqdn])
 
 
 class ScanSpecView(
