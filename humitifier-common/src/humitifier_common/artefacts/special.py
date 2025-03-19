@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from pydantic import BaseModel
 
 from humitifier_common.artefacts.registry import metric
 
@@ -7,23 +7,20 @@ from humitifier_common.artefacts.registry import metric
 ##
 
 
-@dataclass
-class ZFSVolume:
+class ZFSVolume(BaseModel):
     name: str
     size_mb: int
     used_mb: int
     mount: str
 
 
-@dataclass
-class ZFSPool:
+class ZFSPool(BaseModel):
     name: str
     size_mb: int
     used_mb: int
 
 
 @metric(group="special")
-@dataclass
-class ZFS:
+class ZFS(BaseModel):
     pools: list[ZFSPool]
     volumes: list[ZFSVolume]
