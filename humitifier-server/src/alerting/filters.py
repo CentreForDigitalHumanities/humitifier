@@ -22,7 +22,7 @@ class AlertFilters(django_filters.FilterSet):
 
     severity = django_filters.ChoiceFilter(
         label="Alert severity",
-        field_name="level",
+        field_name="severity",
         choices=AlertSeverity.choices,
         empty_label="Alert level",
     )
