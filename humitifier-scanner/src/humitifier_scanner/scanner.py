@@ -223,6 +223,9 @@ def _get_executors(
             metadata=ScanErrorMetadata(
                 py_exception=e.__class__.__name__,
             ),
+            # If we cannot get an executor, something is truly wrong. Hence, we treat it
+            # as a global error.
+            global_error=True,
         )
         errors.append(error)
     finally:
