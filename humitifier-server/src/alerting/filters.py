@@ -29,7 +29,7 @@ class AlertFilters(django_filters.FilterSet):
 
     type = django_filters.MultipleChoiceFilter(
         label="Alert type",
-        field_name="department",
+        field_name="short_message",
         choices=lambda: _get_choices(Alert, "short_message", strip_quotes=False),
         widget=MultipleChoiceFilterWidget,
     )
