@@ -52,21 +52,23 @@
         </h3>
         <div class="flex flex-col gap-2">
 
-            <a class="btn btn-outline" href="{% url 'hosts:download_raw' host.fqdn %}?{% param_replace %}">
-                Download raw data
-            </a>
-            <div class="btn btn-outline">
-                Archive
-            </div>
-            <div class="btn btn-outline">
-                Edit host config
-            </div>
-            <div class="btn btn-outline">
-                Queue metric rescan
-            </div>
-            <div class="btn btn-outline">
-                Queue full rescan
-            </div>
+            {% if request.user.is_superuser %}
+                <a class="btn btn-outline" href="{% url 'hosts:download_raw' host.fqdn %}?{% param_replace %}">
+                    Download raw data
+                </a>
+                <div class="btn btn-outline">
+                    Queue full rescan
+                </div>
+            {% endif %}
+
+            {% if host.can_manually_edit %}
+                <a class="btn btn-outline" href="{% url 'hosts:archive' host.fqdn %}">
+                    Archive
+                </a>
+                <div class="btn btn-outline">
+                    Edit host config
+                </div>
+            {% endif %}
         </div>
     </div>
 
