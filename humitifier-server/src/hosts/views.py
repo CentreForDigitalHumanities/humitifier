@@ -190,7 +190,7 @@ class HostDetailView(LoginRequiredMixin, TemplateView):
         return context
 
 
-class HostsRawDownloadView(LoginRequiredMixin, View):
+class HostsRawDownloadView(LoginRequiredMixin, SuperuserRequiredMixin, View):
 
     def get(self, request, fqdn):
         host = Host.objects.get_for_user(request.user).get(fqdn=fqdn)
@@ -246,7 +246,8 @@ class ArchiveHostView(
     def form_valid(self, form):
         success_url = self.get_success_url()
 
-        self.object.switch_archived_status()
+        if self.object.can_manually_edit:
+            self.object.switch_archived_status()
 
         return HttpResponseRedirect(success_url)
 
