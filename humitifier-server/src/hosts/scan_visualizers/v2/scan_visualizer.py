@@ -40,10 +40,15 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         context["static_data"] = []
 
         for attr, label in self.static_data.items():
+            if hasattr(self.host, f"get_{attr}_display"):
+                value = getattr(self.host, f"get_{attr}_display")()
+            else:
+                value = getattr(self.host, attr, None)
+
             context["static_data"].append(
                 {
                     "label": label,
-                    "value": getattr(self.host, attr, None),
+                    "value": value,
                 }
             )
 
