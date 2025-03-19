@@ -77,115 +77,132 @@ class LocalLinuxShellExecutor(LinuxShellExecutor):
 
 
 class RemoteLinuxShellExecutor(LinuxShellExecutor):
+    DEFAULT_SSH_PORT = 22
+    ERROR_MSG_NO_SSH_CONFIG = "Cannot create SSH shell executor without SSH config"
+    TIMEOUT = 30
 
     def __init__(self, host: str):
         if CONFIG.ssh is None:
-            raise ValueError("Cannot create SSH shell executor without SSH config")
+            raise ValueError(self.ERROR_MSG_NO_SSH_CONFIG)
 
-        #
-        # Setup primary SSH client
-        #
-        self.host = host
-        self.port = 22
-
-        if ":" in host:
-            host, port = host.split(":")
-            self.port = int(port)
-            self.host = host
-
-        self.ssh_client = paramiko.SSHClient()
-        self.ssh_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-
+        self.host, self.port = self._extract_host_port(host)
         self.ssh_user = CONFIG.ssh.user
+        self.private_key = self._load_private_key(
+            CONFIG.ssh.private_key, CONFIG.ssh.private_key_password
+        )
 
-        pkey_password = None
-        if CONFIG.ssh.private_key_password:
-            pkey_password = CONFIG.ssh.private_key_password.get_secret_value()
+        self.ssh_client = self._get_ssh_client()
 
-        with open(CONFIG.ssh.private_key, "r") as f:
-            self.private_key = paramiko.Ed25519Key(file_obj=f, password=pkey_password)
-
-        #
-        # Handle bastion host, if configured
-        #
         self.bastion_enabled = CONFIG.ssh.bastion is not None
-        if not self.bastion_enabled:
-            return
 
-        logger.debug(f"Configuring bastion host for {host}")
+        self._connect()
 
-        self.bastion_host = CONFIG.ssh.bastion.host
-        self.bastion_port = 22
+    #
+    # Helpers
+    #
 
-        if ":" in host:
-            bastion_host, port = host.split(":")
-            self.bastion_host = bastion_host
-            self.bastion_port = int(port)
+    @staticmethod
+    def _get_ssh_client():
+        client = paramiko.SSHClient()
+        client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        return client
 
-        if CONFIG.ssh.bastion.private_key:
-            bastion_pkey_password = None
-            if CONFIG.ssh.bastion.private_key_password:
-                bastion_pkey_password = (
-                    CONFIG.ssh.bastion.private_key_password.get_secret_value()
-                )
+    @staticmethod
+    def _load_private_key(private_key_path: str, private_key_password):
+        password = (
+            private_key_password.get_secret_value() if private_key_password else None
+        )
+        with open(private_key_path, "r") as f:
+            return paramiko.Ed25519Key(file_obj=f, password=password)
 
-            with open(CONFIG.ssh.bastion.private_key, "r") as f:
-                self.bastion_private_key = paramiko.Ed25519Key(
-                    file_obj=f, password=bastion_pkey_password
-                )
-        else:
-            self.bastion_private_key = self.private_key
+    def _extract_host_port(self, host: str):
+        host, _, port = host.partition(":")
+        return host, int(port) if port else self.DEFAULT_SSH_PORT
+
+    def _get_default_connection_kwargs(self):
+        return {
+            "timeout": self.TIMEOUT,
+            "banner_timeout": self.TIMEOUT,
+            "auth_timeout": self.TIMEOUT,
+            "channel_timeout": self.TIMEOUT,
+        }
+
+    #
+    # Connection handling
+    #
+
+    def _configure_bastion(self):
+        logger.debug(f"Configuring bastion host for {self.host}")
+        self.bastion_host, self.bastion_port = self._extract_host_port(
+            CONFIG.ssh.bastion.host
+        )
+
+        self.bastion_private_key = (
+            self._load_private_key(
+                CONFIG.ssh.bastion.private_key, CONFIG.ssh.bastion.private_key_password
+            )
+            if CONFIG.ssh.bastion.private_key
+            else self.private_key
+        )
+
         self.bastion_user = CONFIG.ssh.bastion.user or self.ssh_user
-
-        self.bastion_client = paramiko.SSHClient()
-        self.bastion_client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        self.bastion_client = self._get_ssh_client()
 
     def _connect(self):
-        if not self.ssh_client.get_transport():
+        if self.ssh_client.get_transport():
+            return
 
-            connection_kwargs = {
+        connection_params = self._get_default_connection_kwargs()
+        connection_params.update(
+            {
                 "hostname": self.host,
                 "username": self.ssh_user,
                 "pkey": self.private_key,
                 "port": self.port,
             }
+        )
 
-            # If we have a bastion host, we need some more setup
-            if self.bastion_enabled:
-                logger.debug(
-                    f"Connecting SSH client for bastion host {self.bastion_host}"
-                )
-                self.bastion_client.connect(
-                    self.bastion_host,
-                    username=self.bastion_user,
-                    pkey=self.bastion_private_key,
-                    port=self.bastion_port,
-                )
+        if self.bastion_enabled:
+            logger.debug(f"Setting up bastion transport for host {self.host}")
+            connection_params["sock"] = self._setup_bastion_transport()
 
-                bastion_transport = self.bastion_client.get_transport()
-                bastion_channel = bastion_transport.open_channel(
-                    "direct-tcpip", (self.host, 22), ("", 0)
-                )
+        logger.debug(f"Connecting to SSH client for host {self.host}")
+        self.ssh_client.connect(**connection_params)
 
-                connection_kwargs["sock"] = bastion_channel
+    def _setup_bastion_transport(self):
+        self._configure_bastion()
 
-            logger.debug(f"Connecting SSH client for host {self.host}")
-            logger.debug(f"Connection kwargs: {connection_kwargs}")
-            self.ssh_client.connect(**connection_kwargs)
-            logger.debug(self.ssh_client.get_transport())
+        self.bastion_client.connect(
+            hostname=self.bastion_host,
+            username=self.bastion_user,
+            pkey=self.bastion_private_key,
+            port=self.bastion_port,
+            **self._get_default_connection_kwargs(),
+        )
+        bastion_transport = self.bastion_client.get_transport()
 
-    def _execute_command(
-        self, command: str, fail_silent: bool = False
-    ) -> tuple[ChannelStdinFile, ChannelFile, ChannelStderrFile]:
-        self._connect()
+        return bastion_transport.open_channel(
+            "direct-tcpip", (self.host, self.port), ("", 0)
+        )
+
+    def close(self):
+        self.ssh_client.close()
+        if self.bastion_enabled:
+            self.bastion_client.close()
+
+    #
+    # Execution
+    #
+
+    def _execute_command(self, command: str, fail_silent: bool = False):
         logger.debug(f"Executing command on {self.host}: {command}")
         stdin, stdout, stderr = self.ssh_client.exec_command(command)
 
         if stdout.channel.recv_exit_status() != 0:
             log_cmd = logger.debug if fail_silent else logger.error
             log_cmd(
-                f"Command '{command}' failed with return code"
-                f" {stdout.channel.recv_exit_status()}. Stderr: {stderr.read().decode()}"
+                f"Command '{command}' failed with return code {stdout.channel.recv_exit_status()}."
+                f" Stderr: {stderr.read().decode()}"
             )
 
         return stdin, stdout, stderr
@@ -202,15 +219,8 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         ]
 
         return ShellOutput(
-            stdout_lines,
-            stderr_lines,
-            stdout.channel.recv_exit_status(),
+            stdout_lines, stderr_lines, stdout.channel.recv_exit_status()
         )
-
-    def close(self):
-        self.ssh_client.close()
-        if self.bastion_enabled:
-            self.bastion_client.close()
 
 
 class _ExecutorManager:
