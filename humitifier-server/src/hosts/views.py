@@ -7,7 +7,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
 from django.forms import Form
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.urls import reverse
 from django.views import View
 from django.views.generic import TemplateView, UpdateView
@@ -21,7 +21,7 @@ from rest_framework.reverse import reverse_lazy
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 
 from .filters import DataSourceFilters, HostFilters
-from .forms import DataSourceForm, HostScanSpecForm
+from .forms import DataSourceForm, HostForm, HostScanSpecForm
 from .models import DataSource, Host
 from .scan_visualizers import get_scan_visualizer
 from .tables import DataSourcesTable, HostsTable
@@ -268,6 +268,37 @@ class HostScanSpecUpdateView(
     def get_success_url(self):
         return reverse("hosts:detail", kwargs={"fqdn": self.object.fqdn})
 
+class HostCreateView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
+    model = Host
+    form_class = HostForm
+    success_message = "Host created successfully"
+
+    def get_success_url(self):
+        return reverse("hosts:detail", kwargs={"fqdn": self.object.fqdn})
+
+
+class HostUpdateView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
+    model = Host
+    form_class = HostForm
+    success_message = "Host updated successfully"
+    slug_url_kwarg = 'fqdn'
+    slug_field = 'fqdn'
+
+    def dispatch(self, request, *args, **kwargs):
+        obj: Host = self.get_object()
+
+        # Protect non-manually editable hosts
+        if not obj.can_manually_edit:
+            return HttpResponseForbidden()
+
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_success_url(self):
+        return reverse("hosts:detail", kwargs={"fqdn": self.object.fqdn})
 
 ##
 ## Data source views

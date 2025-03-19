@@ -54,9 +54,9 @@
         </a>
 
         {% if host.can_manually_edit %}
-            <div class="btn btn-outline">
+            <a href="{% url 'hosts:edit' host.fqdn %}" class="btn btn-outline">
                 Edit host config
-            </div>
+            </a>
 
             <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-danger">
                 Archive

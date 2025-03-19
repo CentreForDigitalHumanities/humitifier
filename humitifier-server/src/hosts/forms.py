@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import DataSource, Host
+from .models import DataSource, DataSourceType, Host
 
 
 class DataSourceForm(forms.ModelForm):
@@ -36,9 +36,33 @@ class DataSourceForm(forms.ModelForm):
 
         return None
 
+
 class HostScanSpecForm(forms.ModelForm):
     class Meta:
         model = Host
         fields = (
             "scan_spec_override",
         )
+
+
+class HostForm(forms.ModelForm):
+    class Meta:
+        model = Host
+        fields = (
+            "fqdn",
+            "data_source",
+            "scan_spec_override",
+            "has_tofu_config",
+            "otap_stage",
+            "department",
+            "customer",
+            "contact",
+        )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["data_source"].queryset = DataSource.objects.filter(
+            source_type=DataSourceType.MANUAL
+        )  # Example condition
+
+
