@@ -88,3 +88,38 @@ class OutdatedOSAlertGenerator(BaseArtefactAlertGenerator):
                 severity=AlertSeverity.INFO,
                 message="This operating system is no longer supported",
             )
+
+
+class BlockDeviceUsageAlertGenerator(BaseArtefactAlertGenerator):
+    artefact = Blocks
+    verbose_name = "Disk usage"
+
+    CRITICAL_USAGE_THRESHOLD = 90  # percentage
+    WARNING_USAGE_THRESHOLD = 80  # percentage
+
+    def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        if not self.artefact_data:
+            return None
+
+        blocks: Blocks = self.artefact_data
+        alerts: list[AlertData] = []
+
+        for block_device in blocks:
+            if block_device.use_percent > self.CRITICAL_USAGE_THRESHOLD:
+                alerts.append(
+                    AlertData(
+                        severity=AlertSeverity.CRITICAL,
+                        message=f"Disk '{block_device.name}' usage exceeds {self.CRITICAL_USAGE_THRESHOLD}%",
+                        custom_identifier=block_device.name,
+                    )
+                )
+            elif block_device.use_percent > self.WARNING_USAGE_THRESHOLD:
+                alerts.append(
+                    AlertData(
+                        severity=AlertSeverity.WARNING,
+                        message=f"Disk '{block_device.name}' usage exceeds {self.WARNING_USAGE_THRESHOLD}%",
+                        custom_identifier=block_device.name,
+                    )
+                )
+
+        return alerts
