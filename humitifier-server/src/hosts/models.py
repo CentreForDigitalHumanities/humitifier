@@ -51,6 +51,10 @@ class ScanData:
             )
             return None
 
+        # Should not happen in prod
+        if 'scan_date' not in self.raw_data:
+            self.raw_data['scan_date'] = self.scan_date.isoformat()
+
         return ScanOutput(**self.raw_data)
 
 
