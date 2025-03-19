@@ -67,3 +67,24 @@ class MemoryAlertGenerator(BaseArtefactAlertGenerator):
                 )
 
         return None
+
+
+class OutdatedOSAlertGenerator(BaseArtefactAlertGenerator):
+    artefact = HostnameCtl
+    verbose_name = "Outdated OS"
+
+    OUTDATED_OSes = [
+        "Debian GNU/Linux 10 (buster)",
+        "Debian GNU/Linux 9 (stretch)",
+        "CentOS Linux 7 (Core)",
+    ]
+
+    def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        if not self.artefact_data:
+            return None
+
+        if self.artefact_data.os in self.OUTDATED_OSes:
+            return AlertData(
+                severity=AlertSeverity.INFO,
+                message="This operating system is no longer supported",
+            )
