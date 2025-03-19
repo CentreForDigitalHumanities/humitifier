@@ -54,12 +54,13 @@
         </a>
 
         {% if host.can_manually_edit %}
-            <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-outline">
-                Archive
-            </a>
             <div class="btn btn-outline">
                 Edit host config
             </div>
+
+            <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-danger">
+                Archive
+            </a>
         {% else %}
             {# If we are not allowed to use the full-edit form, we offer this limited form #}
             <a
