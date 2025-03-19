@@ -23,6 +23,10 @@ def generate_alerts(scan_output: ScanOutput) -> ScanOutput | None:
         logger.error(f"Host {scan_output.hostname} is not found")
         raise e
 
+    if host.archived:
+        logger.error(f"Host {scan_output.hostname} is archived")
+        return None
+
     # Accumulate all alerts from both stages
     all_alerts = []
 
