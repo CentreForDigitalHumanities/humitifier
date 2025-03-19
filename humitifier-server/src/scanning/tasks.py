@@ -56,7 +56,7 @@ def save_scan(scan_output: ScanOutput | None):
     if scan_output.errors:
         logger.error(f"Errors for {host.fqdn}: {scan_output.errors}")
 
-    host.add_scan(scan_output.model_dump())
+    host.add_scan(scan_output.model_dump(mode="json"))
 
 
 @shared_task(name=SCANNING_SCAN_HANDLE_ERROR)

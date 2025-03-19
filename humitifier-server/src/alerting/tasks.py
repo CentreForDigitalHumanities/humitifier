@@ -38,7 +38,7 @@ def generate_alerts(scan_output: ScanOutput) -> ScanOutput | None:
 
     if fatal_alerts:
         save_alerts.delay(
-            GeneratedAlerts(host=host.fqdn, alerts=fatal_alerts).model_dump()
+            GeneratedAlerts(host=host.fqdn, alerts=fatal_alerts).model_dump(mode="json")
         )
         return None
 
@@ -55,11 +55,13 @@ def generate_alerts(scan_output: ScanOutput) -> ScanOutput | None:
 
     if fatal_alerts:
         save_alerts.delay(
-            GeneratedAlerts(host=host.fqdn, alerts=fatal_alerts).model_dump()
+            GeneratedAlerts(host=host.fqdn, alerts=fatal_alerts).model_dump(mode="json")
         )
         return None
 
-    save_alerts.delay(GeneratedAlerts(host=host.fqdn, alerts=alerts).model_dump())
+    save_alerts.delay(
+        GeneratedAlerts(host=host.fqdn, alerts=alerts).model_dump(mode="json")
+    )
 
     # Return scan output for further processing
     return scan_output

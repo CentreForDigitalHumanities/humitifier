@@ -16,7 +16,7 @@ def regenerate_alerts(host: Host):
     log_error_task = signature(MAIN_LOG_ERROR)
 
     generate_alerts_task = signature(
-        ALERTING_GENERATE_ALERTS, args=(scan_output.model_dump(),)
+        ALERTING_GENERATE_ALERTS, args=(scan_output.model_dump(mode="json"),)
     )
     generate_alerts_task.on_error(log_error_task)
 
