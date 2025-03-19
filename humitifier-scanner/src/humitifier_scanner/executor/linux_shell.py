@@ -235,14 +235,28 @@ class _ExecutorManager:
             return LocalLinuxShellExecutor()
 
         with cls._lock:
-            if (
-                host not in cls._connections
-                or not cls._connections[host].ssh_client.get_transport().is_active()
-            ):
-                logger.debug(f"Creating new SSH connection to {host}")
-                cls._connections[host] = RemoteLinuxShellExecutor(host)
+            return cls._get_remote_executor(host)
 
-            return cls._connections[host]
+    @classmethod
+    def _get_remote_executor(cls, host, retries=3):
+        if (
+            host not in cls._connections
+            or not cls._connections[host].ssh_client.get_transport().is_active()
+        ):
+            logger.debug(f"Creating new SSH connection to {host}")
+            try:
+                cls._connections[host] = RemoteLinuxShellExecutor(host)
+            except Exception as e:
+                if retries > 0:
+                    logger.debug(
+                        f"Failed to create new SSH connection to {host}, " f"retrying"
+                    )
+                    return cls._get_remote_executor(host, retries - 1)
+
+                logger.error(f"Failed to create new SSH connection to {host}")
+                raise e
+
+        return cls._connections[host]
 
     @classmethod
     def close_connection(cls, host):
