@@ -21,7 +21,7 @@ from rest_framework.reverse import reverse_lazy
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 
 from .filters import DataSourceFilters, HostFilters
-from .forms import DataSourceForm
+from .forms import DataSourceForm, HostScanSpecForm
 from .models import DataSource, Host
 from .scan_visualizers import get_scan_visualizer
 from .tables import DataSourcesTable, HostsTable
@@ -253,6 +253,20 @@ class ArchiveHostView(
             self.object.switch_archived_status()
 
         return HttpResponseRedirect(success_url)
+
+
+class HostScanSpecUpdateView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
+    model = Host
+    form_class = HostScanSpecForm
+    success_message = "Host scan spec updated successfully"
+    slug_url_kwarg = 'fqdn'
+    slug_field = 'fqdn'
+    template_name = 'hosts/host_scanspec_form.html'
+
+    def get_success_url(self):
+        return reverse("hosts:detail", kwargs={"fqdn": self.object.fqdn})
 
 
 ##

@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import DataSource
+from .models import DataSource, Host
 
 
 class DataSourceForm(forms.ModelForm):
@@ -35,3 +35,10 @@ class DataSourceForm(forms.ModelForm):
             return self.data["initial-identifier"]
 
         return None
+
+class HostScanSpecForm(forms.ModelForm):
+    class Meta:
+        model = Host
+        fields = (
+            "scan_spec_override",
+        )

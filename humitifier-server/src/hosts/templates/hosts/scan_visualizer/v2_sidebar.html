@@ -52,6 +52,12 @@
         >
             Queue scan
         </a>
+        <a
+            href="{% url 'hosts:change-scan-spec' host.fqdn %}"
+            class="btn btn-outline"
+        >
+            Change scan specification
+        </a>
 
         {% if host.can_manually_edit %}
             <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-outline">

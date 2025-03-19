@@ -1,0 +1,33 @@
+
+{% extends 'base/base_page_template.html' %}
+
+{% block content %}
+    <div class="h-full--header w-full bg px-7 py-5">
+        <h1 class="text-3xl font-bold mb-3">
+            {{ object.fqdn }}
+        </h1>
+        <h2 class="text-2xl font-bold">
+            Change host scan specification
+        </h2>
+
+        <p class="mt-8">
+            Here you can manually change which scan specification is used for
+            running scanning on this host. If left empty, the default set on
+            the data source will be used: {{ object.data_source.default_scan_spec.name }}
+        </p>
+
+        <form method="post" class="max-w-xl mt-8">
+            {% csrf_token %}
+            {{ form }}
+
+            <div class="flex gap-2 mt-6">
+                <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-outline">
+                    Cancel
+                </a>
+                <button type="submit" class="btn light:btn-primary dark:btn-outline">
+                    Confirm
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

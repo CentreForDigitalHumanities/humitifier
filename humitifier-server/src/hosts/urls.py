@@ -7,7 +7,7 @@ from .views import (
     DataSourcesView,
     HostDetailView,
     HostExportView,
-    HostsListView,
+    HostScanSpecUpdateView, HostsListView,
     HostsRawDownloadView,
 )
 
@@ -18,6 +18,7 @@ urlpatterns = [
     path("export/", HostExportView.as_view(), name="export"),
     path("host/<fqdn>/", HostDetailView.as_view(), name="detail"),
     path("host/<fqdn>/raw/", HostsRawDownloadView.as_view(), name="download_raw"),
+    path("host/<fqdn>/change-scan-spec/", HostScanSpecUpdateView.as_view(), name="change-scan-spec"),
     path("host/<fqdn>/archive/", ArchiveHostView.as_view(), name="archive"),
     path("data-sources/", DataSourcesView.as_view(), name="data_sources"),
     path(
