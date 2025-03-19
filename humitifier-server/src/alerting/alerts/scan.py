@@ -1,6 +1,7 @@
 from alerting.backend.data import AlertData
 from alerting.backend.generator import BaseScanAlertGenerator
 from alerting.models import AlertSeverity
+from humitifier_common.artefacts import ArtefactMetadata, registry
 from humitifier_common.scan_data import ErrorTypeEnum
 
 
@@ -66,5 +67,32 @@ class ScanErrorAlertGenerator(BaseScanAlertGenerator):
                     custom_identifier=custom_identifier,
                 )
             )
+
+        return alerts
+
+
+class MissingDataAlertGenerator(BaseScanAlertGenerator):
+
+    verbose_name = "Missing data"
+
+    def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        alerts = []
+
+        for fact_name, data in self.scan_output.facts.items():
+            artefact = registry.get(fact_name)
+            if artefact:
+                metadata: ArtefactMetadata = artefact.__artefact_metadata__
+                if not data and not metadata.null_is_valid:
+                    alerts.append(
+                        AlertData(
+                            severity=(
+                                AlertSeverity.WARNING
+                                if metadata.essential
+                                else AlertSeverity.INFO
+                            ),
+                            message=f"Missing data for {fact_name}",
+                            custom_identifier=fact_name,
+                        )
+                    )
 
         return alerts
