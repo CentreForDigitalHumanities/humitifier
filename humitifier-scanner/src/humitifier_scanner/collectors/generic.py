@@ -315,9 +315,18 @@ class PackageListFactCollector(ShellCollector):
 class NetworkInterfacesFactCollector(ShellCollector):
     fact = NetworkInterfaces
 
+    required_facts = [HostnameCtl]
+
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
-    ) -> NetworkInterfaces:
+    ) -> NetworkInterfaces | None:
+
+        # CentOS 7 is not compatible with this code, as it lacks the -j flag
+        # And I really cannot be bothered to write CentOS 7 compatible code,
+        # as it's a pain to parse!
+        host_info: HostnameCtl = info.required_facts[HostnameCtl]
+        if host_info.cpe_os_name == "cpe:/o:centos:centos:7":
+            return None
 
         ip_cmd = shell_executor.execute("ip -j addr show")
 

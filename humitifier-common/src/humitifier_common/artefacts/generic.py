@@ -7,6 +7,8 @@ from typing import Literal
 from pydantic import BaseModel
 
 from humitifier_common.artefacts.registry import fact, metric
+from humitifier_common.artefacts.registry.registry import ArtefactMetadata
+
 
 ##
 ## Hardware
@@ -91,7 +93,7 @@ class Users(list[User]):
 ##
 
 
-@fact(group="generic")
+@fact(group="generic", metadata=ArtefactMetadata(null_is_valid=True))
 class HostnameCtl(BaseModel):
     hostname: str
     os: str
