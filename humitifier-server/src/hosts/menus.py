@@ -11,8 +11,7 @@ Menu.add_item(
         weight=10,
         separator=True,
         icon="icons/host.html",
-        check=lambda request: request.user.is_authenticated
-        and request.user.can_view_datasources,
+        check=lambda request: request.user.is_authenticated,
         children=[
             HumitifierMenuItem(
                 "List",
