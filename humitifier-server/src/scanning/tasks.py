@@ -1,11 +1,10 @@
 from datetime import timedelta
 
-from celery import shared_task, signature
+from celery import shared_task
 from django.db.models import Q
 from django.utils import timezone
 
 from humitifier_common.scan_data import ScanInput, ScanOutput
-from humitifier_common.celery.task_names import SCANNER_RUN_SCAN
 
 from humitifier_server.celery.task_names import *
 from humitifier_server.logger import logger
