@@ -93,7 +93,7 @@ class Users(list[User]):
 ##
 
 
-@fact(group="generic", metadata=ArtefactMetadata(null_is_valid=True))
+@fact(group="generic")
 class HostnameCtl(BaseModel):
     hostname: str
     os: str
@@ -152,6 +152,6 @@ class NetworkInterface(BaseModel):
     addresses: list[AddressInfo]
 
 
-@fact(group="generic")
+@fact(group="generic", metadata=ArtefactMetadata(null_is_valid=True))
 class NetworkInterfaces(list[NetworkInterface]):
     pass
