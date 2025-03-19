@@ -1,4 +1,5 @@
 from humitifier_common.artefacts import ZFS, ZFSPool, ZFSVolume
+from humitifier_common.scan_data import ScanErrorMetadata
 from humitifier_scanner.collectors import CollectInfo, ShellCollector
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 
@@ -32,7 +33,10 @@ class ZFSVolumesMetricCollector(ShellCollector):
                         )
                     )
                 except ValueError:
-                    self.add_error("Failed to parse zpool list output")
+                    self.add_error(
+                        "Failed to parse zpool list output",
+                        metadata=ScanErrorMetadata(identifier="zpool"),
+                    )
 
         volumes_cmd = shell_executor.execute(
             "/sbin/zfs list -p -H -o name,refer,avail,mountpoint"
@@ -59,7 +63,10 @@ class ZFSVolumesMetricCollector(ShellCollector):
                         )
                     )
                 except ValueError:
-                    self.add_error("Failed to parse zfs list output")
+                    self.add_error(
+                        "Failed to parse zfs list output",
+                        metadata=ScanErrorMetadata(identifier="volumes"),
+                    )
 
         # Don't return anything if we didn't find any pools nor any volumes
         if not pools and not volumes:
