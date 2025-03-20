@@ -28,9 +28,8 @@ WORKDIR /app
 RUN apk add postgresql-libs
 
 COPY --from=builder /app .
-COPY humitifier-server/docker/gunicorn.conf.py ./
-COPY humitifier-server/docker/entrypoint.sh ./
+COPY humitifier-server/docker/* ./
 
 RUN .venv/bin/python src/manage.py collectstatic --noinput
 
-CMD ["sh", "entrypoint.sh"]
+CMD ["sh", "server_entrypoint.sh"]
