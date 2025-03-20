@@ -7,4 +7,4 @@ source /app/.venv/bin/activate
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 
 # Run da scheduler
-exec python -m celery -A humitifier_server beat -l "$LOG_LEVEL"
+exec python -m celery -A humitifier_server beat -l "$LOG_LEVEL" --scheduler django_celery_beat.schedulers:DatabaseScheduler
