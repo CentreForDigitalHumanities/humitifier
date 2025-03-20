@@ -249,7 +249,7 @@ class _ExecutorManager:
             except Exception as e:
                 if retries > 0:
                     logger.debug(
-                        f"Failed to create new SSH connection to {host}: {e}. Retrying...",
+                        f"Failed to create new SSH connection to {host}: {e}. Retrying... ({retries} left",
                         exc_info=True,
                     )
                     return cls._get_remote_executor(host, retries - 1)
