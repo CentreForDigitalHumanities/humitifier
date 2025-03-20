@@ -1,4 +1,4 @@
-FROM python:3.13.0-alpine3.20 AS builder
+FROM python:3.13-alpine AS builder
 
 ENV PYTHONUNBUFFERED=1
 
@@ -21,7 +21,7 @@ RUN poetry lock
 
 RUN poetry install --without dev --with=production -vvv
 
-FROM python:3.13.0-alpine3.20
+FROM python:3.13-alpine
 
 WORKDIR /app
 

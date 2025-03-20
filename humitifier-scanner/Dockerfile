@@ -1,4 +1,4 @@
-FROM python:3.13-alpine3.20 AS builder
+FROM python:3.13-alpine AS builder
 
 ENV PYTHONUNBUFFERED=1
 
@@ -21,7 +21,7 @@ RUN poetry lock
 
 RUN poetry install --only=main,production,celery --compile --no-interaction -vvv
 
-FROM python:3.13-alpine3.20
+FROM python:3.13-alpine
 
 ENV PYTHONUNBUFFERED=1
 
