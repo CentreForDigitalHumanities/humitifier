@@ -64,6 +64,13 @@ def scan(input_data: ScanInput) -> ScanOutput:
                 output.metrics[collector.artefact_name()] = collector_output
 
             output.errors.extend(collector_errors)
+
+            #
+            global_errors = [
+                error for error in collector_errors if error.global_error
+            ]
+            if global_errors:
+                break
     else:
         output.errors.append(
             ScanError(
