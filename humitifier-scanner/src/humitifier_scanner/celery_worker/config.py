@@ -22,6 +22,7 @@ app = Celery(
 )
 
 app.conf.task_routes = task_routes
+app.conf.timezone = "Europe/Amsterdam"
 
 
 @signals.celeryd_init.connect
