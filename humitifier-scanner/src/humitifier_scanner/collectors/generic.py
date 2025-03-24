@@ -48,6 +48,10 @@ class HardwareFactCollector(ShellCollector):
             memory = []
             # First line is a header
             for line in memory_cmd.stdout[1:]:
+                # If a memrange is offline, it will have the removable column
+                # empty; represented by a double-space
+                if "  " in line:
+                    line = line.replace("  ", " unknown ")
                 mem_range, size, state, removable, block = line.split()
                 removable = removable == "yes"
                 size = int(size)
