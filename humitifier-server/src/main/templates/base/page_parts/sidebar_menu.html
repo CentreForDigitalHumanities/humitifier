@@ -1,0 +1,64 @@
+
+<ul class="space-y-2 w-full">
+    {% for item in menu_items %}
+        {% if item.visible %}
+            {% if item.separator %}
+                <li class="px-3 py-2">
+                    <div class="border-t w-full border-gray-700"></div>
+                </li>
+            {% endif %}
+            <li x-data="{show_children: {{ item.child_selected|yesno:'true,false' }} }" class="w-full">
+                {% if item.children %}
+                    <div
+                        class="flex w-full items-center gap-3 py-2 px-3 cursor-pointer text-white hover:bg-neutral-800 rounded transition ease-in-out duration-150"
+                        @click="show_children = !show_children"
+                    >
+                        {% if item.icon %}
+                            {% include item.icon %}
+                        {% endif %}
+                        <span>
+                            {{ item.title }}
+                        </span>
+                        <div class="ml-auto">
+                            <div x-show="show_children">
+                                {% with icon_size='size-5' %}
+                                    {% include 'icons/chevron-up.html' %}
+                                {% endwith %}
+                            </div>
+                            <div x-show="!show_children">
+                                {% with icon_size='size-5' %}
+                                    {% include 'icons/chevron-down.html' %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        class="hidden mt-2 ml-4 pl-2 border-l border-gray-700"
+                        x-bind:class="show_children && '!flex'"
+                    >
+                        {% with menu_items=item.children %}
+                            {% include 'base/page_parts/sidebar_menu.html' %}
+                        {% endwith %}
+                    </div>
+
+                {% else %}
+
+                    <a
+                        href="{{ item.url }}"
+                        target="{{ item.target }}"
+                        class="flex gap-3 py-2 px-3 text-white hover:bg-neutral-800 rounded transition ease-in-out duration-150 {% if item.selected %}bg-neutral-800{% endif %}"
+                    >
+                        {% if item.icon %}
+                            {% include item.icon %}
+                        {% endif %}
+                        <span>
+                            {{ item.title }}
+                        </span>
+                    </a>
+
+                {% endif %}
+            </li>
+        {% endif %}
+    {% endfor %}
+</ul>

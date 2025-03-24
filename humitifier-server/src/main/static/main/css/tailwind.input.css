@@ -4,12 +4,17 @@
 
 @layer components {
     .bg {
-        @apply bg-gray-50 dark:bg-gray-900;
+        @apply bg-gray-50 dark:bg-gray-900 transition duration-150;
     }
 
     .h-full--header
     {
         @apply min-h-[calc(100vh-3.5rem)];
+    }
+
+    .h-max-full--header
+    {
+        @apply h-[calc(100vh-3.5rem)];
     }
 
     .top-header
@@ -18,7 +23,7 @@
     }
 
     .section {
-        @apply bg p-7 pt-5 rounded;
+        @apply bg p-7 pt-5 rounded border border-gray-300 dark:border-gray-700;
     }
 
     .text-green {
@@ -30,7 +35,7 @@
     }
 
     .select {
-        @apply appearance-none;
+        @apply appearance-none pr-7;
         background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(10, 10, 10)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /%3E%3C/svg%3E');
         background-repeat: no-repeat;
         background-position: right 0.75rem center;
@@ -59,6 +64,10 @@
 
     .btn-sm {
         @apply px-3 py-2 text-sm h-[36px];
+    }
+
+    .btn-xs {
+        @apply px-2 py-1 text-sm;
     }
 
     .btn-outline {

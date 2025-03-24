@@ -2,7 +2,7 @@
 {% load humanize %}
 {% load simple_menu %}
 
-<aside class="fixed top-0 left-0 z-40 w-72 h-screen transition-transform -translate-x-full md:translate-x-0 bg-black text-white" x-bind:class="show_sidebar ? 'translate-x-0' : ''">
+<aside class="fixed top-0 left-0 z-40 w-72 h-screen transition-transform -translate-x-full md:translate-x-0 bg-black text-white overflow-y-auto" x-bind:class="show_sidebar ? 'translate-x-0' : ''">
     <div class="md:hidden cursor-pointer p-4 flex justify-end" @click="show_sidebar = false">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
@@ -21,19 +21,17 @@
         </div>
     </section>
 
-    {% if debug %}
-        <div class="bg-red-700 px-3 py-2 my-2 text-center text-white font-bold">
-            DEBUG MODE
-        </div>
-    {% endif %}
-
     <div class="flex justify-between px-4 font-semibold">
-        <a class="text-green-600 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}">
+        <a class="flex items-center gap-2 py-1.5 text-primary" href="{% url 'hosts:list' %}">
             {% with stroke="stroke-2" %}
                 {% include 'icons/host.html' %}
             {% endwith %}
             {{ layout.num_hosts|intcomma }}
         </a>
+        {# Visual separator #}
+        <div class="py-1.5">
+            <div class="border-l border-gray-700 h-full"></div>
+        </div>
         <a class="text-blue-300 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_level=info">
             {% include 'icons/info.html' %}
             {{ layout.num_info_alerts|intcomma }}
@@ -48,33 +46,14 @@
         </a>
     </div>
     <section class="p-3 overflow-y-auto">
-        <ul class="space-y-2">
-            {% block menu %}
+        {% block menu %}
             {% generate_menu %}
-                {% for item in menus.main %}
-                    {% if item.visible %}
-                        {% if item.separator %}
-                            <li class="px-3 py-2">
-                                <div class="border-t w-full border-gray-700"></div>
-                            </li>
-                        {% endif %}
-                        <li>
-                            <a
-                                href="{{ item.url }}"
-                                class="flex gap-3 py-2 px-3 text-white hover:bg-neutral-800 rounded transition ease-in-out duration-150 {% if item.selected %}bg-neutral-800{% endif %}"
-                            >
-                            {% if item.icon %}
-                                {% include item.icon %}
-                            {% endif %}
-                                <span>
-                                    {{ item.title }}
-                                </span>
-                            </a>
-                        </li>
-                    {% endif %}
-                {% endfor %}
-            {% endblock %}
-        </ul>
-
+            {% with menu_items=menus.main %}
+                {% include 'base/page_parts/sidebar_menu.html' %}
+            {% endwith %}
+        {% endblock %}
     </section>
+    <div class="p-3 mt-4 text-center text-gray-400">
+        Humitifier {{ layout.humitifier_version }}
+    </div>
 </aside>

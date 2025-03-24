@@ -1,0 +1,90 @@
+{% extends 'hosts/scan_visualizer/components/base_component.html' %}
+
+{% load host_tags %}
+
+{% block content %}
+    <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3" x-data="{show_block_devices: false, show_pci_devices: false, show_usb_devices: false}">
+        <div class="font-semibold">Num. CPUs</div>
+        <div>
+            {% if hardware.num_cpus %}
+                {{ hardware.num_cpus }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+        <div class="font-semibold">Memory</div>
+        <div>
+            {% if total_memory %}
+                {{ total_memory|filesizeformat }}
+            {% else %}
+                <div class="text-gray-500">Unknown</div>
+            {% endif %}
+        </div>
+        {% if hardware.block_devices %}
+            <div class="font-semibold">Block devices</div>
+            <div class="cursor-pointer btn btn-xs btn-outline mr-auto" @click="show_block_devices = !show_block_devices">
+                <span x-bind:class="show_block_devices ? 'hidden': ''">Show</span>
+                <span x-bind:class="show_block_devices ? '': 'hidden'">Hide</span>
+            </div>
+            <div class="col-span-2 max-h-64 overflow-y-auto rounded bg-gray-200 dark:bg-gray-800 p-3 mb-3 last:mb-0 border border-gray-300 dark:border-gray-700" x-bind:class="show_block_devices ? '': 'hidden'">
+                <table class="w-full">
+                    <thead>
+                        <tr class="border-b border-gray-300 dark:border-gray-700 text-left">
+                            <th class="font-semibold pb-2">Name</th>
+                            <th class="font-semibold pb-2">Type</th>
+                            <th class="font-semibold pb-2">Model</th>
+                            <th class="font-semibold pb-2">Size</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for block in hardware.block_devices %}
+                            <tr class="border-b border-gray-300 dark:border-gray-700">
+                             <td class="font-semibold py-2">
+                                {{ block.name }}
+                            </td>
+
+                             <td class="">
+                                {{ block.type }}
+                            </td>
+                             <td class="">
+                                {{ block.model }}
+                            </td>
+                             <td class="">
+                                {{ block.size }}
+                            </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% endif %}
+        {% if hardware.pci_devices %}
+            <div class="font-semibold">PCI(e) devices</div>
+            <div class="cursor-pointer btn btn-xs btn-outline mr-auto" @click="show_pci_devices = !show_pci_devices">
+                <span x-bind:class="show_pci_devices ? 'hidden': ''">Show</span>
+                <span x-bind:class="show_pci_devices ? '': 'hidden'">Hide</span>
+            </div>
+            <div class="col-span-2 max-h-64 overflow-auto rounded bg-gray-200 dark:bg-gray-800 p-3 mb-3 last:mb-0 border border-gray-300 dark:border-gray-700" x-bind:class="show_pci_devices ? '': 'hidden'">
+                {% for pci_device in hardware.pci_devices %}
+                    <div class="w-auto text-nowrap">
+                        {{ pci_device }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        {% if hardware.usb_devices %}
+            <div class="font-semibold">USB devices</div>
+            <div class="cursor-pointer btn btn-xs btn-outline mr-auto" @click="show_usb_devices = !show_usb_devices">
+                <span x-bind:class="show_usb_devices ? 'hidden': ''">Show</span>
+                <span x-bind:class="show_usb_devices ? '': 'hidden'">Hide</span>
+            </div>
+            <div class="col-span-2 max-h-64 overflow-auto rounded bg-gray-200 dark:bg-gray-800 p-3 mb-3 last:mb-0 border border-gray-300 dark:border-gray-700" x-bind:class="show_usb_devices ? '': 'hidden'">
+                {% for usb_device in hardware.usb_devices %}
+                    <div class="w-auto text-nowrap">
+                        {{ usb_device }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

@@ -15,6 +15,7 @@
                 type: 'pie',
                 data: {
                     labels: [
+                        'No alert',
                         'Info',
                         'Warning',
                         'Critical',
@@ -22,7 +23,8 @@
                     datasets: [
                         {
                             label: 'Alert levels',
-                            data: [{{ layout.num_info_alerts }}, {{ layout.num_warning_alerts }}, {{ layout.num_critical_alerts }}],
+                            data: [{{ num_fine }}, {{ num_info }}, {{ num_warning }}, {{ num_critical }}],
+                            backgroundColor: ["#44ef44", "#93c5fd", "#f97316", "#ef4444"]
                         },
                     ]
                 },
@@ -72,19 +74,19 @@
                     },
                 },
             });
-            let department = document.getElementById('departmentChart');
-            new Chart(department, {
+            let customer = document.getElementById('customerChart');
+            new Chart(customer, {
                 type: 'pie',
                 data: {
                     labels: [
-                        {% for os in department_stats %}
-                            '{{ os.department|strip_quotes }}',
+                        {% for os in customer_stats %}
+                            '{{ os.customer|strip_quotes }}',
                         {% endfor %}
                     ],
                     datasets: [{
                         label: 'Operating Systems',
                         data: [
-                            {% for os in department_stats %}
+                            {% for os in customer_stats %}
                                 {{ os.count }},
                             {% endfor %}
                         ],
@@ -99,7 +101,7 @@
                         },
                         title: {
                             display: true,
-                            text: 'Servers by department',
+                            text: 'Servers by customer',
                         }
                     },
                 },
@@ -117,7 +119,7 @@
             <canvas id="osChart"></canvas>
         </div>
         <div class="section">
-            <canvas id="departmentChart"></canvas>
+            <canvas id="customerChart"></canvas>
         </div>
     </div>
     <div class="p-3">
@@ -135,7 +137,10 @@
                         Hostname
                     </th>
                     <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
-                        Level
+                        Severity
+                    </th>
+                    <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                        Type
                     </th>
                     <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden lg:table-cell transition ease-in-out duration-150 rounded-tr">
                         Message
@@ -151,7 +156,10 @@
                             </a>
                         </td>
                         <td class="hidden xl:table-cell">
-                            {{ alert.level }}
+                            {{ alert.severity }}
+                        </td>
+                        <td class="hidden xl:table-cell">
+                            {{ alert.short_message }}
                         </td>
                         <td class="hidden lg:table-cell">
                             {{ alert.message }}

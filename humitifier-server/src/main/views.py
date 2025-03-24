@@ -1,7 +1,9 @@
+from datetime import datetime
 from urllib.parse import urlparse
 
 from django.contrib.auth.mixins import AccessMixin, LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
+from django.contrib.messages.views import SuccessMessageMixin
 from django.db.models import Count
 from django.forms import Form
 from django.http import HttpResponseRedirect
@@ -16,14 +18,25 @@ from django.views.generic import (
 )
 from django.views.generic.detail import (
     BaseDetailView,
+    DetailView,
     SingleObjectTemplateResponseMixin,
 )
 from django.views.generic.edit import CreateView, FormMixin
+from django_celery_beat.admin import PeriodicTaskForm
+from django_celery_beat.models import PeriodicTask
+from django_celery_results.models import TaskResult
 from rest_framework.reverse import reverse_lazy
 
-from hosts.filters import AlertFilters
-from hosts.models import Alert, Host
-from main.filters import AccessProfileFilters, UserFilters
+from alerting.models import Alert, AlertSeverity
+from humitifier_server import celery_app
+from alerting.filters import AlertFilters
+from hosts.models import Host
+from main.filters import (
+    AccessProfileFilters,
+    PeriodicTaskFilters,
+    TaskResultFilters,
+    UserFilters,
+)
 from main.forms import (
     AccessProfileForm,
     CreateSolisUserForm,
@@ -32,7 +45,12 @@ from main.forms import (
     UserProfileForm,
 )
 from main.models import AccessProfile, HomeOptions, User
-from main.tables import AccessProfilesTable, UsersTable
+from main.tables import (
+    AccessProfilesTable,
+    PeriodicTaskTable,
+    TaskResultTable,
+    UsersTable,
+)
 
 
 ###
@@ -161,6 +179,10 @@ class FilteredListView(ListView):
 ### Page views
 ###
 
+#
+# Home views
+#
+
 
 class HomeRedirectView(LoginRequiredMixin, RedirectView):
 
@@ -177,7 +199,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
     template_name = "main/dashboard.html"
     ordering_fields = {
         "host": "Hostname",
-        "level": "Alert level",
+        "severity": "Alert severity",
         "type": "Alert type",
     }
 
@@ -199,6 +221,32 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
 
         return filtered_qs.distinct()
 
+    def get_alert_stats(self):
+        num_critical = Host.objects.filter(
+            alerts__severity=AlertSeverity.CRITICAL,
+        ).count()
+        num_warning = (
+            Host.objects.filter(
+                alerts__severity=AlertSeverity.WARNING,
+            )
+            .exclude(
+                alerts__severity=AlertSeverity.CRITICAL,
+            )
+            .count()
+        )
+        num_info = (
+            Host.objects.filter(
+                alerts__severity=AlertSeverity.INFO,
+            )
+            .exclude(
+                alerts__severity__in=[AlertSeverity.WARNING, AlertSeverity.CRITICAL],
+            )
+            .count()
+        )
+        num_fine = Host.objects.filter(alerts__isnull=True).count()
+
+        return num_critical, num_warning, num_info, num_fine
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -207,13 +255,25 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
             .values("os")
             .annotate(count=Count("os"))
         )
-        context["department_stats"] = (
+        context["customer_stats"] = (
             Host.objects.get_for_user(self.request.user)
-            .values("department")
-            .annotate(count=Count("department"))
+            .values("customer")
+            .annotate(count=Count("customer"))
         )
 
+        num_critical, num_warning, num_info, num_fine = self.get_alert_stats()
+
+        context["num_critical"] = num_critical
+        context["num_warning"] = num_warning
+        context["num_info"] = num_info
+        context["num_fine"] = num_fine
+
         return context
+
+
+#
+# User management views
+#
 
 
 class UsersView(
@@ -243,12 +303,14 @@ class DeActivateUserView(
     LoginRequiredMixin,
     SuperuserRequiredMixin,
     SingleObjectTemplateResponseMixin,
+    SuccessMessageMixin,
     FormMixin,
     BaseDetailView,
 ):
     model = User
     form_class = Form
     template_name = "main/user_deactivate.html"
+    success_message = "User deactivated"
 
     def get_success_url(self):
         return reverse("main:users")
@@ -270,18 +332,24 @@ class DeActivateUserView(
         return HttpResponseRedirect(success_url)
 
 
-class CreateUserView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+class CreateUserView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = User
     form_class = UserForm
     success_url = reverse_lazy("main:users")
+    success_message = "User created"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
 
-class CreateSolisUserView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+class CreateSolisUserView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = User
     form_class = CreateSolisUserForm
     success_url = reverse_lazy("main:users")
+    success_message = "User created"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
@@ -297,19 +365,23 @@ class CreateSolisUserView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView
         return super().form_valid(form)
 
 
-class EditUserView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+class EditUserView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
     model = User
     form_class = UserForm
     success_url = reverse_lazy("main:users")
+    success_message = "User edited"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
 
-class UserProfileView(LoginRequiredMixin, UpdateView):
+class UserProfileView(LoginRequiredMixin, SuccessMessageMixin, UpdateView):
     model = User
     form_class = UserProfileForm
     success_url = reverse_lazy("main:user_profile")
     template_name = "main/user_profile.html"
+    success_message = "Profile updated"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
@@ -319,12 +391,14 @@ class UserProfileView(LoginRequiredMixin, UpdateView):
 
 class SetPasswordView(
     LoginRequiredMixin,
+    SuccessMessageMixin,
     UpdateView,
 ):
     model = User
     form_class = SetPasswordForm
     template_name = "main/user_set_password_form.html"
     success_url = reverse_lazy("main:users")
+    success_message = "Password updated"
     context_object_name = "form_user"  # needed to keep the view from
     # overriding the user object in the context
 
@@ -342,6 +416,11 @@ class SetPasswordView(
         return super().dispatch(request, *args, **kwargs)
 
 
+#
+# Access profile views
+#
+
+
 class AccessProfilesView(
     LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
 ):
@@ -356,18 +435,134 @@ class AccessProfilesView(
     }
 
 
-class CreateAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, CreateView):
+class CreateAccessProfileView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = AccessProfile
     form_class = AccessProfileForm
     success_url = reverse_lazy("main:access_profiles")
+    success_message = "Access profile created"
 
 
-class EditAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, UpdateView):
+class EditAccessProfileView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
     model = AccessProfile
     form_class = AccessProfileForm
     success_url = reverse_lazy("main:access_profiles")
+    success_message = "Access profile updated"
 
 
-class DeleteAccessProfileView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
+class DeleteAccessProfileView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+):
     model = AccessProfile
     success_url = reverse_lazy("main:access_profiles")
+    success_message = "Access profile deleted"
+
+
+#
+# Celery views
+#
+
+
+class CurrentTasksView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    template_name = "main/currenttasks_list.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        inspector = celery_app.control.inspect()
+
+        active_tasks = inspector.active()
+        scheduled_tasks = inspector.scheduled()
+
+        active_tasks = self.transform_tasks(active_tasks, "SCHEDULED")
+        scheduled_tasks = self.transform_tasks(scheduled_tasks, "ACTIVE")
+
+        context["current_tasks"] = active_tasks
+        context["scheduled_tasks"] = scheduled_tasks
+
+        return context
+
+    def transform_tasks(self, tasks_data, _type):
+        output = []
+        for _, tasks in tasks_data.items():
+            for task in tasks:
+                task["type"] = _type
+                if "time_start" in task and isinstance(
+                    task["time_start"], (int, float)
+                ):
+                    task["time_start"] = datetime.fromtimestamp(
+                        task["time_start"]
+                    ).strftime("%Y-%m-%d %H:%M:%S")
+
+                output.append(task)
+
+        return output
+
+
+class TaskResultsView(
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+):
+    model = TaskResult
+    table_class = TaskResultTable
+    filterset_class = TaskResultFilters
+    paginate_by = 50
+    template_name = "main/taskresult_list.html"
+    ordering = "-date_created"
+    ordering_fields = {
+        "date_created": "date_created",
+        "date_done": "date_done",
+    }
+
+
+class TaskResultDetailView(LoginRequiredMixin, SuperuserRequiredMixin, DetailView):
+    model = TaskResult
+    slug_field = "task_id"
+    slug_url_kwarg = "task_id"
+    template_name = "main/taskresult_details.html"
+
+
+class PeriodicTasksView(
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+):
+    model = PeriodicTask
+    table_class = PeriodicTaskTable
+    filterset_class = PeriodicTaskFilters
+    paginate_by = 50
+    template_name = "main/periodictask_list.html"
+    ordering = "name"
+    ordering_fields = {
+        "name": "Name",
+        "last_run_at": "Last run",
+    }
+
+
+class CreatePeriodicTaskView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
+    model = PeriodicTask
+    form_class = PeriodicTaskForm
+    success_url = reverse_lazy("main:periodic_tasks")
+    success_message = "Periodic task created"
+    template_name = "main/periodictask_form.html"
+
+
+class EditPeriodicTaskView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
+    model = PeriodicTask
+    form_class = PeriodicTaskForm
+    success_url = reverse_lazy("main:periodic_tasks")
+    success_message = "Periodic task updated"
+    template_name = "main/periodictask_form.html"
+
+
+class DeletePeriodicTaskView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+):
+    model = PeriodicTask
+    success_url = reverse_lazy("main:periodic_tasks")
+    success_message = "Periodic task deleted"
+    template_name = "main/periodictask_confirm_delete.html"

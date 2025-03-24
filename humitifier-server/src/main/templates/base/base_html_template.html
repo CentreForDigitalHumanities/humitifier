@@ -1,7 +1,7 @@
 {% load static %}
 
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -26,7 +26,7 @@
     {% if debug %}
         <style>
             #djDebug #djDebugToolbarHandle {
-                bottom: 35px;
+                bottom: calc(50% - 35px);
                 top: unset !important;
             }
         </style>
@@ -42,7 +42,7 @@
         setTheme();
     </script>
 </head>
-<body class="bg-gray-200 text-gray-900 dark:bg-gray-950 dark:text-gray-50 transition ease-in-out duration-150" x-data="{show_sidebar:false}">
+<body class="bg-gray-100 text-gray-900 dark:bg-gray-950 dark:text-gray-50 transition ease-in-out duration-150" x-data="{show_sidebar:false}">
 {% block body %}{% endblock %}
 </body>
 </html>

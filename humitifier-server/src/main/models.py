@@ -31,50 +31,61 @@ class User(AbstractUser):
     )
 
     @property
-    def departments_for_filter(self):
-        departments = set()
+    def can_view_datasources(self):
+        if self.is_superuser:
+            return True
 
         for access_profile in self.access_profiles.all():
-            departments.update(access_profile.departments_for_filter)
+            if access_profile.data_sources.count() > 0:
+                return True
 
-        return departments
+        return False
+
+    @property
+    def customers_for_filter(self):
+        customers = set()
+
+        for access_profile in self.access_profiles.all():
+            customers.update(access_profile.customers_for_filter)
+
+        return customers
 
 
 class AccessProfile(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
 
-    departments = ArrayField(
+    customers = ArrayField(
         models.CharField(max_length=200),
     )
 
-    def get_departments_display(self):
-        stripped = [department.strip('"') for department in self.departments]
+    data_sources = models.ManyToManyField(
+        "hosts.DataSource",
+        verbose_name="Manage data sources",
+        help_text="Determines which data sources this access profile gives manage access to.",
+    )
+
+    def get_customers_display(self):
+        stripped = [customer.strip('"') for customer in self.customers]
         return ", ".join(stripped)
 
     @property
-    def departments_for_filter(self):
-        departments = []
+    def customers_for_filter(self):
+        customers = []
 
-        for department in self.departments:
-            departments.append(department)
+        for department in self.customers:
+            customers.append(department)
 
-            # Explanation for the following: the department field on hosts
-            # is generated from JSON data. For some reason, this adds
-            # quotes around the department name.
-            # The following code is some safeguarding to make sure that
-            # the filter works as expected. (As 'self.departments' is human
-            # input)
-
-            # If we have a department with quotes, we need to add an option
+            # If we have a customer with quotes, we need to add an option
             # without quotes as well, just to be sure.
+            # As of 4.0 this should no longer be a problem, but well, better safe than sorry
             if department.endswith('"'):
-                departments.append(department[1:-1])
+                customers.append(department[1:-1])
             # And the other way around too
             else:
-                departments.append(f'"{department}"')
+                customers.append(f'"{department}"')
 
-        return departments
+        return customers
 
     def __str__(self):
         return self.name

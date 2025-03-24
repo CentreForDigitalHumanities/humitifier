@@ -1,0 +1,20 @@
+[
+    {
+      "model": "hosts.datasource",
+      "pk": 1,
+      "fields": {
+        "identifier": "d40a7ba5-5564-4260-a890-5807bf697d9d",
+        "name": "Manual",
+        "source_type": "manual"
+      }
+    },
+    {
+        "model": "hosts.datasource",
+        "pk": 2,
+        "fields": {
+            "identifier": "8b8425c9-e2e2-4b71-b9e4-d5e9fe5f4534",
+            "name": "API",
+            "source_type": "api"
+        }
+    }
+]
