@@ -2,7 +2,7 @@
 {% load humanize %}
 {% load simple_menu %}
 
-<aside class="fixed top-0 left-0 z-40 w-72 h-screen transition-transform -translate-x-full md:translate-x-0 bg-black text-white" x-bind:class="show_sidebar ? 'translate-x-0' : ''">
+<aside class="fixed top-0 left-0 z-40 w-72 h-screen transition-transform -translate-x-full md:translate-x-0 bg-black text-white overflow-y-auto" x-bind:class="show_sidebar ? 'translate-x-0' : ''">
     <div class="md:hidden cursor-pointer p-4 flex justify-end" @click="show_sidebar = false">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
