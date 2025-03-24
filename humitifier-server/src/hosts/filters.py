@@ -152,6 +152,15 @@ class HostFilters(django_filters.FilterSet):
         widget=MultipleChoiceFilterWidget,
     )
 
+    open_tofu = BooleanChoiceFilter(
+        empty_label="Is OpenTofu managed",
+        field_name="has_tofu_config",
+        choices=[
+            (True, "Yes"),
+            (False, "No"),
+        ],
+    )
+
     package = PackageFilter(
         label="Package",
     )
