@@ -3,13 +3,16 @@
 A CMDB + interface for tracking the inventory servers.
 Based on the infrastructure of Humanities IT within the UU, but probably applicable to other infrastructures too.
 
-Humitifer is split into two components
+Humitifer is split into two-ish components
 
-* Agent
-  * Server fact collection over SSH
+* Scanner
+  * Server artefact collection over SSH
   * stdout parsing of bash command outputs
 * Server
+  * Processing scan output
   * A frontend interface for displaying scan results
+* Common
+  * A shared library for both components, containing mostly data-model code
 
 ## Is it for me?
 
@@ -28,35 +31,47 @@ Below is a motivation of why they were chosen:
 * **Django** is used as a webserver. It is light-weight, modern, well-maintained, and well-documented. In addition, there is a lot of institutional knowledge about it in the department.
   * Versions <3.0 used FastAPI, but as new requirements came in, it was decided to switch to Django to facilitate faster development
   * The UI uses TailwindCSS for styling and AlpineJS for interactivity. Tailwind was chosen mostly because the developer didn't want to use UU-Bootstrap. AlpineJS was chosen because it is very modern alternative to jQuery, perfect for the minimal interactivity needed in the app.
-* **parallel-ssh** is used to run remote ssh commands
-  * It is no longer maintained, and thus Humitifier will probably switch to a different library in Humitifier 4.0
-  * `asyncssh` was a nice contender, ~~however it had an incompatible license~~ no idea what that license problem was, it's explicitly allowed....
-  * `pyinfra` did not really offer much more than pre-implemented ssh commands and was using a considerably slower library for running the ssh commands
-* **rocketry** is used by the agent to schedule scans. Again, it is no longer maintained, and will probably be replaced in Humitifier 4.0.
-* **toml** is used for configuration of the agent. It's better than JSON, and built-in to Python. 
-
+* **paramiko** is used to run remote ssh commands
+  * Previous versions <4.0 used parallel-ssh, which is a parallel-running optimized libray. Humitifier 4 introduces a different strategy, making paramiko the better fit
+* **Celery** is used to schedule scans/processing/background jobs. The scanner can run as a dedicated scan-worker or a standalone app
+* **Pydantic** is used to describe internal data-models. Chosen for it's advanced serialization and Celery support
+  * The scanner also uses pydantic-settings for the configuration/cli interface
 
 # Setup
 
-## Server configuration
+## Additional components
 
-The default settings of the server application are already correct for local development. You will need to provide
-it with a postgresql database listening on `localhost:6432` with a database named `postgres` and a user `postgres`
-with password `postgres`. Do note that this is a non-standard port for postgresql! (The agent was already using 5432...)
+Humitifier requires a PostgreSQL database and a RabbitMQ instance to run.
 
-You can use the following docker-compose file to set up the database:
+You can use the following docker-compose file to set these up:
 
 ```yaml
 services:
   server-db:
     image: postgres:15
+    expose:
+      - "5432"
     ports:
-      - "6432:5432"
+      - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=postgres
+  rabbitmq:
+    image: rabbitmq:4-management
+    expose:
+      - "5672"
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+    environment:
+        RABBITMQ_DEFAULT_USER: humitifier
+        RABBITMQ_DEFAULT_PASS: humitifier
 ```
+
+## Server configuration
+The server ships with sensible development configuration by default.
+However, it can be configured using environment variables if needed.
 
 ### Development setup
 
@@ -67,33 +82,36 @@ This will create a virtual environment and install the dependencies in it.
 poetry install
 ```
 
-To run a local development server, you can run `python src/manage.py runserver` 
+To run a local development server, you can run `python src/manage.py runserver`
+
+You will also need to run a Celery worker and scheduler using the
+server-codebase. In production, these should be separate. For development,
+you can run a combined worker-scheduler:
+`pythom -m celery -A humitifier_server worker -Q default -l INFO --beat --scheduler django_celery_beat.schedulers:DatabaseScheduler`
+
 
 ## Agent configuration
-The app configuration is written in `toml`.
+The app configuration is written in `toml`. (Or env vars, if you want)
 In it you specify ssh configuration, inventory/database values, and task interval values.
 An example config:
 
 ```toml
-db = "postgresql:/..."
-upload_endpoint = "https://example.com/api/upload_scans/" # The endpoint (of the server-app) to upload scans to
-inventory = ["example.com"] # Not actually used anymore. Still required tho!
+[ssh]
+user = "<user>"
+private_key = "<private key>"
+#private_key_password = "<pkey password>" # optional
 
-[pssh] # any pssh configuration to access your servers
-user = "don"
-timeout = 15
-num_retries = 0
-pool_size = 50
+[ssh.bastion] # Optional, can be left out for direct connections
+host = "<bastion server>"
+user = "<user>"
+private_key = "<private key>"
+#private_key_password = "<pkey password>" # optional
 
-[tasks]
-infra_update = "every 15 minutes"
+[celery]
+rabbit_mq_url = "amqp://<user>:<pass>@localhost//"
+
 ```
-To use this config, set the environment varaible `HUMITIFIER_CONFIG` (e.g. `HUMITIFIER_CONFIG=local.toml python entrypoint/main.py`)
-
-### Host configuration
-Host configurations are defined in the app config under the inventory key. 
-This is ignored, and you should fill the `hosts` table in the database manually.
-
+Place this file in `humitifier-scanner/.local/config.toml`
 
 ### Development Setup
 
@@ -104,9 +122,8 @@ This will create a virtual environment and install the dependencies in it.
 poetry install
 ```
 
-To run a local development server, you can run `python entrypoint/local.py` 
-If not specified, the app will look for a file `.local/app_config.toml` as its configuration file.
-To override this, specify a `HUMITIFER_CONFIG` env var.
+Either run the scanner manually using `cli.py` (`./cli.py -h` for usage).
+Or run
 
 ### Production setup
 
