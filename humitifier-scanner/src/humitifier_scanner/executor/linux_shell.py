@@ -102,7 +102,7 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
     #
 
     @staticmethod
-    def _get_ssh_client():
+    def _get_ssh_client() -> paramiko.SSHClient:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
         return client
@@ -239,10 +239,7 @@ class _ExecutorManager:
 
     @classmethod
     def _get_remote_executor(cls, host, retries=3):
-        if (
-            host not in cls._connections
-            or not cls._connections[host].ssh_client.get_transport().is_active()
-        ):
+        if host not in cls._connections:
             logger.debug(f"Creating new SSH connection to {host}")
             try:
                 cls._connections[host] = RemoteLinuxShellExecutor(host)
@@ -256,6 +253,17 @@ class _ExecutorManager:
 
                 logger.error(f"Failed to create new SSH connection to {host}")
                 raise e
+
+        connection: RemoteLinuxShellExecutor = cls._connections[host]
+
+        # Check if the connection is still live
+        # Using an actual packet, as is_active() returns false positives
+        try:
+            transport = connection.ssh_client.get_transport()
+            transport.send_ignore()
+        except Exception as e:
+            del cls._connections[host]
+            return cls._get_remote_executor(host, retries)
 
         return cls._connections[host]
 
