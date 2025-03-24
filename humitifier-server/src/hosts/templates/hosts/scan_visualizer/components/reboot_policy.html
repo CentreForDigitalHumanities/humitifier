@@ -1,0 +1,44 @@
+{% extends 'hosts/scan_visualizer/components/base_component.html' %}
+
+{% block header %}
+
+{% endblock %}
+
+{% block content %}
+    <div class="flex flex-col gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3">
+            <div class="font-semibold">Configured</div>
+            {% if reboot_policy.configured %}
+                <div class="flex">
+                    <div class="px-3 py-1 mr-auto rounded bg-green-500 text-white">
+                        Configured
+                    </div>
+                </div>
+
+                <div class="font-semibold">Enabled</div>
+                {% if reboot_policy.enabled %}
+                    <div class="flex">
+                        <div class="px-3 py-1 mr-auto rounded bg-green-500 text-white">
+                            Enabled
+                        </div>
+                    </div>
+                {% else %}
+                    <div class="flex">
+                        <div class="px-3 py-1 mr-auto rounded bg-red-500 text-white">
+                            Disabled
+                        </div>
+                    </div>
+                {% endif %}
+
+                <div class="font-semibold">Schedule</div>
+                <div>{{ cron_description }}</div>
+            {% else %}
+                <div class="flex">
+                    <div class="px-3 py-1 mr-auto rounded bg-red-500 text-white">
+                        Not configured
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+{% endblock %}

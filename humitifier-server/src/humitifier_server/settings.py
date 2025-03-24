@@ -16,12 +16,14 @@ from urllib.parse import urlparse
 
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.reverse import reverse_lazy
+from sentry_sdk import HttpTransport
 
 from . import env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+HUMITIFIER_VERSION = "4.0.0"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -64,9 +66,13 @@ INSTALLED_APPS = [
     "simple_menu",
     "drf_spectacular",
     "oauth2_provider",
+    "django_celery_beat",
+    "django_celery_results",
     # Local apps
     "hosts",
     "api",
+    "scanning",
+    "alerting",
 ]
 
 
@@ -209,7 +215,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Humitifier API",
     "DESCRIPTION": "API for Humitifier, the Hum-IT CMDB",
-    "VERSION": "3.3.1",
+    "VERSION": HUMITIFIER_VERSION,
     "SERVE_INCLUDE_SCHEMA": False,
     # OAuth2
     "OAUTH2_FLOWS": ["clientCredentials"],
@@ -272,6 +278,11 @@ LOGGING = {
     },
     "loggers": {
         "django": {
+            "handlers": ["console"],
+            "level": env.get("DJANGO_LOG_LEVEL", default="INFO"),
+            "propagate": False,
+        },
+        "humitifier-server": {
             "handlers": ["console"],
             "level": env.get("DJANGO_LOG_LEVEL", default="INFO"),
             "propagate": False,
@@ -349,6 +360,18 @@ def before_send(event, hint):
 
 DSN = env.get("SENTRY_DSN", default=None)
 if DSN:
+    SENTRY_INSECURE_DSN = env.get_boolean("SENTRY_INSECURE_DSN", False)
+
+    class CustomHttpTransport(HttpTransport):
+        def _get_pool_options(self):
+            # This should never be used in production, or even on any server
+            # THis is ONLY for when you're (for some reason) running sentry locally!
+            options = super()._get_pool_options()
+            if SENTRY_INSECURE_DSN:
+                options["cert_reqs"] = "CERT_NONE"
+
+            return options
+
     sentry_sdk.init(
         dsn=DSN,
         traces_sample_rate=1.0,
@@ -356,4 +379,17 @@ if DSN:
             "continuous_profiling_auto_start": True,
         },
         before_send=before_send,
+        transport=CustomHttpTransport,
     )
+
+## Celery
+
+### Broker
+CELERY_BROKER_URL = env.get(
+    "CELERY_BROKER_URL", default="amqp://humitifier:humitifier@localhost//"
+)
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
+
+### Result backend
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_RESULT_EXTENDED = True

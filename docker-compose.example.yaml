@@ -1,0 +1,97 @@
+services:
+  server:
+    image: ghcr.io/centrefordigitalhumanities/humitifier/humitifier-server:experimental
+    ports:
+      - "8000:8000"
+    expose:
+      - 8000
+    env_file:
+      - /some/dir/server.env
+    networks:
+      - humitifier_net
+    restart: unless-stopped
+    depends_on:
+      - server-db
+      - rabbitmq
+
+  scheduler:
+    image: ghcr.io/centrefordigitalhumanities/humitifier/humitifier-server:experimental
+    entrypoint: "sh ./scheduler_entrypoint.sh"
+    env_file:
+      - /some/dir/server.env
+    networks:
+      - humitifier_net
+    restart: unless-stopped
+    depends_on:
+      - server-db
+      - rabbitmq
+
+  worker:
+    image: ghcr.io/centrefordigitalhumanities/humitifier/humitifier-server:experimental
+    entrypoint: "sh ./worker_entrypoint.sh"
+    env_file:
+      - /some/dir/server.env
+    networks:
+      - humitifier_net
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 2
+    depends_on:
+      - server-db
+      - rabbitmq
+
+  rabbitmq:
+    image: rabbitmq:4-management
+    expose:
+      - "5672"
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - humitifier_net
+    env_file:
+      - /some/dir/rabbitmq.env
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  server-db:
+    image: postgres:15
+    expose:
+      - 5432
+    ports:
+      - "5432:5432"
+    env_file:
+      - /some/dir/server-db.env
+    volumes:
+      - server_pgdata:/var/lib/postgresql/data
+    networks:
+      - humitifier_net
+    restart: unless-stopped
+
+  scanner:
+    image: ghcr.io/centrefordigitalhumanities/humitifier/humitifier-scanner:experimental
+    env_file:
+      - /some/dir/scanner.env
+    networks:
+      - humitifier_net
+    volumes:
+      - /some/dir/id_humitifier.key:/id_humitifier.key:ro # sshkey mapping
+    restart: unless-stopped
+    deploy:
+      mode: replicated
+      replicas: 2
+    depends_on:
+      - rabbitmq
+
+volumes:
+  server_pgdata:
+  rabbitmq_data:
+networks:
+    humitifier_net:
+        driver: bridge
+        ipam:
+            config:
+                -
+                  subnet: 172.19.1.0/24
+                  gateway: 172.19.1.1

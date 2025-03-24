@@ -1,0 +1,26 @@
+{% extends 'hosts/scan_visualizer/components/base_component.html' %}
+
+{% load host_tags %}
+
+{% block content %}
+    <div class="font-semibold mb-2">ZFS Pools</div>
+    <div class="grid grid-cols-[repeat(auto-fit,1fr)] center rounded bg-gray-200 dark:bg-gray-800 p-3 mb-3 border border-gray-300 dark:border-gray-700 ">
+        {% for pool in zfs.pools %}
+            <span class="font-semibold">{{ pool.name }}</span>
+            <span class="text-right">{{ pool.used_mb|size_from_mb }} / {{ pool.size_mb|size_from_mb }}</span>
+            <div class="bg-gray-200 dark:bg-gray-700 h-2 w-full rounded-full col-span-2 mt-1 mb-3 last:mb-0">
+                <div class="bg-blue-500 dark:bg-blue-300 h-2 rounded-full" style="width: {% widthratio pool.used_mb pool.size_mb 100 %}%;"></div>
+            </div>
+        {% endfor %}
+    </div>
+    <div class="font-semibold my-2">ZFS volumes</div>
+    <div class="grid grid-cols-[repeat(auto-fit,1fr)] center overflow-y-auto max-h-64 rounded bg-gray-200 dark:bg-gray-800 p-3 mb-3 border border-gray-300 dark:border-gray-700 ">
+        {% for volume in zfs.volumes %}
+            <span class="font-semibold">{{ volume.name }}</span>
+            <div class="text-right align-end">{{ volume.used_mb|size_from_mb }} / {{ volume.size_mb|size_from_mb }}</div>
+            <div class="bg-gray-200 dark:bg-gray-700 h-2 w-full rounded-full col-span-2 mt-1 mb-3 last:mb-0">
+                <div class="bg-blue-500 dark:bg-blue-300 h-2 rounded-full" style="width: {% widthratio volume.used_mb volume.size_mb 100 %}%;"></div>
+            </div>
+        {% endfor %}
+    </div>
+{% endblock %}

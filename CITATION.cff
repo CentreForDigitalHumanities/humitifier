@@ -8,6 +8,10 @@ message: >-
   metadata from this file.
 type: software
 authors:
+  - given-names: Ty
+    family-names: Mees
+    email: t.d.mees@uu.nl
+    affiliation: Utrecht University
   - given-names: Donatas
     family-names: Rasiukevicius
     email: d.rasiukevicius@uu.nl

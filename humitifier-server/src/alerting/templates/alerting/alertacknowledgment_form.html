@@ -1,0 +1,44 @@
+{% extends 'base/base_page_template.html' %}
+
+{% block content %}
+    <div class="h-full--header w-full bg px-7 py-5">
+        <h1 class="text-3xl font-bold mb-8">Acknowledge alert</h1>
+
+        <div class="mb-2">
+            <div class="font-bold">Host</div>
+            <div class="my-2">
+                {{ alert.host }}
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <div class="font-bold">Alert type</div>
+            <div class="my-2">
+                {{ alert.short_message }}
+            </div>
+        </div>
+
+        <div class="mb-2">
+            <div class="font-bold">Alert</div>
+            <div class="my-2">
+                {{ alert.message }}
+            </div>
+        </div>
+
+        <form method="post" class="max-w-xl">
+            {% csrf_token %}
+            {{ form }}
+
+            <div class="flex gap-2 mt-6">
+                <a href="{% url 'hosts:data_sources' %}"
+                   class="btn btn-outline">
+                    Cancel
+                </a>
+                <button type="submit"
+                        class="btn light:btn-primary dark:btn-outline">
+                    Acknowledge
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

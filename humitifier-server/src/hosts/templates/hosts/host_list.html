@@ -1,0 +1,24 @@
+{% extends "base/base_page_template.html" %}
+
+{% load humanize %}
+{% load param_replace %}
+
+{% block page_title %}Hosts | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg transition ease-in-out duration-150">
+        <div class="px-7 py-5 flex justify-between">
+            <h1 class="text-3xl font-bold">Hosts</h1>
+            <div class="flex gap-3 text-sm">
+                <a class="btn light:btn-primary dark:btn-outline" href="{% url 'hosts:export' %}?{% param_replace %}">
+                    Export
+                </a>
+                <a class="btn light:btn-primary dark:btn-outline" href="{% url 'hosts:create' %}">
+                    New Host
+                </a>
+            </div>
+        </div>
+
+        {{ table.render }}
+    </div>
+{% endblock %}

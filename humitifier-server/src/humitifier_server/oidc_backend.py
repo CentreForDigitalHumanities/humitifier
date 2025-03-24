@@ -4,7 +4,7 @@ from mozilla_django_oidc.auth import OIDCAuthenticationBackend
 class HumitifierOIDCAuthenticationBackend(OIDCAuthenticationBackend):
 
     def create_user(self, claims):
-        email = claims.get("email")
+        email = self.get_email(claims)
         first_name = claims.get("given_name")
         last_name = claims.get("family_name")
         username = self.get_username(claims)
@@ -24,8 +24,22 @@ class HumitifierOIDCAuthenticationBackend(OIDCAuthenticationBackend):
     def get_username(self, claims):
         return claims.get("preferred_username").lower()
 
-    def update_user(self, user, claims):
+    def get_email(self, claims):
         email = claims.get("email")
+
+        # The UU OIDC provider is out-of-spec and can return a list of emails
+        # instead of just the one as the spec specifies.
+        # So, we just pick the first one we find.
+        if isinstance(email, list):
+            if len(email) > 0:
+                return email[0]
+            else:
+                return None
+
+        return email
+
+    def update_user(self, user, claims):
+        email = self.get_email(claims)
         first_name = claims.get("given_name")
         last_name = claims.get("family_name")
 

@@ -1,0 +1,19 @@
+<div class="flex w-full h-full items-center justify-center">
+    <div class="section flex flex-col gap-3 items-center max-w-96">
+        <h1 class="text-3xl font-bold">
+            {{ host.fqdn }}
+        </h1>
+        <p class="font-bold">
+            No data available.
+        </p>
+        <p>
+            This host has not been scanned yet, or the scan has not been completed yet/failed.
+        </p>
+        {% if layout.wild_wasteland %}
+            <p>
+                As consolidation, please enjoy this random cat:
+            </p>
+            <img src="https://cataas.com/cat" alt="Random cat" class="w-full">
+        {% endif %}
+    </div>
+</div>

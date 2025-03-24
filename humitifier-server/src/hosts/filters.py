@@ -3,31 +3,32 @@ from django.db.models.expressions import RawSQL
 from django_filters import ChoiceFilter
 from drf_spectacular.types import OpenApiTypes
 
-from hosts.models import Alert, AlertLevel, AlertType, Host
-from main.filters import BooleanChoiceFilter, FiltersForm, MultipleChoiceFilterWidget
+from alerting.backend.registry import alert_generator_registry
+from alerting.models import AlertSeverity
+from hosts.models import DataSource, Host
+from main.filters import (
+    BooleanChoiceFilter,
+    FiltersForm,
+    MultipleChoiceFilterWidget,
+    _get_choices,
+)
 
 
-def _get_choices(field, strip_quotes=True):
-    # The empty order_by() is required to remove the default ordering
-    # which would otherwise mess up the distinct() call.
-    # (It would add the ordering field to the SELECT list, which means postgres
-    # would view every row as distinct.)
-    db_values = Host.objects.values_list(field, flat=True).order_by().distinct()
-    # Not needed, but just to be sure
-    db_values = set(db_values)
-    values = []
+#
+# DataSource filters
+#
 
-    for db_value in db_values:
-        if db_value:
-            human_label = db_value
-            if strip_quotes:
-                human_label = human_label[1:-1]
 
-            values.append((db_value, human_label))
+class DataSourceFilters(django_filters.FilterSet):
+    class Meta:
+        model = DataSource
+        fields = ["source_type"]
+        form = FiltersForm
 
-    values = sorted(values, key=lambda x: x[1])
 
-    return values
+#
+# Host filters
+#
 
 
 class TextSearchFilter(django_filters.Filter):
@@ -56,11 +57,11 @@ class PackageFilter(django_filters.Filter):
         return qs
 
 
-class HostAlertLevelFilter(ChoiceFilter):
+class HostAlertSeverityFilter(ChoiceFilter):
 
     def __init__(self, *args, **kwargs):
-        kwargs["choices"] = AlertLevel.choices
-        kwargs["field_name"] = "alerts__level"
+        kwargs["choices"] = AlertSeverity.choices
+        kwargs["field_name"] = "alerts__severity"
         super().__init__(*args, **kwargs)
 
     def filter(self, qs, value):
@@ -72,13 +73,14 @@ class HostAlertLevelFilter(ChoiceFilter):
 class HostAlertTypeFilter(ChoiceFilter):
 
     def __init__(self, *args, **kwargs):
-        kwargs["choices"] = AlertType.choices
-        kwargs["field_name"] = "alerts__type"
+        choices = alert_generator_registry.get_alert_types()
+        kwargs["choices"] = [(choice, choice) for choice in choices]
+        kwargs["field_name"] = "alerts__short_message"
         super().__init__(*args, **kwargs)
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__type=value)
+            return qs.filter(alerts__short_message=value)
         return qs
 
 
@@ -110,12 +112,12 @@ class HostFilters(django_filters.FilterSet):
     os = django_filters.MultipleChoiceFilter(
         label="Operating System",
         field_name="os",
-        choices=lambda: _get_choices("os"),
+        choices=lambda: _get_choices(Host, "os"),
         widget=MultipleChoiceFilterWidget,
     )
 
-    alert_level = HostAlertLevelFilter(
-        empty_label="Alert level",
+    alert_severity = HostAlertSeverityFilter(
+        empty_label="Alert severity",
     )
 
     alert_type = HostAlertTypeFilter(
@@ -125,14 +127,28 @@ class HostFilters(django_filters.FilterSet):
     department = django_filters.MultipleChoiceFilter(
         label="Department",
         field_name="department",
-        choices=lambda: _get_choices("department"),
+        choices=lambda: _get_choices(Host, "department", strip_quotes=False),
+        widget=MultipleChoiceFilterWidget,
+    )
+
+    customer = django_filters.MultipleChoiceFilter(
+        label="Customer",
+        field_name="customer",
+        choices=lambda: _get_choices(Host, "customer", strip_quotes=False),
         widget=MultipleChoiceFilterWidget,
     )
 
     contact = django_filters.MultipleChoiceFilter(
         label="Contact",
         field_name="contact",
-        choices=lambda: _get_choices("contact"),
+        choices=lambda: _get_choices(Host, "contact", strip_quotes=False),
+        widget=MultipleChoiceFilterWidget,
+    )
+
+    otap_stage = django_filters.MultipleChoiceFilter(
+        label="OTAP",
+        field_name="otap_stage",
+        choices=lambda: _get_choices(Host, "otap_stage", strip_quotes=False),
         widget=MultipleChoiceFilterWidget,
     )
 
@@ -149,26 +165,13 @@ class HostFilters(django_filters.FilterSet):
         ],
     )
 
+    data_source = django_filters.ModelMultipleChoiceFilter(
+        label="Data Source",
+        field_name="data_source",
+        queryset=DataSource.objects.all(),
+        widget=MultipleChoiceFilterWidget,
+    )
+
     archived = IncludeArchivedFilter(
         empty_label="Exclude archived servers",
-    )
-
-
-class AlertFilters(django_filters.FilterSet):
-    class Meta:
-        model = Alert
-        fields = ["level", "type"]
-        form = FiltersForm
-
-    level = django_filters.ChoiceFilter(
-        label="Alert level",
-        field_name="level",
-        choices=AlertLevel.choices,
-        empty_label="Alert level",
-    )
-
-    type = django_filters.MultipleChoiceFilter(
-        label="Alert type",
-        field_name="type",
-        choices=AlertType.choices,
     )

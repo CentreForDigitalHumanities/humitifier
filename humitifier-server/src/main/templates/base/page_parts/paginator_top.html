@@ -13,7 +13,7 @@
             <button class="btn btn-sm light:btn-primary dark:btn-outline" @click="show_filters = !show_filters">
                 Filters
             </button>
-            <div class="absolute left-0 xl:right-0 xl:left-auto top-11 z-10 bg-white rounded-lg shadow w-[calc(100vw-3.5rem)] md:w-80 dark:bg-gray-800" x-bind:class="show_filters ? '' : 'hidden'">
+            <div class="absolute left-0 xl:right-0 xl:left-auto top-11 z-10 bg-white rounded-lg shadow w-[calc(100vw-3.5rem)] md:w-80 dark:bg-gray-800 hidden" x-bind:class="show_filters ? '!block' : 'hidden'">
                 <form method="get" class="p-5 flex gap-3 flex-row flex-wrap items-stretch"  x-ref="filtering_form">
                     {{ filterset.form }}
                     <input type="hidden" name="page" value="{{ page_obj.number }}" x-ref="actual_page_field">

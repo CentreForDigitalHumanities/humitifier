@@ -1,0 +1,9 @@
+{% extends 'base/base_page_template.html' %}
+
+{% load param_replace %}
+
+{% block page_title %}{{ host.fqdn }} | {{ block.super }}{% endblock %}
+
+{% block content %}
+    {{ scan_visualizer.render }}
+{% endblock %}

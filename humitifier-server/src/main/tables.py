@@ -1,5 +1,7 @@
 from django.urls import reverse
 from django.utils.safestring import mark_safe
+from django_celery_beat.models import PeriodicTask
+from django_celery_results.models import TaskResult
 
 from main.easy_tables import (
     BooleanColumn,
@@ -86,7 +88,8 @@ class AccessProfilesTable(BaseTable):
         columns = [
             "name",
             "description",
-            "departments",
+            "customers",
+            "data_sources",
             "actions",
         ]
         no_data_message = "No access profiles found. Please check your filters."
@@ -107,6 +110,91 @@ class AccessProfilesTable(BaseTable):
                 text="Delete",
                 button_class="btn btn-danger",
                 url=lambda obj: reverse("main:delete_access_profile", args=[obj.pk]),
+            ),
+        ],
+    )
+
+    data_sources = MethodColumn("Data sources", method_name="get_data_sources")
+
+    @staticmethod
+    def get_data_sources(obj: AccessProfile):
+        return ", ".join(obj.data_sources.values_list("name", flat=True))
+
+
+class TaskResultTable(BaseTable):
+    class Meta:
+        model = TaskResult
+        columns = [
+            "task_id",
+            "task_name",
+            "status",
+            "worker",
+            "date_created",
+            "date_done",
+            "actions",
+        ]
+
+    actions = CompoundColumn(
+        "Actions",
+        columns=[
+            ButtonColumn(
+                text="View details",
+                button_class="btn light:btn-primary dark:btn-outline",
+                url=lambda obj: reverse("main:task_details", args=[obj.task_id]),
+            ),
+        ],
+    )
+
+
+class PeriodicTaskTable(BaseTable):
+    class Meta:
+        model = PeriodicTask
+        columns = [
+            "id",
+            "name",
+            "task",
+            "schedule",
+            "enabled",
+            "description",
+            "last_run_at",
+            "actions",
+        ]
+        column_breakpoint_overrides = {
+            "schedule": "sm",
+            "last_run_at": "md",
+            "description": "lg",
+            "id": "xl",
+        }
+        column_type_overrides = {
+            "enabled": BooleanColumn,
+        }
+
+    schedule = MethodColumn("Schedule", method_name="get_schedule")
+
+    @staticmethod
+    def get_schedule(obj: PeriodicTask):
+        if obj.interval:
+            return obj.interval
+        if obj.crontab:
+            return obj.crontab
+        if obj.solar:
+            return obj.solar
+        if obj.clocked:
+            return obj.clocked
+        return "No schedule"
+
+    actions = CompoundColumn(
+        "Actions",
+        columns=[
+            ButtonColumn(
+                text="Edit",
+                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                url=lambda obj: reverse("main:edit_periodic_task", args=[obj.pk]),
+            ),
+            ButtonColumn(
+                text="Delete",
+                button_class="btn btn-danger",
+                url=lambda obj: reverse("main:delete_periodic_task", args=[obj.pk]),
             ),
         ],
     )
