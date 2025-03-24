@@ -123,3 +123,25 @@ class BlockDeviceUsageAlertGenerator(BaseArtefactAlertGenerator):
                 )
 
         return alerts
+
+
+class HarwareAlertGenerator(BaseArtefactAlertGenerator):
+    artefact = Hardware
+    verbose_name = "Hardware config"
+
+    def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        if not self.artefact_data:
+            return None
+
+        data: Hardware = self.artefact_data
+        alerts = []
+
+        for memrange in data.memory:
+            if memrange.state == "offline":
+                alerts.append(AlertData(
+                    severity=AlertSeverity.CRITICAL,
+                    message=f"Memory range {memrange.range} is offline",
+                    custom_identifier=f"range-offline-{memrange.range}",
+                ))
+
+        return alerts
