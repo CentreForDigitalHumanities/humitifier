@@ -23,6 +23,7 @@ from . import env
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+HUMITIFIER_VERSION = "4.0.0"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -214,7 +215,7 @@ REST_FRAMEWORK = {
 SPECTACULAR_SETTINGS = {
     "TITLE": "Humitifier API",
     "DESCRIPTION": "API for Humitifier, the Hum-IT CMDB",
-    "VERSION": "3.3.1",
+    "VERSION": HUMITIFIER_VERSION,
     "SERVE_INCLUDE_SCHEMA": False,
     # OAuth2
     "OAUTH2_FLOWS": ["clientCredentials"],
