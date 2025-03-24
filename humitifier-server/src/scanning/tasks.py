@@ -90,6 +90,7 @@ def schedule_full_scans(
         Host.objects.filter(
             # Ignore any host that is not explicitly marked as auto-schedulable
             data_source__scan_scheduling=ScanScheduling.SCHEDULED,
+            archived=False,
         )
         .filter(
             # Filter out any that have had a scan scheduled after our threshold
