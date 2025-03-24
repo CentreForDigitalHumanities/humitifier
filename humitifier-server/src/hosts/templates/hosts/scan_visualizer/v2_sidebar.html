@@ -25,10 +25,10 @@
     {% for item in static_data %}
         <div class="font-semibold">{{ item.label }}</div>
         <div class="">
-            {% if item.value %}
-                {{ item.value }}
-            {% else %}
+            {% if item.value is None %}
                 <div class="text-gray-500">Unknown</div>
+            {% else %}
+                {{ item.value }}
             {% endif %}
         </div>
     {% endfor %}
