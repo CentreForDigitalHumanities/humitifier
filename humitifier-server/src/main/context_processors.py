@@ -99,5 +99,6 @@ def layout_context(request):
             "wild_wasteland": wild_wasteland,
             "gitlab_gag": gitlab_gag,
             "tag_line": tag_line,
+            "humitifier_version": settings.HUMITIFIER_VERSION,
         }
     }
