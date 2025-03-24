@@ -230,6 +230,7 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         return f"<RemoteLinuxShellExecutor(host={self.host}, port={self.port})>"
 
     def __del__(self):
+        logger.debug(f"Closing ssh connection to {self.host}")
         self.close()
 
 
@@ -284,8 +285,6 @@ class _ExecutorManager:
 
         with cls._lock:
             if host in cls._connections:
-                logger.debug(f"Closing SSH connection to {host}")
-                cls._connections[host].close()
                 del cls._connections[host]
 
     @classmethod
