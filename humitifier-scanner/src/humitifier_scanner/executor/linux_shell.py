@@ -222,6 +222,16 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
             stdout_lines, stderr_lines, stdout.channel.recv_exit_status()
         )
 
+    #
+    # Magic
+    #
+
+    def __repr__(self):
+        return f"<RemoteLinuxShellExecutor(host={self.host}, port={self.port})>"
+
+    def __del__(self):
+        self.close()
+
 
 class _ExecutorManager:
     _connections = {}
