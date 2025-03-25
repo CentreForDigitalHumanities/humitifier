@@ -2,13 +2,46 @@ from django.db.models import Q
 from drf_spectacular.utils import extend_schema, OpenApiTypes, inline_serializer
 from oauth2_provider.contrib.rest_framework import TokenHasScope
 from rest_framework import serializers, status
-from rest_framework.exceptions import APIException
+from rest_framework.generics import RetrieveAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from api.permissions import TokenHasApplication
-from api.serializers import DataSourceSyncSerializer
-from hosts.models import DataSource, DataSourceType, Host, ScanScheduling
+from api.serializers import DataSourceSyncSerializer, ScanSpecSerializer
+from hosts.models import DataSource, DataSourceType, Host
+from humitifier_common.scan_data import ScanOutput
+from scanning.utils import _get_processing_chain
+
+
+class GetScanSpecView(RetrieveAPIView):
+    """
+    A viewset for viewing and editing user instances.
+    """
+
+    permission_classes = [TokenHasApplication, TokenHasScope]
+    required_scopes = ["system"]
+    serializer_class = ScanSpecSerializer
+    lookup_field = "fqdn"
+
+    def retrieve(self, request, *args, **kwargs):
+        instance: Host = self.get_object()
+        serializer = self.get_serializer(
+            instance.get_scan_input().model_dump(mode="json")
+        )
+        return Response(serializer.data)
+
+    def get_queryset(self):
+        # Needed for DRF Spectacular's introspection;
+        # The attribute is set in the TokenHasApplication permission
+        if not hasattr(self.request, "application"):
+            return Host.objects.none()
+        app = self.request.application
+
+        # We cannot use the `get_for_application` of the Host manager,
+        # as that is written for the read scope. So, this is the right
+        # stuff for the system scope
+        data_sources = DataSource.objects.get_for_application(app)
+        return Host.objects.filter(data_source__in=data_sources)
 
 
 class UploadScans(APIView):
