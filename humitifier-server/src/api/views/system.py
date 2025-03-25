@@ -20,40 +20,57 @@ class UploadScans(APIView):
         request=inline_serializer(
             "Scan",
             fields={
-                "host": serializers.CharField(required=True),
-                "data": serializers.JSONField(required=True),
+                "version": serializers.IntegerField(required=True),
+                "scan_date": serializers.DateTimeField(required=True),
+                "original_input": serializers.JSONField(required=True),
+                "hostname": serializers.CharField(required=True),
+                "facts": serializers.JSONField(required=True),
+                "metrics": serializers.JSONField(required=True),
+                "errors": serializers.ListField(
+                    child=serializers.JSONField(), required=True
+                ),
             },
-            many=True,
         ),
-        responses={200: OpenApiTypes.INT},
+        responses={200: OpenApiTypes.BOOL},
     )
     def post(self, request, format=None):
         """
         Upload one or more scans for a host
         """
-        scans = request.data
-        hosts = []
+        scan = request.data
 
-        if not isinstance(scans, list):
-            scans = [scans]
+        try:
+            parsed_scan = ScanOutput(**scan)
+        except Exception as e:
+            print(e)
+            return Response(
+                "Malformed data send",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-        for scan in scans:
-            if "host" not in scan or "data" not in scan:
-                raise APIException("Invalid scan data")
+        host = Host.objects.get(fqdn=parsed_scan.hostname)
 
-            host, created = Host.objects.get(fqdn=scan["host"])
+        if not host.can_schedule_scan:
+            return Response(
+                "Cannot upload scan for non-manually scheduled hosts",
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
-            if host.can_schedule_scan:
-                return Response(
-                    "Cannot upload scan for non-manually scheduled hosts",
-                    status=status.HTTP_400_BAD_REQUEST,
-                )
+        allowed_data_sources = DataSource.objects.get_for_application(
+            self.request.application
+        )
 
-            host.add_scan(scan["data"])
+        if not host.data_source in allowed_data_sources:
+            return Response(
+                "This client may not upload results to this data source",
+                status=status.HTTP_403_FORBIDDEN,
+            )
 
-            hosts.append(host)
+        process_task = _get_processing_chain(initial_args=(scan,))
 
-        return Response(len(scans))
+        process_task.apply_async()
+
+        return Response(True)
 
 
 class DatastoreSyncView(APIView):
