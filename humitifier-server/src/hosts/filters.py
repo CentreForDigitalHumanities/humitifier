@@ -66,7 +66,7 @@ class HostAlertSeverityFilter(ChoiceFilter):
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__level=value)
+            return qs.filter(alerts__severity=value)
         return qs
 
 
@@ -167,7 +167,7 @@ class HostFilters(django_filters.FilterSet):
 
     is_wp = BooleanChoiceFilter(
         empty_label="Is WordPress",
-        field_name="last_scan_cache__IsWordpress__is_wp",
+        field_name="last_scan_cache__facts__server.IsWordpress__is_wp",
         choices=[
             (True, "Yes"),
             (False, "No"),
