@@ -66,7 +66,7 @@ class HostAlertSeverityFilter(ChoiceFilter):
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__level=value)
+            return qs.filter(alerts__severity=value)
         return qs
 
 
