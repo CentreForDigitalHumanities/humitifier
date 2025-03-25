@@ -67,7 +67,7 @@ jobs:
 
       - name: Install dependencies
         if: matrix.os == 'windows-latest' || steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
-        run: poetry install --only=main,standalone --compile --no-interaction
+        run: poetry install --only=main,standalone,dev --compile --no-interaction
 
       #
       # Build
