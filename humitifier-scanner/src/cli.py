@@ -15,6 +15,7 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+from humitifier_scanner.api import HumitifierAPIClient
 from humitifier_scanner.config import (
     Settings,
     _CONFIG_LOCATIONS,
@@ -29,7 +30,7 @@ from humitifier_scanner.logger import logger
 ##
 ## CLI commands
 ##
-class Scan(BaseModel):
+class ManualScan(BaseModel):
     host: str | None = Field(
         None,
         description="Hostname to scan; defaults to the local host",
@@ -48,19 +49,10 @@ class Scan(BaseModel):
         "the 'fact' option. ",
     )
 
-    print_results: bool = Field(
-        True,
-        description="Print scan results to the console",
-    )
     indent_results: Optional[int] = Field(
-        None,
+        4,
         description="Indentation level for the printed results",
     )
-    upload_results: bool = Field(
-        False,
-        description="Upload scan results to the server. Requires API configuration under the 'standalone' options.",
-    )
-    # TODO: scan profile
 
     def cli_cmd(self):
 
@@ -113,7 +105,6 @@ class Scan(BaseModel):
             artefacts[artefact] = ArtefactScanOptions(**options)
 
         # Run the scan
-
         scan_input = ScanInput(
             hostname=self.host,
             artefacts=artefacts,
@@ -122,12 +113,31 @@ class Scan(BaseModel):
         result = scan(scan_input)
 
         # Handle the results
+        print(result.model_dump_json(indent=self.indent_results))
 
-        if self.print_results:
-            print(result.model_dump_json(indent=self.indent_results))
 
-        if self.upload_results:
-            print("Uploading results to the server is not yet implemented.")
+class Scan(BaseModel):
+    host: str | None = Field(
+        None,
+        description="Hostname to scan; defaults to the local host",
+    )
+
+    def cli_cmd(self):
+        if not self.host:
+            self.host = platform.node()
+
+        api_client = HumitifierAPIClient()
+
+        scan_spec = api_client.get_scan_spec(self.host)
+
+        result = scan(scan_spec)
+
+        ok = api_client.upload_scan(result)
+
+        if ok:
+            print("Scan successful")
+        else:
+            print("Scan failed - could not upload results")
 
 
 class OutputFormatEnum(Enum):
@@ -158,6 +168,16 @@ class Hostname(BaseModel):
         print(platform.node())
 
 
+class RetrieveScanSpec(BaseModel):
+
+    def cli_cmd(self):
+        api_client = HumitifierAPIClient()
+
+        scan_spec = api_client.get_scan_spec(platform.node())
+
+        print(scan_spec.model_dump_json(indent=4))
+
+
 ##
 ## Main config for CLI
 ##
@@ -184,8 +204,10 @@ class CLISettings(Settings, BaseSettings):
     ## CLI commands
     ##
     scan: CliSubCommand[Scan]
+    manual_scan: CliSubCommand[ManualScan]
     print_config: CliSubCommand[PrintConfig]
     hostname: CliSubCommand[Hostname]
+    scan_spec: CliSubCommand[RetrieveScanSpec]
 
     def cli_cmd(self) -> None:
         if self.debug:
@@ -197,6 +219,10 @@ class CLISettings(Settings, BaseSettings):
                 "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
             )
             logger.addHandler(handler)
+
+            oauth_logger = logging.getLogger("requests_oauthlib")
+            oauth_logger.setLevel(logging.DEBUG)
+            oauth_logger.addHandler(handler)
 
         CliApp.run_subcommand(self)
 
