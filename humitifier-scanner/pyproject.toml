@@ -6,7 +6,7 @@ authors = ["Mees, T.D. (Ty) <t.d.mees@uu.nl>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.11,<3.14"
 paramiko = "^3.5.0"
 toml = "^0.10.2"
 pydantic-settings = "^2.8.0"
@@ -16,6 +16,7 @@ sentry-sdk = {extras = ["celery"], version = "^2.22.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"
+pyinstaller = "^6.12.0"
 
 [tool.poetry.group.production]
 optional = true

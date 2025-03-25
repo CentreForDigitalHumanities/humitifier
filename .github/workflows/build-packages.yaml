@@ -1,0 +1,89 @@
+name: Build packages
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'develop'
+      - 'experimental'
+      - 'feat/standalone-scanner' #temp
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - 'main'
+      - 'develop'
+
+env:
+  PYTHON_VERSION: 3.13
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+      fail-fast: false
+    defaults:
+      run:
+        shell: bash
+        working-directory: 'humitifier-scanner'
+
+    steps:
+      #
+      # Setup
+      #
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set file-specific environment variable
+        run: |
+          if [[ "$RUNNER_OS" == "Windows" ]]; then
+            echo "ARTIFACT_PATH=humitifier-scanner\\dist\\humitifier-scanner.exe" >> $GITHUB_ENV
+          else
+            echo "ARTIFACT_PATH=humitifier-scanner/dist/humitifier-scanner" >> $GITHUB_ENV
+          fi
+
+      - uses: actions/setup-python@v5
+        with:
+           python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+
+      - name: Load cached venv
+        if: matrix.os != 'windows-latest'
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: humitifier-scanner/.venv
+          key: venv-${{ runner.os }}-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('humitifier-scanner/poetry.lock') }}
+
+      - name: Install dependencies
+        if: matrix.os == 'windows-latest' || steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --no-interaction --no-root
+
+      #
+      # Build
+      #
+
+      - name: Run PyInstaller
+        run: |
+          source $VENV
+          pyinstaller -F --clean -n humitifier-scanner src/cli.py
+
+      #
+      # Upload
+      #
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pyinstaller-build-${{ matrix.os }}
+          path: ${{ env.ARTIFACT_PATH }}
