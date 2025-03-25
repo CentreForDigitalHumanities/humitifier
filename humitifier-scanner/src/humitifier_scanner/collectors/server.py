@@ -100,7 +100,7 @@ class PuppetAgentFactCollector(ShellCollector):
         # Only retrieve the first 200 lines, as that's all we need and large logs
         # clog up the scanner
         result_report_cmd = shell_executor.execute(
-            "sudo head -n 200 /opt/puppetlabs/puppet/cache/state/last_run_report.yaml"
+            "sudo cat /opt/puppetlabs/puppet/cache/state/last_run_report.yaml"
         )
 
         # If we successfully retrieved the report, we can start parsing it
