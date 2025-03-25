@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import platform
 from enum import Enum
 from pprint import pprint
 from typing import Optional
@@ -151,6 +152,12 @@ class PrintConfig(BaseModel):
             pprint(CONFIG.model_dump())
 
 
+class Hostname(BaseModel):
+
+    def cli_cmd(self):
+        print(platform.node())
+
+
 ##
 ## Main config for CLI
 ##
@@ -178,6 +185,7 @@ class CLISettings(Settings, BaseSettings):
     ##
     scan: CliSubCommand[Scan]
     print_config: CliSubCommand[PrintConfig]
+    hostname: CliSubCommand[Hostname]
 
     def cli_cmd(self) -> None:
         if self.debug:
