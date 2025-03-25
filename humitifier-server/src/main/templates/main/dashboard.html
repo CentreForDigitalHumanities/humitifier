@@ -42,6 +42,74 @@
                     },
                 },
             });
+            let alertType = document.getElementById('alertTypeChart');
+            new Chart(alertType, {
+                type: 'pie',
+                data: {
+                    labels: [
+                        {% for item in alert_message_counts %}
+                            '{{ item.short_message }}',
+                        {% endfor %}
+                    ],
+                    datasets: [
+                        {
+                            label: 'Alert type',
+                            data: [
+                            {% for item in alert_message_counts %}
+                                {{ item.count }},
+                            {% endfor %}
+                            ],
+                        },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Alerts by type',
+                        },
+                    },
+                },
+            });
+            let otapChart = document.getElementById('otapChart');
+            new Chart(otapChart, {
+                type: 'pie',
+                data: {
+                    labels: [
+                        {% for item in otap_counts %}
+                            '{{ item.otap_stage }}',
+                        {% endfor %}
+                    ],
+                    datasets: [
+                        {
+                            label: 'OTAP stage',
+                            data: [
+                            {% for item in otap_counts %}
+                                {{ item.count }},
+                            {% endfor %}
+                            ],
+                        },
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                        },
+                        title: {
+                            display: true,
+                            text: 'OTAP distribution',
+                        },
+                    },
+                },
+            });
             let os = document.getElementById('osChart');
             new Chart(os, {
                 type: 'pie',
@@ -111,9 +179,15 @@
 {% endblock %}
 
 {% block content %}
-    <div class="p-3 pb-0 grid grid-cols-3 gap-3">
+    <div class="p-3 pb-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 ultrawide:grid-cols-5 gap-3">
         <div class="section">
             <canvas id="alertsChart"></canvas>
+        </div>
+        <div class="section">
+            <canvas id="alertTypeChart"></canvas>
+        </div>
+        <div class="section">
+            <canvas id="otapChart"></canvas>
         </div>
         <div class="section">
             <canvas id="osChart"></canvas>

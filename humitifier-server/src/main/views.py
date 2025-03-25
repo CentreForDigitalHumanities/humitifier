@@ -247,6 +247,20 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
 
         return num_critical, num_warning, num_info, num_fine
 
+    def get_alert_count_by_message(self):
+        return (
+            Alert.objects.get_for_user(self.request.user)
+            .values("short_message")
+            .annotate(count=Count("id"))
+        )
+
+    def get_host_count_by_otap(self):
+        return (
+            Host.objects.get_for_user(self.request.user)
+            .values("otap_stage")
+            .annotate(count=Count("id"))
+        )
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -262,6 +276,8 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
         )
 
         num_critical, num_warning, num_info, num_fine = self.get_alert_stats()
+        context["alert_message_counts"] = self.get_alert_count_by_message()
+        context["otap_counts"] = self.get_host_count_by_otap()
 
         context["num_critical"] = num_critical
         context["num_warning"] = num_warning
