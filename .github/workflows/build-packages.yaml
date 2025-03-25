@@ -99,6 +99,17 @@ jobs:
       #
       # Setup
       #
+      - name: Set up ref info
+        id: ref-info
+        run: |
+          if [ "${{ github.ref_type }}" = "branch" ]; then
+            echo "ref_name=${GITHUB_REF#refs/heads/}" >> $GITHUB_ENV
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            echo "ref_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          else
+            echp "ref_name=unknown" >> $GITHUB_ENV
+          fi
+
       - name: Install RPM support
         run: DEBIAN_FRONTEND=noninteractive sudo apt-get install -y rpm
       - uses: ruby/setup-ruby@v1
@@ -121,10 +132,10 @@ jobs:
         run: |
           fpm \
           -s dir -t ${{ matrix.package }} \
-          -p humitifier-scanner.${{ matrix.package }} \
+          -p humitifier-scanner.${{ env.ref_name }}.${{ matrix.package }} \
           --name humitifier-scanner \
           --license GPL-3.0 \
-          --version 0.1.0 \
+          --version ${{ env.ref_name }} \
           --architecture native \
           --depends bash --depends python3 \
           --description "Scan the universe" \
@@ -140,4 +151,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: package-${{ matrix.package }}
-          path: humitifier-scanner.${{ matrix.package }}
+          path: humitifier-scanner.${{ env.ref_name }}.${{ matrix.package }}
