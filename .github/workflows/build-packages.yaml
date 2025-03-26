@@ -112,6 +112,7 @@ jobs:
           file: humitifier-scanner/build-support/Ubuntu2004.Dockerfile
           push: false
           tags: humitifier/ubuntu2004-build:latest
+          load: true
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
