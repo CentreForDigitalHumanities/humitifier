@@ -41,10 +41,10 @@ jobs:
         run: |
           if [[ "$RUNNER_OS" == "Windows" ]]; then
             echo "ARTIFACT_PATH=humitifier-scanner\\dist\\humitifier-scanner.exe" >> $GITHUB_ENV
-            echo "BINARY_PATH=.\humitifier-scanner.exe" >> $GITHUB_ENV
+            echo "BINARY_PATH=.\dist\humitifier-scanner.exe" >> $GITHUB_ENV
           else
             echo "ARTIFACT_PATH=humitifier-scanner/dist/humitifier-scanner" >> $GITHUB_ENV
-            echo "BINARY_PATH=./humitifier-scanner" >> $GITHUB_ENV
+            echo "BINARY_PATH=./dist/humitifier-scanner" >> $GITHUB_ENV
           fi
 
       - uses: actions/setup-python@v5
