@@ -7,6 +7,7 @@ from .views import (
     DeleteOAuthApplicationView,
     EditOAuthApplicationView,
     DatastoreSyncView,
+    GetScanSpecView,
     UploadScans,
     OAuthApplicationsView,
 )
@@ -18,6 +19,7 @@ urlpatterns = [
     # API Endpoints
     path("upload_scans/", UploadScans.as_view(), name="upload_scans"),
     path("inventory_sync/", DatastoreSyncView.as_view(), name="inventory_sync"),
+    path("scan_spec/<str:fqdn>/", GetScanSpecView.as_view(), name="scan_spec"),
     # OAuth2
     path("oauth/authorize/", oauth_views.AuthorizationView.as_view(), name="authorize"),
     path("oauth/token/", oauth_views.TokenView.as_view(), name="token"),
