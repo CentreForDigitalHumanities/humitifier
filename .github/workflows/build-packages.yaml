@@ -6,7 +6,6 @@ on:
       - 'main'
       - 'develop'
       - 'experimental'
-      - 'feat/standalone-scanner' #temp
     tags:
       - '*'
   pull_request:
