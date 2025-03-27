@@ -147,7 +147,7 @@ jobs:
           elif [ "${{ github.ref_type }}" = "tag" ]; then
             echo "ref_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
           else
-            echp "ref_name=unknown" >> $GITHUB_ENV
+            echo "ref_name=unknown" >> $GITHUB_ENV
           fi
 
       - name: Install RPM support
