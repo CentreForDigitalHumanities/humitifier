@@ -110,3 +110,9 @@ class DataSourceSyncSerializer(serializers.Serializer):
     data_source = serializers.UUIDField()
 
     hosts = DataSourceSyncHostSerializer(many=True)
+
+
+class ScanSpecSerializer(serializers.Serializer):
+
+    hostname = serializers.CharField()
+    artefacts = serializers.DictField(child=serializers.DictField())

@@ -48,7 +48,6 @@ class CeleryConfig(BaseModel):
     sentry_insecure_cert: bool = Field(
         False, description="Insecure certificate; for " "local testing"
     )
-    # TODO: rabbitmq auth
 
 
 class StandaloneConfig(BaseModel):
@@ -57,6 +56,9 @@ class StandaloneConfig(BaseModel):
     )
     api_client_id: str = Field(description="Client ID for the API")
     api_client_secret: Secret[str] = Field(description="Client secret for the API")
+    api_client_scope: Secret[str] = Field(
+        "system", description="Client scope for the API"
+    )
 
     # Endpoints
     token_endpoint: str = Field(
@@ -66,6 +68,10 @@ class StandaloneConfig(BaseModel):
     upload_endpoint: str = Field(
         "upload_scans/",
         description="Scan result upload endpoint, will be appended to the API URL",
+    )
+    scan_spec_endpoint: str = Field(
+        "scan_spec/",
+        description="Scan specification retrieval endpoint, will be appended to the API URL",
     )
 
 

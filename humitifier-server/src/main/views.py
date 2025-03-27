@@ -257,6 +257,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
     def get_host_count_by_otap(self):
         return (
             Host.objects.get_for_user(self.request.user)
+            .filter(archived=False)
             .values("otap_stage")
             .annotate(count=Count("id"))
         )
@@ -266,11 +267,13 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
 
         context["os_stats"] = (
             Host.objects.get_for_user(self.request.user)
+            .filter(archived=False)
             .values("os")
             .annotate(count=Count("os"))
         )
         context["customer_stats"] = (
             Host.objects.get_for_user(self.request.user)
+            .filter(archived=False)
             .values("customer")
             .annotate(count=Count("customer"))
         )

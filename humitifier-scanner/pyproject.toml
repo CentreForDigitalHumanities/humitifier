@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "humitifier-scanner"
-version = "4.1.1"
+version = "4.2.0"
 description = ""
 authors = ["Mees, T.D. (Ty) <t.d.mees@uu.nl>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.11,<3.14"
 paramiko = "^3.5.0"
 toml = "^0.10.2"
 pydantic-settings = "^2.8.0"
@@ -16,17 +16,20 @@ sentry-sdk = {extras = ["celery"], version = "^2.22.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"
-
-[tool.poetry.group.production]
-optional = true
-
-[tool.poetry.group.production.dependencies]
+pyinstaller = "^6.12.0"
 
 [tool.poetry.group.celery]
 optional = true
 
 [tool.poetry.group.celery.dependencies]
 celery = "5.5.0rc4"
+
+[tool.poetry.group.standalone]
+optional = true
+
+[tool.poetry.group.standalone.dependencies]
+requests = "^2.32.3"
+requests-oauthlib = "^2.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
