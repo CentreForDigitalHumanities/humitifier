@@ -15,7 +15,7 @@ from scanning.utils import _get_processing_chain
 
 class GetScanSpecView(RetrieveAPIView):
     """
-    A viewset for viewing and editing user instances.
+    A view for retrieving scan specifications based on the host's fully qualified domain name (FQDN).
     """
 
     permission_classes = [TokenHasApplication, TokenHasScope]
