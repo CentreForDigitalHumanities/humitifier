@@ -169,6 +169,10 @@ jobs:
       # Package
       #
 
+      - name: Set correct permissions
+        run: |
+          chmod +x humitifier-scanner
+
       - name: Package
         run: |
           fpm \
