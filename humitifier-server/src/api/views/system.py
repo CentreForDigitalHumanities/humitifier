@@ -75,7 +75,7 @@ class UploadScans(APIView):
         try:
             parsed_scan = ScanOutput(**scan)
         except Exception as e:
-            print(e)
+            logger.error(e)
             return Response(
                 "Malformed data send",
                 status=status.HTTP_400_BAD_REQUEST,
