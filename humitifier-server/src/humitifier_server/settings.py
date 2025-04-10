@@ -73,6 +73,7 @@ INSTALLED_APPS = [
     "api",
     "scanning",
     "alerting",
+    "reporting",
 ]
 
 
