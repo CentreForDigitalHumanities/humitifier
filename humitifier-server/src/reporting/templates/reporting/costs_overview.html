@@ -1,0 +1,75 @@
+{% extends 'base/base_page_template.html' %}
+
+{% block page_title %}Server costs overview | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg py-5">
+        <div class="px-7 mb-5">
+            <h1 class="text-3xl font-bold">Server costs overview</h1>
+
+            <div class="flex items-center gap-3 p-3 my-3 mb-0 rounded bg-orange-300 dark:bg-orange-800">
+                {% include 'icons/warning.html' %}
+                <div>
+                    This calculator is a work-in-progress. Both the prices and calculation still need to be confirmed to be correct. As such, no guarantees can be made about its accuracy.
+                </div>
+            </div>
+            <div class="mt-5 flex gap-6">
+                <div class="lg:w-96">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form }}
+
+                        <div class="flex gap-2 mt-6">
+                            <button type="submit"
+                                    class="btn light:btn-primary dark:btn-outline">
+                                Calculate
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                {% if total_vm_costs %}
+                    <div>
+                    <h2 class="text-xl font-bold">
+                        Total costs
+                    </h2>
+                        <table class="mt-3">
+                            <tbody>
+                                <tr>
+                                    <td colspan="2" class="p-2 border">
+                                        Total VM costs
+                                    </td>
+                                    <td class="p-2 border">
+                                        {{ total_vm_costs }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td class="p-2 border">
+                                        Total storage
+                                    </td>
+                                    <td class="p-2 border">
+                                        {{ total_storage_usage }}GB
+                                    </td>
+                                    <td class="p-2 border">
+                                        {{ total_storage_costs|floatformat:2 }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="p-2 border">
+                                        Total costs
+                                    </td>
+                                    <td class="p-2 border">
+                                        {{ total_costs|floatformat:2 }}
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if table %}
+            {{ table.render }}
+        {% endif %}
+    </div>
+{% endblock %}
