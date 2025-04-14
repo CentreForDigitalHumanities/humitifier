@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from decimal import Decimal
 from typing import Literal
 
+from humitifier_common.artefacts import Hardware
 from reporting.models import CostsScheme
 
 
@@ -29,6 +30,10 @@ class CostsBreakdown:
     @property
     def net_vm_costs(self):
         return self.gross_vm_costs - self.memory_correction
+
+    @property
+    def total_storage_usage(self):
+        return self.storage_size + self.redundant_storage_size
 
     @property
     def total_storage_costs(self):
@@ -92,4 +97,50 @@ def calculate_costs(
         bundled_memory_size=actual_bundled_memory,
         storage_size=storage_in_gb,
         redundant_storage_size=storage_in_gb if redundant_storage else 0,
+    )
+
+
+def calculate_from_hardware_artefact(
+    hardware: Hardware,
+    costs_scheme: CostsScheme,
+    redundant_storage: bool = False,
+    bundle_memory: bool = False,
+    memory_in_bundle: int = 2,
+) -> CostsBreakdown:
+
+    # Memory
+    total_memory = Decimal(sum([memrange.size for memrange in hardware.memory]))
+    total_memory = total_memory / 1024 / 1024 / 1024
+
+    # Storage
+    disks = []
+    for block_device in hardware.block_devices:
+        if block_device.type == "disk":
+            disks.append(block_device)
+
+    total_disk_space = 0
+    for disk in disks:
+        size = disk.size[:-1]
+        unit = disk.size[-1]
+
+        try:
+            size = int(size)
+        except ValueError:
+            continue
+
+        if unit == "M":
+            size = size / 1024
+            unit = "G"
+
+        total_disk_space += size
+
+    return calculate_costs(
+        num_cpu=hardware.num_cpus,
+        memory_in_gb=total_memory,
+        storage_in_gb=total_disk_space,
+        os="linux",
+        costs_scheme=costs_scheme,
+        redundant_storage=redundant_storage,
+        bundle_memory=bundle_memory,
+        memory_in_bundle=memory_in_bundle,
     )
