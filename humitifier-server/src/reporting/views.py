@@ -10,6 +10,7 @@ from reporting.filters import CostsSchemeFilters
 from reporting.forms import CostCalculatorForm, CostsSchemeForm
 from reporting.models import CostsScheme
 from reporting.tables import CostsSchemeTable
+from reporting.utils import calculate_costs
 
 
 class CostsSchemeListView(
@@ -120,76 +121,14 @@ class CostCalculatorView(LoginRequiredMixin, FormView):
             costs_scheme: CostsScheme = data["costs_scheme"]
             context["costs_scheme"] = costs_scheme
 
-            ##
-            ## CPU
-            ##
-            context["chosen_num_cpu"] = data["num_cpu"]
-            cpu_cost = data["num_cpu"] * costs_scheme.cpu
-            context["cpu_cost"] = cpu_cost
-
-            ##
-            ## Memory
-            ##
-            context["chosen_memory"] = data["memory"]
-            memory_cost = data["memory"] * costs_scheme.memory
-            context["memory_cost"] = memory_cost
-
-            if data["cpu_memory_bundle"]:
-                # With bundling enabled, each CPU includes the cost of 2 Gb of memory
-                max_bundled_memory = data["num_cpu"] * 2
-                # If we chose less memory than the max included, we use the lower number
-                actual_bundled_memory = min(data["memory"], max_bundled_memory)
-
-                # Calculate the discount we need to apply
-                bundled_memory_cost = actual_bundled_memory * costs_scheme.memory
-            else:
-                bundled_memory_cost = 0
-                actual_bundled_memory = 0
-
-            context["memory_bundle_discount"] = bundled_memory_cost
-            context["actual_bundled_memory"] = actual_bundled_memory
-
-            ##
-            ## Storage
-            ##
-            # We have price per TB, but ask for GB
-            storage_per_gig = costs_scheme.storage / 1024
-            context["storage_per_gig"] = round(storage_per_gig, 4)
-
-            context["chosen_storage"] = data["storage"]
-            storage_cost = data["storage"] * storage_per_gig
-            context["storage_cost"] = round(storage_cost, 4)
-
-            context["redundant_storage"] = data["redundant_storage"]
-            redundant_storage_cost = 0
-            if data["redundant_storage"]:
-                redundant_storage_cost = round(storage_cost, 4)
-
-            ##
-            ## OS
-            ##
-            chosen_os = data["os"]
-            if chosen_os == "Linux":
-                os_cost = costs_scheme.linux
-            elif chosen_os == "Windows":
-                os_cost = costs_scheme.windows
-            else:
-                os_cost = 0
-
-            context["os_costs"] = os_cost
-
-            ##
-            ## Totals
-            ##
-            context["total_before_discount"] = cpu_cost + memory_cost + os_cost
-            context["total_vm_costs"] = (
-                context["total_before_discount"] - bundled_memory_cost
-            )
-            context["total_storage_costs"] = round(
-                storage_cost + redundant_storage_cost, 2
-            )
-            context["total_costs"] = round(
-                context["total_vm_costs"] + context["total_storage_costs"], 2
+            context["costs"] = calculate_costs(
+                num_cpu=data["num_cpu"],
+                memory_in_gb=data["memory"],
+                storage_in_gb=data["storage"],
+                os=data["os"].lower(),
+                costs_scheme=costs_scheme,
+                redundant_storage=data["redundant_storage"],
+                bundle_memory=data["cpu_memory_bundle"],
             )
 
         return context
