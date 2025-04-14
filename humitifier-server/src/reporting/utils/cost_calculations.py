@@ -56,7 +56,7 @@ def calculate_costs(
     # Memory
     memory_costs = costs_scheme.memory * memory_in_gb
     if bundle_memory:
-        max_bundled_memory = cpu_costs * memory_in_bundle
+        max_bundled_memory = num_cpu * memory_in_bundle
         actual_bundled_memory = min(memory_in_gb, max_bundled_memory)
         bundled_memory_cost = actual_bundled_memory * costs_scheme.memory
     else:
