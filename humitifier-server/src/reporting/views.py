@@ -1,13 +1,14 @@
 from decimal import Decimal
 from typing import Tuple
 
+from celery.bin.worker import Hostname
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.views.generic import CreateView, FormView, TemplateView, UpdateView
 from rest_framework.reverse import reverse_lazy
 
 from hosts.models import Host, ScanData
-from humitifier_common.artefacts import Hardware
+from humitifier_common.artefacts import Hardware, HostnameCtl
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 from reporting.filters import CostsSchemeFilters
 from reporting.forms import CostCalculatorForm, CostsOverviewForm, CostsSchemeForm
@@ -201,6 +202,13 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
 
             if scan_obj.parsed_data.facts[Hardware.__artefact_name__] is None:
                 continue
+
+            if HostnameCtl.__artefact_name__ in scan_obj.parsed_data.facts:
+                hostname_ctl: HostnameCtl = scan_obj.parsed_data.facts[
+                    HostnameCtl.__artefact_name__
+                ]
+                if hostname_ctl.virtualization != "vmware":
+                    continue
 
             latest_scans.append(scan_obj)
 
