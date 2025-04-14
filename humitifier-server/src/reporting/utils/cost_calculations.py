@@ -128,8 +128,16 @@ def calculate_from_hardware_artefact(
         except ValueError:
             continue
 
+        if unit == "K":
+            size = size / 1024
+            unit = "M"
+
         if unit == "M":
             size = size / 1024
+            unit = "G"
+
+        if unit == "T":
+            size = size * 1024
             unit = "G"
 
         total_disk_space += size
