@@ -180,7 +180,7 @@ class FilteredListView(ListView):
 ###
 
 #
-# Home views
+# General views
 #
 
 
@@ -291,6 +291,10 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
         context["num_fine"] = num_fine
 
         return context
+
+
+class VersionView(LoginRequiredMixin, TemplateView):
+    template_name = "main/version.html"
 
 
 #

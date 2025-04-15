@@ -24,6 +24,7 @@ from . import env
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 HUMITIFIER_VERSION = "4.3.2"
+HUMITIFIER_VERSION_NAME = "Hello, I Like Money"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/

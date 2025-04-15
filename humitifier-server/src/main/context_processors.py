@@ -17,7 +17,7 @@ def layout_context(request):
     hosts = Host.objects.get_for_user(user).exclude(archived=True)
     all_alerts = Alert.objects.get_for_user(user).filter(acknowledgement=None)
 
-    tag_line = "HumIT CMDB"
+    tag_line = "HumITS CMDB"
 
     wild_wasteland = False
     if user.is_authenticated:
@@ -100,5 +100,6 @@ def layout_context(request):
             "gitlab_gag": gitlab_gag,
             "tag_line": tag_line,
             "humitifier_version": settings.HUMITIFIER_VERSION,
+            "humitifier_version_name": settings.HUMITIFIER_VERSION_NAME,
         }
     }
