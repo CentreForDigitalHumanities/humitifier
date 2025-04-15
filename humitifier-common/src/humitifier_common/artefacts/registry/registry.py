@@ -6,6 +6,8 @@ Used by agent/server to retrieve the facts dynamically.
 from dataclasses import dataclass
 from enum import Enum
 
+from humitifier_common.utils.pydantic import insert_pydantic_schema_proxy
+
 
 ##
 ## Registry
@@ -330,6 +332,8 @@ def fact(
     """
 
     def decorator(fact_cls):
+        insert_pydantic_schema_proxy(fact_cls)
+
         actual_name = name or fact_cls.__name__
 
         registry.register(
@@ -367,6 +371,8 @@ def metric(
     """
 
     def decorator(metric_cls):
+        insert_pydantic_schema_proxy(metric_cls)
+
         actual_name = name or metric_cls.__name__
 
         registry.register(

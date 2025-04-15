@@ -1,12 +1,11 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any, get_args
+from typing import get_args
 
 from pydantic import BaseModel, ConfigDict
 
-from humitifier_common.artefacts.registry.registry import (
-    registry as artefact_registry,
-)
+from humitifier_common.artefacts import registry as artefact_registry
+from humitifier_common.utils.pydantic import create_typed_dict
 
 
 class ArtefactScanOptions(BaseModel):
@@ -131,6 +130,10 @@ class ScanError(BaseModel):
     type: ErrorTypeEnum | None = None
 
 
+FactTypedDict = create_typed_dict("FactTypedDict", artefact_registry.all_facts)
+MetricTypedDict = create_typed_dict("MetricTypedDict", artefact_registry.all_metrics)
+
+
 class ScanOutput(BaseModel):
     """
     Represents the output of a scanning operation.
@@ -158,30 +161,10 @@ class ScanOutput(BaseModel):
     original_input: ScanInput
     scan_date: datetime
     hostname: str
-    facts: dict[str, Any]
-    metrics: dict[str, Any]
+    facts: FactTypedDict
+    metrics: MetricTypedDict
     errors: list[ScanError]
     version: int = 2
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-
-        # Make sure any dict-based contents are going to be parsed into their
-        # respective artefact models
-        for key, val in self.facts.items():
-            self.facts[key] = self._parse_artefact(key, val)
-
-        for key, val in self.metrics.items():
-            self.metrics[key] = self._parse_artefact(key, val)
-
-        parsed_errors = []
-        for error in self.errors:
-            if isinstance(error, dict):
-                error = ScanError(**error)
-
-            parsed_errors.append(error)
-
-        self.errors = parsed_errors
 
     def get_artefact_data(self, artefact):
         if not isinstance(artefact, str):
@@ -190,48 +173,9 @@ class ScanOutput(BaseModel):
             artefact = artefact.__artefact_name__
 
         if artefact in self.facts:
-            data = self.facts[artefact]
-            # Should not do anything, but just in case
-            return self._parse_artefact(artefact, data)
+            return self.facts[artefact]
+
         if artefact in self.metrics:
-            data = self.metrics[artefact]
-            # Should not do anything, but just in case
-            return self._parse_artefact(artefact, data)
+            return self.metrics[artefact]
 
         raise KeyError
-
-    @staticmethod
-    def _parse_artefact(artefact_name, data):
-        """
-        Parses an input data object into a specific artefact instance based on the specified
-        artefact name. This method checks the data's type and adapts it to match the expected
-        format for the target artefact. If the input data is a dictionary or list, it
-        attempts to unpack the contents and initialize the artefact accordingly. If the data
-        is `None`, the method returns `None`.
-
-        :param artefact_name: The name of the artefact to be retrieved from the artefact
-                              registry.
-        :type artefact_name: str
-        :param data: The input data object to be parsed. It may be an existing instance of
-                     the artefact, a dictionary of initialization parameters, or a list of
-                     dictionaries containing initialization parameters.
-        :type data: Any
-        :return: An instance of the artefact corresponding to the provided name and adapted
-                 data. Returns `None` if the input data is `None`.
-        :rtype: Any
-        """
-        artefact = artefact_registry.get(artefact_name)
-
-        if isinstance(data, artefact):
-            return data
-
-        if isinstance(data, dict):
-            return artefact(**data)
-
-        if isinstance(data, list):
-            inner_type = get_args(artefact.__orig_bases__[0])[0]
-            if inner_type:
-                return artefact([inner_type(**datum) for datum in data])
-            return artefact(data)
-
-        return artefact(data) if data else None
