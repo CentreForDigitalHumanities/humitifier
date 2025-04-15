@@ -180,7 +180,7 @@ class FilteredListView(ListView):
 ###
 
 #
-# Home views
+# General views
 #
 
 
@@ -224,10 +224,12 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
     def get_alert_stats(self):
         num_critical = Host.objects.filter(
             alerts__severity=AlertSeverity.CRITICAL,
+            archived=False,
         ).count()
         num_warning = (
             Host.objects.filter(
                 alerts__severity=AlertSeverity.WARNING,
+                archived=False,
             )
             .exclude(
                 alerts__severity=AlertSeverity.CRITICAL,
@@ -237,13 +239,14 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
         num_info = (
             Host.objects.filter(
                 alerts__severity=AlertSeverity.INFO,
+                archived=False,
             )
             .exclude(
                 alerts__severity__in=[AlertSeverity.WARNING, AlertSeverity.CRITICAL],
             )
             .count()
         )
-        num_fine = Host.objects.filter(alerts__isnull=True).count()
+        num_fine = Host.objects.filter(alerts__isnull=True, archived=False).count()
 
         return num_critical, num_warning, num_info, num_fine
 
@@ -288,6 +291,10 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
         context["num_fine"] = num_fine
 
         return context
+
+
+class VersionView(LoginRequiredMixin, TemplateView):
+    template_name = "main/version.html"
 
 
 #

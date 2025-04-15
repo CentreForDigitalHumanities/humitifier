@@ -22,6 +22,7 @@ from .views import (
     TaskResultsView,
     UserProfileView,
     UsersView,
+    VersionView,
 )
 
 app_name = "main"
@@ -29,6 +30,7 @@ app_name = "main"
 urlpatterns = [
     path("", HomeRedirectView.as_view(), name="home"),
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
+    path("version/", VersionView.as_view(), name="version"),
     path("user_profile/", UserProfileView.as_view(), name="user_profile"),
     path("users/", UsersView.as_view(), name="users"),
     path("users/create/", CreateUserView.as_view(), name="create_user"),

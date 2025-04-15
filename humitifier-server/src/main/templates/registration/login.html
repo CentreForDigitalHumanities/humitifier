@@ -43,7 +43,7 @@
                 {% endif %}
 
                 {% if layout.oidc_enabled %}
-                    <a href="{% url 'oidc_authentication_init' %}?{% param_replace %}" class="btn block light:btn-primary dark:btn-outline dark:bg-gray-700 text-center">
+                    <a href="{% url 'oidc_authentication_init' %}?{% param_replace %}" class="btn block btn-primary  text-center">
                         Login with Solis-ID
                     </a>
 
@@ -54,7 +54,7 @@
                     </div>
                 {% endif %}
 
-                <button class="btn block light:btn-primary dark:btn-outline dark:bg-gray-700 text-center w-full" x-show="!show_manual_login" @click="show_manual_login = true">
+                <button class="btn block btn-outline dark:bg-gray-700 text-center w-full" x-show="!show_manual_login" @click="show_manual_login = true">
                     Login with local account
                 </button>
                 <form method="post" action="{% url 'main:login' %}" class="flex gap-4 flex-col" x-show="show_manual_login">
