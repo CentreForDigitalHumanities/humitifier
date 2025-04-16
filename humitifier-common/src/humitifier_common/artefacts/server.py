@@ -2,6 +2,8 @@
 A collection of facts that only make sense to collect on a server.
 """
 
+from typing import Literal, TypedDict
+
 from pydantic import BaseModel
 
 from humitifier_common.artefacts.groups import SERVER
@@ -28,6 +30,44 @@ class HostMeta(BaseModel):
     vhosts: list[dict[str, VHost]] | None = None
     fileservers: list[str] | None = None
     databases: dict[str, list[str]] | None = None
+
+
+class WebhostProxy(TypedDict):
+    type: str
+    endpoint: str
+
+
+class WebhostRewriteRule(TypedDict):
+    conditions: list[str]
+    rule: str
+
+
+class WebhostAuth(TypedDict):
+    type: str
+    provider: str | None
+
+
+class WebHostLocation(TypedDict):
+    document_root: str | None
+    auth: WebhostAuth | None
+    proxy: WebhostProxy | None
+    rewrite_rules: list[WebhostRewriteRule] | None
+
+
+class Webhost(TypedDict):
+    listen_ports: list[int]
+    webserver: Literal["apache", "nginx"]
+    filename: str
+    document_root: str
+    hostname: str
+    hostname_aliases: list[str]
+    locations: dict[str, WebHostLocation]
+    rewrite_rules: list[WebhostRewriteRule]
+
+
+@fact(group=SERVER)
+class Webserver(BaseModel):
+    hosts: list[Webhost]
 
 
 ##
