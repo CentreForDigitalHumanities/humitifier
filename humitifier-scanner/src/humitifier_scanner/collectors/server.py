@@ -1,18 +1,29 @@
 import json
 import re
+from typing import Literal
 
 import yaml
 from datetime import datetime
 
 from humitifier_scanner.collectors import CollectInfo, ShellCollector
+from humitifier_scanner.constants import DEB_OS_LIST, RPM_OS_LIST
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 from humitifier_common.artefacts import (
     HostMeta,
+    HostnameCtl,
     IsWordpress,
+    PackageList,
     PuppetAgent,
     RebootPolicy,
     Uptime,
+    WebHostLocation,
+    Webhost,
+    WebhostAuth,
+    WebhostProxy,
+    WebhostRewriteRule,
+    Webserver,
 )
+from humitifier_scanner.utils import os_in_list
 
 
 class HostMetaFactCollector(ShellCollector):
@@ -30,6 +41,204 @@ class HostMetaFactCollector(ShellCollector):
         json_args = json.loads(json_str)
 
         return HostMeta(**json_args)
+
+
+class WebserverFactCollector(ShellCollector):
+    fact = Webserver
+
+    required_facts = [PackageList, HostnameCtl]
+
+    def collect_from_shell(
+        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    ) -> Webserver | None:
+        hostname_ctl: HostnameCtl = info.required_facts.get(HostnameCtl)
+        package_list: PackageList = info.required_facts.get(PackageList)
+
+        webhosts: list[Webhost] = []
+
+        apache_name = self._get_apache_name(hostname_ctl.os)
+
+        if apache_name is not None and self._is_apache_installed(
+            apache_name, package_list
+        ):
+            webhosts += self._process_apache(apache_name, shell_executor)
+
+        return Webserver(hosts=webhosts)
+
+    ##
+    ## Apache
+    ##
+
+    @staticmethod
+    def _get_apache_name(os) -> Literal["apache2", "httpd"] | None:
+        apache_name = None
+        if os_in_list(os, DEB_OS_LIST):
+            apache_name = "apache2"
+
+        if os_in_list(os, RPM_OS_LIST):
+            apache_name = "httpd"
+
+        return apache_name
+
+    @staticmethod
+    def _is_apache_installed(
+        apache_package: Literal["apache2", "httpd"], package_list: PackageList
+    ):
+        for package in package_list:
+            if package.name == apache_package:
+                return True
+
+        return False
+
+    @staticmethod
+    def _get_apache_file_path(apache_name: str, file: str | None = None):
+        if apache_name not in ["apache2", "httpd"]:
+            return None
+
+        return f"/etc/{apache_name}/sites-enabled/{file or ""}"
+
+    def _process_apache(
+        self, apache_name: str, executor: LinuxShellExecutor
+    ) -> list[Webhost]:
+        webhosts: list[Webhost] = []
+
+        config_files_cmd = executor.execute(
+            ["ls", self._get_apache_file_path(apache_name)]
+        )
+
+        config_files = [
+            cnf
+            for cnf in config_files_cmd.stdout
+            # if not cnf.endswith("_redirssl.conf")
+        ]
+
+        for config_file in config_files:
+            get_contents_cmd = executor.execute(
+                ["cat", self._get_apache_file_path(apache_name, config_file)]
+            )
+
+            webhosts.append(
+                self._parse_apache_file(config_file, get_contents_cmd.stdout)
+            )
+
+        return webhosts
+
+    @staticmethod
+    def _create_empty_webhost_location() -> WebHostLocation:
+        return {
+            "document_root": None,
+            "auth": None,
+            "proxy": None,
+            "rewrite_rules": None,
+        }
+
+    @staticmethod
+    def _create_empty_webhost_auth() -> WebhostAuth:
+        return {"type": "", "provider": None}
+
+    def _parse_apache_file(self, filename: str, contents: list[str]) -> Webhost:
+        listen_ports: list[int] = []
+        document_root: str = ""
+        hostname: str = ""
+        hostname_aliases: list[str] = []
+        rewrite_rules: list[WebhostRewriteRule] = []
+
+        locations: dict[str, WebHostLocation] = {}
+
+        # Parse caches
+        rewrite_conditions = []
+        current_location: str | None = None
+
+        mode = "default_loop"
+
+        for line in contents:
+            line = line.strip()
+
+            if mode == "default_loop":
+                if line.startswith("<VirtualHost"):
+                    # The -1 strips the trailing >
+                    stripped = line[len("<VirtualHost") : -1].strip()
+                    host, port = stripped.split(":", 1)
+                    try:
+                        port = int(port)
+                        listen_ports.append(port)
+                    except ValueError:
+                        pass
+                if line.startswith("ServerName"):
+                    hostname = line[len("ServerName") :].strip()
+                elif line.startswith("ServerAlias"):
+                    hostname_aliases.append(line[len("ServerAlias") :].strip())
+                elif line.startswith("DocumentRoot"):
+                    root = line[len("DocumentRoot") :].strip()
+
+                    if root.startswith('"'):
+                        root = root[1:]
+                    if root.endswith('"'):
+                        root = root[:-1]
+
+                    document_root = root
+                elif line.startswith("ProxyPass "):
+                    sans_prefix = line[len("ProxyPass ") :].strip()
+                    path, proxy = sans_prefix.split(" ", 1)
+                    if path not in locations.keys():
+                        locations[path] = self._create_empty_webhost_location()
+
+                    # Proxies are in format `proto://endpoint`
+                    _type, proxy_endpoint = proxy.split(":", 1)
+
+                    locations[path]["proxy"]: WebhostProxy = {
+                        "type": _type,
+                        "endpoint": proxy_endpoint,
+                    }
+                elif line.startswith("RewriteCond"):
+                    condition = line[len("RewriteCond") :].strip()
+                    rewrite_conditions.append(condition)
+                elif line.startswith("RewriteRule"):
+                    rule = line[len("RewriteRule") :].strip()
+                    rewrite_rules.append(
+                        {"conditions": rewrite_conditions, "rule": rule}
+                    )
+
+                    # Clear our buffer, as we hit the rewrite rule part
+                    rewrite_conditions = []
+                elif line.startswith("<Location"):
+                    # The -1 strips the trailing >
+                    location = line[len("<Location") : -1].strip()
+                    if location not in locations:
+                        locations[location] = self._create_empty_webhost_location()
+                    current_location = location
+                    mode = "location_loop"
+
+            elif mode == "location_loop":
+                location_obj = locations[current_location]
+
+                if line == "</Location>":
+                    current_location = None
+                    mode = "default_loop"
+                elif line.startswith("AuthType"):
+                    stripped = line[len("<AuthType") :].strip()
+                    if not location_obj["auth"]:
+                        location_obj["auth"] = self._create_empty_webhost_auth()
+
+                    location_obj["auth"]["type"] = stripped
+                elif line.startswith("AuthBasicProvider"):
+                    stripped = line[len("AuthBasicProvider") :].strip()
+
+                    if not location_obj["auth"]:
+                        location_obj["auth"] = self._create_empty_webhost_auth()
+
+                    location_obj["auth"]["provider"] = stripped
+
+        return {
+            "listen_ports": listen_ports,
+            "webserver": "apache",
+            "filename": filename,
+            "hostname": hostname,
+            "hostname_aliases": hostname_aliases,
+            "document_root": document_root,
+            "locations": locations,
+            "rewrite_rules": rewrite_rules,
+        }
 
 
 class UptimeMetricCollector(ShellCollector):
