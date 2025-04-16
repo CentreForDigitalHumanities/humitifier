@@ -47,7 +47,7 @@ class WebhostAuth(TypedDict):
     provider: str | None
 
 
-class WebHostLocation(TypedDict):
+class WebhostLocation(TypedDict):
     document_root: str | None
     auth: WebhostAuth | None
     proxy: WebhostProxy | None
@@ -61,7 +61,7 @@ class Webhost(TypedDict):
     document_root: str
     hostname: str
     hostname_aliases: list[str]
-    locations: dict[str, WebHostLocation]
+    locations: dict[str, WebhostLocation]
     rewrite_rules: list[WebhostRewriteRule]
 
 
