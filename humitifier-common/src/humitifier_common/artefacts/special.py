@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 
+from humitifier_common.artefacts.groups import SPECIAL
 from humitifier_common.artefacts.registry import metric
 
 ##
@@ -20,7 +21,7 @@ class ZFSPool(BaseModel):
     used_mb: int
 
 
-@metric(group="special")
+@metric(group=SPECIAL)
 class ZFS(BaseModel):
     pools: list[ZFSPool]
     volumes: list[ZFSVolume]

@@ -4,6 +4,7 @@ A collection of facts that only make sense to collect on a server.
 
 from pydantic import BaseModel
 
+from humitifier_common.artefacts.groups import SERVER
 from humitifier_common.artefacts.registry import fact, metric
 
 
@@ -18,7 +19,7 @@ class VHost(BaseModel):
     serveraliases: list[str] | None = None
 
 
-@fact(group="server")
+@fact(group=SERVER)
 class HostMeta(BaseModel):
     department: str | None = None
     contact: str | None = None
@@ -34,7 +35,7 @@ class HostMeta(BaseModel):
 ##
 
 
-@metric(group="server")
+@metric(group=SERVER)
 class Uptime(float):
     pass
 
@@ -44,7 +45,7 @@ class Uptime(float):
 ##
 
 
-@fact(group="server")
+@fact(group=SERVER)
 class PuppetAgent(BaseModel):
     enabled: bool
     running: bool | None
@@ -63,7 +64,7 @@ class PuppetAgent(BaseModel):
 ##
 
 
-@fact(group="server")
+@fact(group=SERVER)
 class IsWordpress(BaseModel):
     is_wp: bool
 
@@ -73,7 +74,7 @@ class IsWordpress(BaseModel):
 ##
 
 
-@fact(group="server")
+@fact(group=SERVER)
 class RebootPolicy(BaseModel):
     configured: bool
     enabled: bool | None = None
