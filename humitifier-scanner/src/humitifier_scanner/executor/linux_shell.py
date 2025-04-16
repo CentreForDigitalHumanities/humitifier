@@ -2,9 +2,9 @@ import abc
 import platform
 import threading
 from dataclasses import dataclass
+from subprocess import list2cmdline
 
 import paramiko
-from paramiko.channel import ChannelFile, ChannelStderrFile, ChannelStdinFile
 
 from humitifier_scanner.config import CONFIG
 from humitifier_scanner.logger import logger
@@ -22,7 +22,9 @@ class ShellOutput:
 class LinuxShellExecutor(abc.ABC):
 
     @abc.abstractmethod
-    def execute(self, command: str, fail_silent: bool = False) -> ShellOutput:
+    def execute(
+        self, command: str | list[str], fail_silent: bool = False
+    ) -> ShellOutput:
         """
         Provides an abstract method for executing a command in a shell-like environment and obtaining its
         output as a `ShellOutput` object. The method must be implemented by subclasses and allows handling
@@ -48,7 +50,9 @@ class LinuxShellExecutor(abc.ABC):
 
 class LocalLinuxShellExecutor(LinuxShellExecutor):
 
-    def execute(self, command: str, fail_silent: bool = False) -> ShellOutput:
+    def execute(
+        self, command: str | list[str], fail_silent: bool = False
+    ) -> ShellOutput:
         import subprocess
 
         logger.debug(f"Executing command locally: {command}")
@@ -207,7 +211,11 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
 
         return stdin, stdout, stderr
 
-    def execute(self, command: str, fail_silent: bool = False) -> ShellOutput:
+    def execute(
+        self, command: str | list[str], fail_silent: bool = False
+    ) -> ShellOutput:
+        if isinstance(command, list):
+            command = list2cmdline(command)
         stdin, stdout, stderr = self._execute_command(command, fail_silent)
 
         # Strip empty lines
