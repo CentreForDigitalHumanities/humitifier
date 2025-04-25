@@ -15,6 +15,7 @@ from reporting.forms import CostCalculatorForm, CostsOverviewForm, CostsSchemeFo
 from reporting.models import CostsScheme
 from reporting.tables import CostsOverviewTable, CostsSchemeTable
 from reporting.utils import calculate_costs, calculate_from_hardware_artefact
+from reporting.utils.get_server_hardware import get_server_hardware
 
 
 class CostsSchemeListView(
@@ -188,27 +189,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
         if customer:
             hosts = hosts.filter(customer=customer)
 
-        latest_scans: list[ScanData] = []
-
-        for host in hosts:
-            scan_obj: ScanData = host.get_scan_object()
-            if not scan_obj.version >= 2:
-                continue
-
-            if Hardware.__artefact_name__ not in scan_obj.parsed_data.facts:
-                continue
-
-            if scan_obj.parsed_data.facts[Hardware.__artefact_name__] is None:
-                continue
-
-            if HostnameCtl.__artefact_name__ in scan_obj.parsed_data.facts:
-                hostname_ctl: HostnameCtl = scan_obj.parsed_data.facts[
-                    HostnameCtl.__artefact_name__
-                ]
-                if hostname_ctl.virtualization != "vmware":
-                    continue
-
-            latest_scans.append(scan_obj)
+        servers = get_server_hardware(hosts)
 
         data = []
         total_vm_costs = Decimal("0")
@@ -217,11 +198,9 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
         total_management_costs = Decimal("0")
         total_costs = Decimal("0")
 
-        for scan in latest_scans:
-            hardware: Hardware = scan.parsed_data.facts[Hardware.__artefact_name__]
-
+        for server in servers:
             cost_breakdown = calculate_from_hardware_artefact(
-                hardware,
+                server.hardware,
                 costs_scheme,
             )
 
@@ -233,8 +212,8 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
 
             data.append(
                 CostsOverviewTable.Data(
-                    fqdn=scan.parsed_data.hostname,
-                    scan_date=scan.scan_date,
+                    fqdn=server.hostname,
+                    scan_date=server.scan_date,
                     costs_breakdown=cost_breakdown,
                 )
             )
