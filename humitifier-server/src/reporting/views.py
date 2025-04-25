@@ -152,16 +152,22 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
 
             form_data = form.cleaned_data
 
-            total_vm_costs, total_storage, total_storage_costs, total_costs, data = (
-                self.get_data(
-                    customer=form_data.get("customer", None),
-                    costs_scheme=form_data.get("costs_scheme"),
-                )
+            (
+                total_vm_costs,
+                total_storage,
+                total_storage_costs,
+                total_management_costs,
+                total_costs,
+                data,
+            ) = self.get_data(
+                customer=form_data.get("customer", None),
+                costs_scheme=form_data.get("costs_scheme"),
             )
 
             context["total_vm_costs"] = total_vm_costs
             context["total_storage_usage"] = total_storage
             context["total_storage_costs"] = total_storage_costs
+            context["total_management_costs"] = total_management_costs
             context["total_costs"] = total_costs
 
             context["table"] = CostsOverviewTable(
@@ -175,7 +181,9 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
         self,
         customer,
         costs_scheme,
-    ) -> Tuple[Decimal, Decimal, Decimal, Decimal, list[CostsOverviewTable.Data]]:
+    ) -> Tuple[
+        Decimal, Decimal, Decimal, Decimal, Decimal, list[CostsOverviewTable.Data]
+    ]:
         hosts = Host.objects.get_for_user(self.request.user)
         if customer:
             hosts = hosts.filter(customer=customer)
@@ -206,6 +214,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
         total_vm_costs = Decimal("0")
         total_storage = Decimal("0")
         total_storage_costs = Decimal("0")
+        total_management_costs = Decimal("0")
         total_costs = Decimal("0")
 
         for scan in latest_scans:
@@ -219,6 +228,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
             total_vm_costs += cost_breakdown.vm_costs
             total_storage += cost_breakdown.total_storage_usage
             total_storage_costs += cost_breakdown.total_storage_costs
+            total_management_costs += cost_breakdown.management
             total_costs += cost_breakdown.total_costs
 
             data.append(
@@ -229,4 +239,11 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
                 )
             )
 
-        return total_vm_costs, total_storage, total_storage_costs, total_costs, data
+        return (
+            total_vm_costs,
+            total_storage,
+            total_storage_costs,
+            total_management_costs,
+            total_costs,
+            data,
+        )

@@ -14,6 +14,7 @@ class CostsBreakdown:
     storage: Decimal
     redundant_storage: Decimal
     os: Decimal
+    management: Decimal
 
     # Units
     num_cpu: int
@@ -34,8 +35,12 @@ class CostsBreakdown:
         return self.storage + self.redundant_storage
 
     @property
-    def total_costs(self):
+    def total_hardware_costs(self):
         return self.total_storage_costs + self.vm_costs
+
+    @property
+    def total_costs(self):
+        return self.total_hardware_costs + self.management
 
 
 def calculate_costs(
@@ -74,6 +79,7 @@ def calculate_costs(
         storage=storage_costs,
         redundant_storage=redundant_storage_costs,
         os=os_cost,
+        management=costs_scheme.management,
         # Units
         num_cpu=num_cpu,
         memory_size=memory_in_gb,

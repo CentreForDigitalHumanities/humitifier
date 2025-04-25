@@ -949,11 +949,6 @@ video {
   margin-bottom: 0.75rem;
 }
 
-.my-4 {
-  margin-top: 1rem;
-  margin-bottom: 1rem;
-}
-
 .mb-0 {
   margin-bottom: 0px;
 }
@@ -1463,6 +1458,10 @@ video {
 
 .border-t-0 {
   border-top-width: 0px;
+}
+
+.border-t-2 {
+  border-top-width: 2px;
 }
 
 .border-blue-300 {
@@ -2423,16 +2422,6 @@ html:not(.dark) .light\:btn-primary:hover:where(.dark, .dark *) {
 .dark\:text-white:where(.dark, .dark *) {
   --tw-text-opacity: 1;
   color: rgb(255 255 255 / var(--tw-text-opacity));
-}
-
-.dark\:text-gray-300:where(.dark, .dark *) {
-  --tw-text-opacity: 1;
-  color: rgb(212 212 216 / var(--tw-text-opacity));
-}
-
-.dark\:text-gray-200:where(.dark, .dark *) {
-  --tw-text-opacity: 1;
-  color: rgb(228 228 231 / var(--tw-text-opacity));
 }
 
 .dark\:placeholder-gray-50:where(.dark, .dark *)::-moz-placeholder {

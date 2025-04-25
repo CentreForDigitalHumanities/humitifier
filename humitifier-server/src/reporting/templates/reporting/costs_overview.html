@@ -57,9 +57,17 @@
                                 </tr>
                                 <tr>
                                     <td colspan="2" class="p-2 border dark:border-gray-700">
-                                        Total costs
+                                        Total support costs
                                     </td>
                                     <td class="p-2 border dark:border-gray-700">
+                                        {{ total_management_costs|floatformat:2 }}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="2" class="p-2 border border-t-2 dark:border-gray-700">
+                                        Total costs
+                                    </td>
+                                    <td class="p-2 border border-t-2 dark:border-gray-700">
                                         {{ total_costs|floatformat:2 }}
                                     </td>
                                 </tr>
