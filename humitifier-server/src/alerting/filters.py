@@ -34,6 +34,14 @@ class AlertFilters(django_filters.FilterSet):
         widget=MultipleChoiceFilterWidget,
     )
 
+    exclude_type = django_filters.MultipleChoiceFilter(
+        label="Alert type (exclude)",
+        field_name="short_message",
+        choices=lambda: _get_choices(Alert, "short_message", strip_quotes=False),
+        widget=MultipleChoiceFilterWidget,
+        exclude=True,
+    )
+
 
 class AlertAcknowledgmentFilters(django_filters.FilterSet):
     class Meta:
