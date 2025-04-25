@@ -100,46 +100,16 @@
                                 +
                             </td>
                         </tr>
-                        {% if costs.memory_correction %}
-                            <tr>
-                                <td class="px-3 py-2 italic">
-                                    Sub-total
-                                </td>
-                                <td></td>
-                                <td class="px-3 py-2 italic font-mono">
-                                    {{ costs.gross_vm_costs }}
-                                </td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr class="border-b border-gray-300 dark:border-gray-600">
-                                <td class="px-3 py-2">
-                                    Bundled memory<span
-                                    class="align-super">[1]</span>
-                                </td>
-                                <td class="px-3 py-2 font-mono">
-                                    {{ costs.bundled_memory_size }}
-                                    * {{ costs_scheme.memory }}
-                                </td>
-                                <td class="px-3 py-2 font-mono">
-                                    {{ costs.memory_correction }}
-                                </td>
-                                <td />
-                                <td class="px-3 py-2 font-bold text-right">
-                                    -
-                                </td>
-                            </tr>
-                        {% endif %}
                         <tr>
                             <td class="px-3 py-2 font-semibold">
                                 Total VM
                             </td>
                             <td></td>
                             <td class="px-3 py-2 font-semibold font-mono">
-                                {{ costs.net_vm_costs }}
+                                {{ costs.vm_costs }}
                             </td>
                             <td class="px-3 py-2 font-semibold font-mono">
-                                {{ costs.net_vm_costs }}
+                                {{ costs.vm_costs }}
                             </td>
                             <td></td>
                         </tr>
@@ -212,16 +182,6 @@
                         </tr>
                         </tbody>
                     </table>
-                    {% if costs.memory_correction %}
-                        <p class="mt-6 mb-2">
-                            [1] If bundling is enabled, a correction is applied
-                            to the initial calculated costs. This correction is
-                            calculated using the following formula:
-                        </p>
-                        <code
-                            class="block bg-gray-200 dark:bg-gray-800 p-3 rounded">min(memory,
-                            num_cpu * 2) * cost_memory</code>
-                    {% endif %}
 
                     <h2 class="text-xl font-bold mt-6">
                         Used prices: {{ costs_scheme.name }}

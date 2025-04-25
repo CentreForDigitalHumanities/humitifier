@@ -25,6 +25,7 @@ class CostsSchemeTable(BaseTable):
             "storage",
             "linux",
             "windows",
+            "redundant_storage",
             "actions",
         ]
 
@@ -78,7 +79,7 @@ class CostsOverviewTable(BaseTable):
 
     @staticmethod
     def get_vm_costs(obj: "CostsOverviewTable.Data"):
-        return round(obj.costs_breakdown.net_vm_costs, 2)
+        return round(obj.costs_breakdown.vm_costs, 2)
 
     @staticmethod
     def get_storage_costs(obj: "CostsOverviewTable.Data"):

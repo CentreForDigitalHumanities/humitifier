@@ -131,8 +131,6 @@ class CostCalculatorView(LoginRequiredMixin, FormView):
                 storage_in_gb=data["storage"],
                 os=data["os"].lower(),
                 costs_scheme=costs_scheme,
-                redundant_storage=data["redundant_storage"],
-                bundle_memory=data["cpu_memory_bundle"],
             )
 
         return context
@@ -156,11 +154,8 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
 
             total_vm_costs, total_storage, total_storage_costs, total_costs, data = (
                 self.get_data(
-                    department=form_data.get("department", None),
                     customer=form_data.get("customer", None),
                     costs_scheme=form_data.get("costs_scheme"),
-                    redundant_storage=form_data.get("redundant_storage", False),
-                    bundle_memory=form_data.get("cpu_memory_bundle", False),
                 )
             )
 
@@ -178,15 +173,10 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
 
     def get_data(
         self,
-        department,
         customer,
         costs_scheme,
-        redundant_storage,
-        bundle_memory,
     ) -> Tuple[Decimal, Decimal, Decimal, Decimal, list[CostsOverviewTable.Data]]:
         hosts = Host.objects.get_for_user(self.request.user)
-        if department:
-            hosts = hosts.filter(department=department)
         if customer:
             hosts = hosts.filter(customer=customer)
 
@@ -224,11 +214,9 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
             cost_breakdown = calculate_from_hardware_artefact(
                 hardware,
                 costs_scheme,
-                redundant_storage=redundant_storage,
-                bundle_memory=bundle_memory,
             )
 
-            total_vm_costs += cost_breakdown.net_vm_costs
+            total_vm_costs += cost_breakdown.vm_costs
             total_storage += cost_breakdown.total_storage_usage
             total_storage_costs += cost_breakdown.total_storage_costs
             total_costs += cost_breakdown.total_costs

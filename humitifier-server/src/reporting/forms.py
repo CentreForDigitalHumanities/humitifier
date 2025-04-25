@@ -28,17 +28,9 @@ class CostCalculatorForm(forms.Form):
         initial=2,
     )
 
-    cpu_memory_bundle = forms.BooleanField(
-        label="CPU costs include 2Gb of memory", required=False
-    )
-
     storage = forms.DecimalField(
         label="Storage in GB",
         initial=50,
-    )
-
-    redundant_storage = forms.BooleanField(
-        label="Redundant storage", initial=True, required=False
     )
 
     os = forms.ChoiceField(
@@ -56,24 +48,9 @@ class CostsOverviewForm(forms.Form):
         queryset=CostsScheme.objects,
     )
 
-    department = forms.ChoiceField(
-        label="Department",
-        choices=lambda: _get_choices(Host, "department", strip_quotes=False)
-        + [(None, "-" * 9)],
-        required=False,
-    )
-
     customer = forms.ChoiceField(
         label="Customer",
         choices=lambda: _get_choices(Host, "customer", strip_quotes=False)
         + [(None, "-" * 9)],
         required=False,
-    )
-
-    redundant_storage = forms.BooleanField(
-        label="Redundant storage", initial=True, required=False
-    )
-
-    cpu_memory_bundle = forms.BooleanField(
-        label="CPU costs include 2Gb of memory", required=False
     )
