@@ -224,11 +224,13 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
     def get_alert_stats(self):
         num_critical = Host.objects.filter(
             alerts__severity=AlertSeverity.CRITICAL,
+            alerts__acknowledgement=None,
             archived=False,
         ).count()
         num_warning = (
             Host.objects.filter(
                 alerts__severity=AlertSeverity.WARNING,
+                alerts__acknowledgement=None,
                 archived=False,
             )
             .exclude(
@@ -239,6 +241,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
         num_info = (
             Host.objects.filter(
                 alerts__severity=AlertSeverity.INFO,
+                alerts__acknowledgement=None,
                 archived=False,
             )
             .exclude(
@@ -253,6 +256,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
     def get_alert_count_by_message(self):
         return (
             Alert.objects.get_for_user(self.request.user)
+            .filter(acknowledgement=None)
             .values("short_message")
             .annotate(count=Count("id"))
         )
