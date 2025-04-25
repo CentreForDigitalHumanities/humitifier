@@ -3,6 +3,7 @@ from django.urls import path
 from .views import (
     CostCalculatorView,
     CostsOverviewView,
+    CostsReportView,
     CostsSchemeCreateView,
     CostsSchemeListView,
     CostsSchemeUpdateView,
@@ -16,4 +17,5 @@ urlpatterns = [
     path("costs/<int:pk>/", CostsSchemeUpdateView.as_view(), name="costs_update"),
     path("cost_calculator/", CostCalculatorView.as_view(), name="cost_calculator"),
     path("server_costs/", CostsOverviewView.as_view(), name="server_cost_overview"),
+    path("server_costs/report/", CostsReportView.as_view(), name="server_cost_report"),
 ]

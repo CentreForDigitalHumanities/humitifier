@@ -1,7 +1,7 @@
 from django import forms
 
 from hosts.models import Host
-from main.filters import _get_choices
+from main.filters import MultipleChoiceFilterWidget, _get_choices
 from reporting.models import CostsScheme
 
 
@@ -54,4 +54,23 @@ class CostsOverviewForm(forms.Form):
         choices=lambda: _get_choices(Host, "customer", strip_quotes=False)
         + [(None, "-" * 9)],
         required=False,
+    )
+
+
+class CostsReportForm(forms.Form):
+    filename = forms.CharField(
+        label="Filename",
+        initial="costs_report.xlsx",
+    )
+
+    costs_scheme = forms.ModelChoiceField(
+        label="Costs Scheme",
+        queryset=CostsScheme.objects,
+    )
+
+    customers = forms.MultipleChoiceField(
+        label="Customer",
+        choices=lambda: _get_choices(Host, "customer", strip_quotes=False),
+        required=False,
+        widget=MultipleChoiceFilterWidget(attrs={"placeholder": "All customers"}),
     )

@@ -4,6 +4,7 @@ from typing import Tuple
 from celery.bin.worker import Hostname
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
+from django.http import HttpResponse
 from django.views.generic import CreateView, FormView, TemplateView, UpdateView
 from rest_framework.reverse import reverse_lazy
 
@@ -11,10 +12,16 @@ from hosts.models import Host, ScanData
 from humitifier_common.artefacts import Hardware, HostnameCtl
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 from reporting.filters import CostsSchemeFilters
-from reporting.forms import CostCalculatorForm, CostsOverviewForm, CostsSchemeForm
+from reporting.forms import (
+    CostCalculatorForm,
+    CostsOverviewForm,
+    CostsReportForm,
+    CostsSchemeForm,
+)
 from reporting.models import CostsScheme
 from reporting.tables import CostsOverviewTable, CostsSchemeTable
 from reporting.utils import calculate_costs, calculate_from_hardware_artefact
+from reporting.utils.costs_excel_export import create_cost_excel
 from reporting.utils.get_server_hardware import get_server_hardware
 
 
@@ -135,6 +142,26 @@ class CostCalculatorView(LoginRequiredMixin, FormView):
             )
 
         return context
+
+
+class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
+    form_class = CostsReportForm
+    template_name = "reporting/costs_report.html"
+
+    def form_valid(self, form):
+        costs_scheme = form.cleaned_data["costs_scheme"]
+        customers = form.cleaned_data["customers"]
+        filename = form.cleaned_data["filename"]
+
+        file_data = create_cost_excel(costs_scheme, filename, customers)
+
+        response = HttpResponse(
+            file_data.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        return response
 
 
 class CostsOverviewView(LoginRequiredMixin, FormView):
