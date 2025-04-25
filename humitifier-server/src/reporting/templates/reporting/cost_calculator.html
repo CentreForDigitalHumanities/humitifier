@@ -6,10 +6,10 @@
     <div class="h-full--header w-full bg px-7 py-5">
         <h1 class="text-3xl font-bold">Server cost calculator</h1>
 
-        <div class="flex items-center gap-3 p-3 my-3 mb-0 rounded bg-orange-300 dark:bg-orange-800">
-            {% include 'icons/warning.html' %}
+        <div class="flex items-center gap-3 p-3 mt-4 rounded bg-blue-300 dark:bg-blue-800">
+            {% include 'icons/info.html' %}
             <div>
-                This calculator is a work-in-progress. Both the prices and calculation still need to be confirmed to be correct. As such, no guarantees can be made about its accuracy.
+                This calculator provides estimates only and actual costs may vary. Please ask your contact if you require definitive answers.
             </div>
         </div>
 
@@ -232,6 +232,9 @@
                         </tr>
                         </tbody>
                     </table>
+                    <p class="my-3 text-sm text-gray-600 dark:text-gray-400">
+                        All prices are in euros per month
+                    </p>
                 </div>
             {% endif %}
         </div>

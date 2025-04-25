@@ -16,6 +16,7 @@ class CostCalculatorForm(forms.Form):
     costs_scheme = forms.ModelChoiceField(
         label="Costs Scheme",
         queryset=CostsScheme.objects,
+        help_text="Please note that future pricing schemes may not be definitive.",
     )
 
     num_cpu = forms.IntegerField(
