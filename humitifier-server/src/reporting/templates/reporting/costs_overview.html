@@ -8,12 +8,13 @@
         <div class="px-7 mb-5">
             <h1 class="text-3xl font-bold">Server costs overview</h1>
 
-            <div class="flex items-center gap-3 p-3 my-3 mb-0 rounded bg-orange-300 dark:bg-orange-800">
-                {% include 'icons/warning.html' %}
+            <div class="flex items-center gap-3 p-3 mt-4 rounded bg-blue-300 dark:bg-blue-800">
+                {% include 'icons/info.html' %}
                 <div>
-                    This calculator is a work-in-progress. Both the prices and calculation still need to be confirmed to be correct. As such, no guarantees can be made about its accuracy.
+                    This calculator provides estimates only and actual costs may vary. Please ask your contact if you require definitive answers.
                 </div>
             </div>
+
             <div class="mt-5 flex gap-6">
                 <div class="lg:w-96">
                     <form method="post">
@@ -30,35 +31,35 @@
                 </div>
                 {% if total_vm_costs %}
                     <div>
-                    <h2 class="text-xl font-bold">
-                        Total costs
-                    </h2>
-                        <table class="">
+                        <h2 class="text-xl font-bold">
+                            Total costs
+                        </h2>
+                        <table class="mt-3">
                             <tbody>
                                 <tr>
-                                    <td colspan="2" class="p-2 border">
+                                    <td colspan="2" class="p-2 border dark:border-gray-700">
                                         Total VM costs
                                     </td>
-                                    <td class="p-2 border">
+                                    <td class="p-2 border dark:border-gray-700">
                                         {{ total_vm_costs|floatformat:2 }}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="p-2 border">
+                                    <td class="p-2 border dark:border-gray-700">
                                         Total storage
                                     </td>
-                                    <td class="p-2 border">
+                                    <td class="p-2 border dark:border-gray-700">
                                         {{ total_storage_usage|intcomma }} GB
                                     </td>
-                                    <td class="p-2 border">
+                                    <td class="p-2 border dark:border-gray-700">
                                         {{ total_storage_costs|floatformat:2 }}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td colspan="2" class="p-2 border">
+                                    <td colspan="2" class="p-2 border dark:border-gray-700">
                                         Total costs
                                     </td>
-                                    <td class="p-2 border">
+                                    <td class="p-2 border dark:border-gray-700">
                                         {{ total_costs|floatformat:2 }}
                                     </td>
                                 </tr>
