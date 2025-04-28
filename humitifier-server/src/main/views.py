@@ -197,6 +197,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
     filterset_class = AlertFilters
     paginate_by = 20
     template_name = "main/dashboard.html"
+    ordering = "host"
     ordering_fields = {
         "host": "Hostname",
         "severity": "Alert severity",
