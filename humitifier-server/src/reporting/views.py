@@ -5,7 +5,13 @@ from celery.bin.worker import Hostname
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.http import HttpResponse
-from django.views.generic import CreateView, FormView, TemplateView, UpdateView
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    FormView,
+    TemplateView,
+    UpdateView,
+)
 from rest_framework.reverse import reverse_lazy
 
 from hosts.models import Host, ScanData
@@ -59,6 +65,14 @@ class CostsSchemeUpdateView(
     form_class = CostsSchemeForm
     success_message = "Costs scheme updated successfully"
     success_url = reverse_lazy("reporting:costs_list")
+
+
+class CostsSchemeDeleteView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+):
+    model = CostsScheme
+    success_url = reverse_lazy("reporting:costs_list")
+    success_message = "Costs scheme deleted"
 
 
 class CostCalculatorView(LoginRequiredMixin, FormView):

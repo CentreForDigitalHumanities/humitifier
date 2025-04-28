@@ -38,6 +38,11 @@ class CostsSchemeTable(BaseTable):
                 button_class="btn btn-outline",
                 url=lambda obj: reverse("reporting:costs_update", args=[obj.pk]),
             ),
+            ButtonColumn(
+                text="Delete",
+                button_class="btn btn-danger",
+                url=lambda obj: reverse("reporting:costs_delete", args=[obj.pk]),
+            ),
         ],
     )
 
