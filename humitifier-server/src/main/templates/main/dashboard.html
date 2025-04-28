@@ -214,6 +214,9 @@
                         Severity
                     </th>
                     <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                        Acknowledged
+                    </th>
+                    <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
                         Type
                     </th>
                     <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden lg:table-cell transition ease-in-out duration-150 rounded-tr">
@@ -231,6 +234,9 @@
                         </td>
                         <td class="hidden xl:table-cell">
                             {{ alert.severity }}
+                        </td>
+                        <td class="hidden xl:table-cell">
+                            {{ alert.acknowledgement|yesno }}
                         </td>
                         <td class="hidden xl:table-cell">
                             {{ alert.short_message }}
