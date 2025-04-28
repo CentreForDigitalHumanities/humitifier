@@ -34,7 +34,7 @@ def create_cost_excel(
     wb = Workbook()
     main_sheet = wb.active
 
-    if customers is None:
+    if not customers:
         customers = (
             Host.objects.values_list("customer", flat=True).order_by().distinct()
         )
