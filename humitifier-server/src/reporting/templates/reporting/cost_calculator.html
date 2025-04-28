@@ -6,10 +6,10 @@
     <div class="h-full--header w-full bg px-7 py-5">
         <h1 class="text-3xl font-bold">Server cost calculator</h1>
 
-        <div class="flex items-center gap-3 p-3 my-3 mb-0 rounded bg-orange-300 dark:bg-orange-800">
-            {% include 'icons/warning.html' %}
+        <div class="flex items-center gap-3 p-3 mt-4 rounded bg-blue-300 dark:bg-blue-800">
+            {% include 'icons/info.html' %}
             <div>
-                This calculator is a work-in-progress. Both the prices and calculation still need to be confirmed to be correct. As such, no guarantees can be made about its accuracy.
+                This calculator provides estimates only and actual costs may vary. Please ask your contact if you require definitive answers.
             </div>
         </div>
 
@@ -100,46 +100,16 @@
                                 +
                             </td>
                         </tr>
-                        {% if costs.memory_correction %}
-                            <tr>
-                                <td class="px-3 py-2 italic">
-                                    Sub-total
-                                </td>
-                                <td></td>
-                                <td class="px-3 py-2 italic font-mono">
-                                    {{ costs.gross_vm_costs }}
-                                </td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr class="border-b border-gray-300 dark:border-gray-600">
-                                <td class="px-3 py-2">
-                                    Bundled memory<span
-                                    class="align-super">[1]</span>
-                                </td>
-                                <td class="px-3 py-2 font-mono">
-                                    {{ costs.bundled_memory_size }}
-                                    * {{ costs_scheme.memory }}
-                                </td>
-                                <td class="px-3 py-2 font-mono">
-                                    {{ costs.memory_correction }}
-                                </td>
-                                <td />
-                                <td class="px-3 py-2 font-bold text-right">
-                                    -
-                                </td>
-                            </tr>
-                        {% endif %}
                         <tr>
                             <td class="px-3 py-2 font-semibold">
                                 Total VM
                             </td>
                             <td></td>
                             <td class="px-3 py-2 font-semibold font-mono">
-                                {{ costs.net_vm_costs }}
+                                {{ costs.vm_costs }}
                             </td>
                             <td class="px-3 py-2 font-semibold font-mono">
-                                {{ costs.net_vm_costs }}
+                                {{ costs.vm_costs }}
                             </td>
                             <td></td>
                         </tr>
@@ -194,10 +164,46 @@
                                 {{ costs.total_storage_costs|floatformat:2 }}
                             </td>
                             <td class="px-3 py-2 font-semibold font-mono">
-                                {{ costs.total_costs|floatformat:2 }}
+                                {{ costs.total_hardware_costs|floatformat:2 }}
                             </td>
                             <td></td>
                         </tr>
+                        {% if costs_scheme.management %}
+                            <tr>
+                                <td colspan="5" class="italic py-3">
+                                    Management
+                                </td>
+                            </tr>
+                            <tr class="border-b border-gray-300 dark:border-gray-600">
+                                <td class="px-3 py-2">
+                                    Support
+                                </td>
+                                <td>
+
+                                </td>
+                                <td class="px-3 py-2 font-mono">
+                                    {{ costs.management }}
+                                </td>
+                                <td></td>
+                                <td class="px-3 py-2 text-right font-bold">
+                                    +
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td class="px-3 py-2 font-semibold">
+                                    Total management
+                                </td>
+                                <td></td>
+                                <td class="px-3 py-2 font-semibold font-mono">
+                                    {{ costs.management }}
+                                </td>
+                                <td class="px-3 py-2 font-semibold font-mono">
+                                    {{ costs.total_costs|floatformat:2 }}
+                                </td>
+                                <td></td>
+                            </tr>
+                        {% endif %}
 
                         <tr class="bg-gray-200 dark:bg-gray-700 font-bold">
                             <td class="px-3 py-2 font-bold">
@@ -212,16 +218,6 @@
                         </tr>
                         </tbody>
                     </table>
-                    {% if costs.memory_correction %}
-                        <p class="mt-6 mb-2">
-                            [1] If bundling is enabled, a correction is applied
-                            to the initial calculated costs. This correction is
-                            calculated using the following formula:
-                        </p>
-                        <code
-                            class="block bg-gray-200 dark:bg-gray-800 p-3 rounded">min(memory,
-                            num_cpu * 2) * cost_memory</code>
-                    {% endif %}
 
                     <h2 class="text-xl font-bold mt-6">
                         Used prices: {{ costs_scheme.name }}
@@ -240,6 +236,9 @@
                             </td>
                             <td class="p-3">
                                 Price per 1Gb storage
+                            </td>
+                            <td class="p-3">
+                                Support costs
                             </td>
                             <td class="p-3">
                                 Price for Linux
@@ -264,6 +263,9 @@
                                 {{ costs_scheme.storage_per_gb|floatformat:4 }}
                             </td>
                             <td class="p-3">
+                                {{ costs_scheme.management }}
+                            </td>
+                            <td class="p-3">
                                 {{ costs_scheme.linux }}
                             </td>
                             <td class="p-3">
@@ -272,6 +274,9 @@
                         </tr>
                         </tbody>
                     </table>
+                    <p class="my-3 text-sm text-gray-600 dark:text-gray-400">
+                        All prices are in euros per month
+                    </p>
                 </div>
             {% endif %}
         </div>

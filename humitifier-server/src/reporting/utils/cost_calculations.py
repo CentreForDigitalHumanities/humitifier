@@ -11,25 +11,20 @@ class CostsBreakdown:
     # Costs
     cpu: Decimal
     memory: Decimal
-    memory_correction: Decimal
     storage: Decimal
     redundant_storage: Decimal
     os: Decimal
+    management: Decimal
 
     # Units
     num_cpu: int
     memory_size: Decimal
-    bundled_memory_size: Decimal
     storage_size: Decimal
     redundant_storage_size: Decimal
 
     @property
-    def gross_vm_costs(self):
+    def vm_costs(self):
         return self.cpu + self.memory + self.os
-
-    @property
-    def net_vm_costs(self):
-        return self.gross_vm_costs - self.memory_correction
 
     @property
     def total_storage_usage(self):
@@ -40,8 +35,12 @@ class CostsBreakdown:
         return self.storage + self.redundant_storage
 
     @property
+    def total_hardware_costs(self):
+        return self.total_storage_costs + self.vm_costs
+
+    @property
     def total_costs(self):
-        return self.total_storage_costs + self.net_vm_costs
+        return self.total_hardware_costs + self.management
 
 
 def calculate_costs(
@@ -50,9 +49,6 @@ def calculate_costs(
     storage_in_gb: Decimal,
     os: Literal["linux", "windows"],
     costs_scheme: CostsScheme,
-    redundant_storage: bool = False,
-    bundle_memory: bool = False,
-    memory_in_bundle: int = 2,
 ) -> CostsBreakdown:
 
     # CPU
@@ -60,17 +56,10 @@ def calculate_costs(
 
     # Memory
     memory_costs = costs_scheme.memory * memory_in_gb
-    if bundle_memory:
-        max_bundled_memory = num_cpu * memory_in_bundle
-        actual_bundled_memory = min(memory_in_gb, max_bundled_memory)
-        bundled_memory_cost = actual_bundled_memory * costs_scheme.memory
-    else:
-        bundled_memory_cost = 0
-        actual_bundled_memory = 0
 
     # Storage
     storage_costs = costs_scheme.storage_per_gb * storage_in_gb
-    if redundant_storage:
+    if costs_scheme.redundant_storage:
         redundant_storage_costs = storage_costs
     else:
         redundant_storage_costs = 0
@@ -87,25 +76,21 @@ def calculate_costs(
         # Costs
         cpu=cpu_costs,
         memory=memory_costs,
-        memory_correction=bundled_memory_cost,
         storage=storage_costs,
         redundant_storage=redundant_storage_costs,
         os=os_cost,
+        management=costs_scheme.management,
         # Units
         num_cpu=num_cpu,
         memory_size=memory_in_gb,
-        bundled_memory_size=actual_bundled_memory,
         storage_size=storage_in_gb,
-        redundant_storage_size=storage_in_gb if redundant_storage else 0,
+        redundant_storage_size=storage_in_gb if costs_scheme.redundant_storage else 0,
     )
 
 
 def calculate_from_hardware_artefact(
     hardware: Hardware,
     costs_scheme: CostsScheme,
-    redundant_storage: bool = False,
-    bundle_memory: bool = False,
-    memory_in_bundle: int = 2,
 ) -> CostsBreakdown:
 
     # Memory
@@ -148,7 +133,4 @@ def calculate_from_hardware_artefact(
         storage_in_gb=total_disk_space,
         os="linux",
         costs_scheme=costs_scheme,
-        redundant_storage=redundant_storage,
-        bundle_memory=bundle_memory,
-        memory_in_bundle=memory_in_bundle,
     )

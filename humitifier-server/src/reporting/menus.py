@@ -25,6 +25,12 @@ Menu.add_item(
                 check=lambda request: request.user.is_authenticated,
             ),
             HumitifierMenuItem(
+                "Server cost report",
+                reverse("reporting:server_cost_report"),
+                icon="icons/sheet.html",
+                check=lambda request: request.user.is_authenticated,
+            ),
+            HumitifierMenuItem(
                 "Costs schemes list",
                 reverse("reporting:costs_list"),
                 icon="icons/banknotes.html",

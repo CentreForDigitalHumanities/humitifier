@@ -1,0 +1,28 @@
+{% extends 'base/base_page_template.html' %}
+{% load humanize %}
+
+{% block page_title %}Server costs report generator | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg py-5">
+        <div class="px-7 mb-5">
+            <h1 class="text-3xl font-bold">Server costs report generator</h1>
+
+            <div class="mt-5 flex gap-6">
+                <div class="lg:w-96">
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form }}
+
+                        <div class="flex gap-2 mt-6">
+                            <button type="submit"
+                                    class="btn light:btn-primary dark:btn-outline">
+                                Download
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

@@ -5,7 +5,7 @@ target-version = [
 
 [tool.poetry]
 name = "humitifier-server"
-version = "4.3.2"
+version = "4.4.0"
 description = ""
 authors = [
     "Mees, T.D. (Ty) <t.d.mees@uu.nl>",
@@ -30,6 +30,7 @@ celery = "5.5.0rc4"
 django-celery-beat = "^2.7.0"
 django-celery-results = "^2.5.1"
 cron-descriptor = "^1.4.5"
+openpyxl = "^3.1.5"
 
 
 [tool.poetry.group.dev.dependencies]

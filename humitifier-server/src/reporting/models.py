@@ -15,8 +15,14 @@ class CostsScheme(models.Model):
         "Price per 1Tb storage", max_digits=10, decimal_places=2
     )
 
+    redundant_storage = models.BooleanField(default=False)
+
     linux = models.DecimalField("Price for Linux", max_digits=10, decimal_places=2)
     windows = models.DecimalField("Price for Windows", max_digits=10, decimal_places=2)
+
+    management = models.DecimalField(
+        "Management costs", max_digits=10, decimal_places=2
+    )
 
     @property
     def storage_per_gb(self) -> Decimal:

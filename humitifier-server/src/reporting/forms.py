@@ -1,7 +1,7 @@
 from django import forms
 
 from hosts.models import Host
-from main.filters import _get_choices
+from main.filters import MultipleChoiceFilterWidget, _get_choices
 from reporting.models import CostsScheme
 
 
@@ -16,6 +16,7 @@ class CostCalculatorForm(forms.Form):
     costs_scheme = forms.ModelChoiceField(
         label="Costs Scheme",
         queryset=CostsScheme.objects,
+        help_text="Please note that future pricing schemes may not be definitive.",
     )
 
     num_cpu = forms.IntegerField(
@@ -28,17 +29,9 @@ class CostCalculatorForm(forms.Form):
         initial=2,
     )
 
-    cpu_memory_bundle = forms.BooleanField(
-        label="CPU costs include 2Gb of memory", required=False
-    )
-
     storage = forms.DecimalField(
         label="Storage in GB",
         initial=50,
-    )
-
-    redundant_storage = forms.BooleanField(
-        label="Redundant storage", initial=True, required=False
     )
 
     os = forms.ChoiceField(
@@ -56,13 +49,6 @@ class CostsOverviewForm(forms.Form):
         queryset=CostsScheme.objects,
     )
 
-    department = forms.ChoiceField(
-        label="Department",
-        choices=lambda: _get_choices(Host, "department", strip_quotes=False)
-        + [(None, "-" * 9)],
-        required=False,
-    )
-
     customer = forms.ChoiceField(
         label="Customer",
         choices=lambda: _get_choices(Host, "customer", strip_quotes=False)
@@ -70,10 +56,21 @@ class CostsOverviewForm(forms.Form):
         required=False,
     )
 
-    redundant_storage = forms.BooleanField(
-        label="Redundant storage", initial=True, required=False
+
+class CostsReportForm(forms.Form):
+    filename = forms.CharField(
+        label="Filename",
+        initial="costs_report.xlsx",
     )
 
-    cpu_memory_bundle = forms.BooleanField(
-        label="CPU costs include 2Gb of memory", required=False
+    costs_scheme = forms.ModelChoiceField(
+        label="Costs Scheme",
+        queryset=CostsScheme.objects,
+    )
+
+    customers = forms.MultipleChoiceField(
+        label="Customer",
+        choices=lambda: _get_choices(Host, "customer", strip_quotes=False),
+        required=False,
+        widget=MultipleChoiceFilterWidget(attrs={"placeholder": "All customers"}),
     )

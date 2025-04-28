@@ -4,17 +4,31 @@ from typing import Tuple
 from celery.bin.worker import Hostname
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.views.generic import CreateView, FormView, TemplateView, UpdateView
+from django.http import HttpResponse
+from django.views.generic import (
+    CreateView,
+    DeleteView,
+    FormView,
+    TemplateView,
+    UpdateView,
+)
 from rest_framework.reverse import reverse_lazy
 
 from hosts.models import Host, ScanData
 from humitifier_common.artefacts import Hardware, HostnameCtl
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 from reporting.filters import CostsSchemeFilters
-from reporting.forms import CostCalculatorForm, CostsOverviewForm, CostsSchemeForm
+from reporting.forms import (
+    CostCalculatorForm,
+    CostsOverviewForm,
+    CostsReportForm,
+    CostsSchemeForm,
+)
 from reporting.models import CostsScheme
 from reporting.tables import CostsOverviewTable, CostsSchemeTable
 from reporting.utils import calculate_costs, calculate_from_hardware_artefact
+from reporting.utils.costs_excel_export import create_cost_excel
+from reporting.utils.get_server_hardware import get_server_hardware
 
 
 class CostsSchemeListView(
@@ -51,6 +65,14 @@ class CostsSchemeUpdateView(
     form_class = CostsSchemeForm
     success_message = "Costs scheme updated successfully"
     success_url = reverse_lazy("reporting:costs_list")
+
+
+class CostsSchemeDeleteView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+):
+    model = CostsScheme
+    success_url = reverse_lazy("reporting:costs_list")
+    success_message = "Costs scheme deleted"
 
 
 class CostCalculatorView(LoginRequiredMixin, FormView):
@@ -131,11 +153,29 @@ class CostCalculatorView(LoginRequiredMixin, FormView):
                 storage_in_gb=data["storage"],
                 os=data["os"].lower(),
                 costs_scheme=costs_scheme,
-                redundant_storage=data["redundant_storage"],
-                bundle_memory=data["cpu_memory_bundle"],
             )
 
         return context
+
+
+class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
+    form_class = CostsReportForm
+    template_name = "reporting/costs_report.html"
+
+    def form_valid(self, form):
+        costs_scheme = form.cleaned_data["costs_scheme"]
+        customers = form.cleaned_data["customers"]
+        filename = form.cleaned_data["filename"]
+
+        file_data = create_cost_excel(costs_scheme, filename, customers)
+
+        response = HttpResponse(
+            file_data.getvalue(),
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{filename}"'
+
+        return response
 
 
 class CostsOverviewView(LoginRequiredMixin, FormView):
@@ -154,19 +194,22 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
 
             form_data = form.cleaned_data
 
-            total_vm_costs, total_storage, total_storage_costs, total_costs, data = (
-                self.get_data(
-                    department=form_data.get("department", None),
-                    customer=form_data.get("customer", None),
-                    costs_scheme=form_data.get("costs_scheme"),
-                    redundant_storage=form_data.get("redundant_storage", False),
-                    bundle_memory=form_data.get("cpu_memory_bundle", False),
-                )
+            (
+                total_vm_costs,
+                total_storage,
+                total_storage_costs,
+                total_management_costs,
+                total_costs,
+                data,
+            ) = self.get_data(
+                customer=form_data.get("customer", None),
+                costs_scheme=form_data.get("costs_scheme"),
             )
 
             context["total_vm_costs"] = total_vm_costs
             context["total_storage_usage"] = total_storage
             context["total_storage_costs"] = total_storage_costs
+            context["total_management_costs"] = total_management_costs
             context["total_costs"] = total_costs
 
             context["table"] = CostsOverviewTable(
@@ -178,67 +221,49 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
 
     def get_data(
         self,
-        department,
         customer,
         costs_scheme,
-        redundant_storage,
-        bundle_memory,
-    ) -> Tuple[Decimal, Decimal, Decimal, Decimal, list[CostsOverviewTable.Data]]:
+    ) -> Tuple[
+        Decimal, Decimal, Decimal, Decimal, Decimal, list[CostsOverviewTable.Data]
+    ]:
         hosts = Host.objects.get_for_user(self.request.user)
-        if department:
-            hosts = hosts.filter(department=department)
         if customer:
             hosts = hosts.filter(customer=customer)
 
-        latest_scans: list[ScanData] = []
-
-        for host in hosts:
-            scan_obj: ScanData = host.get_scan_object()
-            if not scan_obj.version >= 2:
-                continue
-
-            if Hardware.__artefact_name__ not in scan_obj.parsed_data.facts:
-                continue
-
-            if scan_obj.parsed_data.facts[Hardware.__artefact_name__] is None:
-                continue
-
-            if HostnameCtl.__artefact_name__ in scan_obj.parsed_data.facts:
-                hostname_ctl: HostnameCtl = scan_obj.parsed_data.facts[
-                    HostnameCtl.__artefact_name__
-                ]
-                if hostname_ctl.virtualization != "vmware":
-                    continue
-
-            latest_scans.append(scan_obj)
+        servers = get_server_hardware(hosts)
 
         data = []
         total_vm_costs = Decimal("0")
         total_storage = Decimal("0")
         total_storage_costs = Decimal("0")
+        total_management_costs = Decimal("0")
         total_costs = Decimal("0")
 
-        for scan in latest_scans:
-            hardware: Hardware = scan.parsed_data.facts[Hardware.__artefact_name__]
-
+        for server in servers:
             cost_breakdown = calculate_from_hardware_artefact(
-                hardware,
+                server.hardware,
                 costs_scheme,
-                redundant_storage=redundant_storage,
-                bundle_memory=bundle_memory,
             )
 
-            total_vm_costs += cost_breakdown.net_vm_costs
+            total_vm_costs += cost_breakdown.vm_costs
             total_storage += cost_breakdown.total_storage_usage
             total_storage_costs += cost_breakdown.total_storage_costs
+            total_management_costs += cost_breakdown.management
             total_costs += cost_breakdown.total_costs
 
             data.append(
                 CostsOverviewTable.Data(
-                    fqdn=scan.parsed_data.hostname,
-                    scan_date=scan.scan_date,
+                    fqdn=server.hostname,
+                    scan_date=server.scan_date,
                     costs_breakdown=cost_breakdown,
                 )
             )
 
-        return total_vm_costs, total_storage, total_storage_costs, total_costs, data
+        return (
+            total_vm_costs,
+            total_storage,
+            total_storage_costs,
+            total_management_costs,
+            total_costs,
+            data,
+        )

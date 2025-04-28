@@ -25,6 +25,8 @@ class CostsSchemeTable(BaseTable):
             "storage",
             "linux",
             "windows",
+            "management",
+            "redundant_storage",
             "actions",
         ]
 
@@ -35,6 +37,11 @@ class CostsSchemeTable(BaseTable):
                 text="Edit",
                 button_class="btn btn-outline",
                 url=lambda obj: reverse("reporting:costs_update", args=[obj.pk]),
+            ),
+            ButtonColumn(
+                text="Delete",
+                button_class="btn btn-danger",
+                url=lambda obj: reverse("reporting:costs_delete", args=[obj.pk]),
             ),
         ],
     )
@@ -62,6 +69,9 @@ class CostsOverviewTable(BaseTable):
     storage_costs = MethodColumn(
         header="Storage Costs", method_name="get_storage_costs"
     )
+    management_costs = MethodColumn(
+        header="Support Costs", method_name="get_management_costs"
+    )
     total_costs = MethodColumn(header="Total Costs", method_name="get_total_costs")
 
     @staticmethod
@@ -78,11 +88,15 @@ class CostsOverviewTable(BaseTable):
 
     @staticmethod
     def get_vm_costs(obj: "CostsOverviewTable.Data"):
-        return round(obj.costs_breakdown.net_vm_costs, 2)
+        return round(obj.costs_breakdown.vm_costs, 2)
 
     @staticmethod
     def get_storage_costs(obj: "CostsOverviewTable.Data"):
         return round(obj.costs_breakdown.total_storage_costs, 2)
+
+    @staticmethod
+    def get_management_costs(obj: "CostsOverviewTable.Data"):
+        return obj.costs_breakdown.management
 
     @staticmethod
     def get_total_costs(obj: "CostsOverviewTable.Data"):

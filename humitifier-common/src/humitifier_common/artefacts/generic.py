@@ -6,6 +6,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
+from humitifier_common.artefacts.groups import GENERIC
 from humitifier_common.artefacts.registry import fact, metric
 from humitifier_common.artefacts.registry.registry import ArtefactMetadata
 
@@ -30,7 +31,7 @@ class MemoryRange(BaseModel):
     block: str
 
 
-@fact(group="generic")
+@fact(group=GENERIC)
 class Hardware(BaseModel):
     num_cpus: int
     memory: list[MemoryRange]
@@ -53,7 +54,7 @@ class Block(BaseModel):
     mount: str
 
 
-@metric(group="generic")
+@metric(group=GENERIC)
 class Blocks(list[Block]):
     pass
 
@@ -69,7 +70,7 @@ class Group(BaseModel):
     users: list[str]
 
 
-@fact(group="generic")
+@fact(group=GENERIC)
 class Groups(list[Group]):
     pass
 
@@ -83,7 +84,7 @@ class User(BaseModel):
     shell: str
 
 
-@fact(group="generic")
+@fact(group=GENERIC)
 class Users(list[User]):
     pass
 
@@ -93,7 +94,7 @@ class Users(list[User]):
 ##
 
 
-@fact(group="generic")
+@fact(group=GENERIC)
 class HostnameCtl(BaseModel):
     hostname: str
     os: str
@@ -107,7 +108,7 @@ class HostnameCtl(BaseModel):
 ##
 
 
-@metric(group="generic")
+@metric(group=GENERIC)
 class Memory(BaseModel):
     total_mb: int
     used_mb: int
@@ -127,7 +128,7 @@ class Package(BaseModel):
     version: str
 
 
-@fact(group="generic")
+@fact(group=GENERIC)
 class PackageList(list[Package]):
     pass
 
@@ -152,6 +153,6 @@ class NetworkInterface(BaseModel):
     addresses: list[AddressInfo]
 
 
-@fact(group="generic", metadata=ArtefactMetadata(null_is_valid=True))
+@fact(group=GENERIC, metadata=ArtefactMetadata(null_is_valid=True))
 class NetworkInterfaces(list[NetworkInterface]):
     pass
