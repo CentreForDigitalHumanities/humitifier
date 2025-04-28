@@ -12,8 +12,15 @@ from reporting.utils import calculate_from_hardware_artefact
 from reporting.utils.get_server_hardware import get_server_hardware
 
 
-def _get_customer_sheet_name(customer: str) -> str:
-    return f"{customer} - Server list"
+def _get_customer_sheet_name(customer: str | None) -> str:
+    if customer is None:
+        customer = "Unknown"
+    postfix = "- Server List"
+    max_length = 31 - len(postfix) - 1  # Account for space and "-"
+    truncated_customer = (
+        customer[:max_length] if len(customer) > max_length else customer
+    )
+    return f"{truncated_customer} {postfix}"
 
 
 def _set_sheet_width(ws: Worksheet):
