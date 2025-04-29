@@ -1,8 +1,4 @@
 import re
-from io import BytesIO
-
-import tomli
-import tomli_w
 import argparse
 
 PYPROJECT_FILES = [
@@ -12,6 +8,7 @@ PYPROJECT_FILES = [
 ]
 PYTHON_FILES = [
     "humitifier-server/src/humitifier_server/settings.py",
+    "humitifier-scanner/src/humitifier_scanner/constants.py",
 ]
 
 
