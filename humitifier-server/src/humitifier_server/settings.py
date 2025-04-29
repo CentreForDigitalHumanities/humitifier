@@ -382,6 +382,7 @@ if DSN:
         },
         before_send=before_send,
         transport=CustomHttpTransport,
+        release=HUMITIFIER_VERSION,
     )
 
 ## Celery

@@ -1,12 +1,10 @@
-import socket
-
 from celery import Celery, signals
 import sentry_sdk
 from sentry_sdk import HttpTransport
-from urllib3.connection import HTTPConnection
 
 from humitifier_common.celery.task_routes import task_routes
 from humitifier_scanner.config import CONFIG
+from humitifier_scanner.constants import HUMITIFIER_VERSION
 
 if not CONFIG.celery:
     raise ValueError("Celery config is not set in the config")
@@ -44,4 +42,5 @@ def init_sentry(**_kwargs):
             send_default_pii=True,
             traces_sample_rate=1.0,
             transport=CustomHttpTransport,
+            release=HUMITIFIER_VERSION,
         )

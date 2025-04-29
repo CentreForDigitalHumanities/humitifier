@@ -1,0 +1,26 @@
+name: Build packages
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  create-sentry-releases:
+    runs-on: "ubuntu-latest"
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create Sentry release
+        uses: getsentry/action-release@v3
+        env:
+          SENTRY_AUTH_TOKEN: ${{ secrets.HUMIT_SENTRY_TOKEN }}
+          SENTRY_ORG: ${{ secrets.HUMIT_SENTRY_ORG }}
+          SENTRY_URL: ${{ vars.HUMIT_SENTRY_URL }}
+        with:
+          environment: production
+          projects: "humitifier-server humitifier-scanner"
+          release: ${{ github.ref }}
+          disable_telemetry: true
