@@ -23,7 +23,7 @@ from . import env
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-HUMITIFIER_VERSION = "4.4.0"
+HUMITIFIER_VERSION = "4.4.2"
 HUMITIFIER_VERSION_NAME = "Humitifier for Workgroups"
 
 # Quick-start development settings - unsuitable for production
