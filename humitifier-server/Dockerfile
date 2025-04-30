@@ -25,7 +25,7 @@ FROM python:3.13-alpine
 
 WORKDIR /app
 
-RUN apk add postgresql-libs
+RUN apk add --no-cache bash postgresql-libs
 
 COPY --from=builder /app .
 COPY humitifier-server/docker/* ./

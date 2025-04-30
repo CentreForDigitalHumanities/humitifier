@@ -27,6 +27,8 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
+RUN apk add --no-cache bash
+
 RUN mkdir /etc/humitifier
 
 COPY --from=builder /app .
