@@ -32,6 +32,6 @@ RUN apk add --no-cache bash
 RUN mkdir /etc/humitifier
 
 COPY --from=builder /app .
-COPY humitifier-scanner/docker/entrypoint.sh ./
+COPY humitifier-scanner/docker/* ./
 
 CMD ["sh", "entrypoint.sh"]
