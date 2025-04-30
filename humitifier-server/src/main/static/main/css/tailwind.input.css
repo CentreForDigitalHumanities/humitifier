@@ -1,100 +1,101 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-@layer components {
-    .bg {
-        @apply bg-gray-50 dark:bg-gray-900 transition duration-150;
-    }
+@config '../../../../../tailwind.config.js';
 
-    .h-full--header
-    {
-        @apply min-h-[calc(100vh-3.5rem)];
-    }
+@utility bg-default {
+  @apply bg-gray-50 dark:bg-gray-900 transition duration-150;
+}
 
-    .h-max-full--header
-    {
-        @apply h-[calc(100vh-3.5rem)];
-    }
+@utility h-full--header {
+  @apply min-h-[calc(100vh-3.5rem)];
+}
 
-    .top-header
-    {
-        @apply top-[3.5rem];
-    }
+@utility h-max-full--header {
+  @apply h-[calc(100vh-3.5rem)];
+}
 
-    .section {
-        @apply bg p-7 pt-5 rounded border border-gray-300 dark:border-gray-700;
-    }
+@utility top-header {
+  @apply top-[3.5rem];
+}
 
-    .text-green {
-        @apply text-green-600;
-    }
+@utility section {
+  @apply bg-default p-7 pt-5 rounded-sm border border-gray-300 dark:border-gray-700;
+}
 
-    .input {
-        @apply w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded focus-visible:outline-none focus-visible:border-gray-400 dark:focus-visible:border-gray-600 transition duration-150 ease-in-out;
-    }
+@utility text-green {
+  @apply text-green-600;
+}
 
-    .select {
-        @apply appearance-none pr-7;
-        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(10, 10, 10)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /%3E%3C/svg%3E');
-        background-repeat: no-repeat;
-        background-position: right 0.75rem center;
-        background-size: 0.75rem 0.75rem;
-    }
-    .select:focus {
-        @apply border-gray-400;
-        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(10, 10, 10)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /%3E%3C/svg%3E');
-    }
+@utility input {
+  @apply w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm focus-visible:outline-hidden focus-visible:border-gray-400 dark:focus-visible:border-gray-600 transition duration-150 ease-in-out;
 
-    .dark .select {
-        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(250, 250, 250)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /%3E%3C/svg%3E');
-    }
-    .select:focus {
-        @apply border-gray-600;
-        background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(250, 250, 250)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /%3E%3C/svg%3E');
-    }
+  &:disabled {
+    @apply bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed;
+  }
+}
 
-    .input:disabled {
-        @apply bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed;
-    }
+@utility select {
+  @apply appearance-none pr-7;
+  background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(10, 10, 10)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /%3E%3C/svg%3E');
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 0.75rem 0.75rem;
+  &:focus {
+    @apply border-gray-400;
+    background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(10, 10, 10)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /%3E%3C/svg%3E');
+  }
 
-    .btn {
-        @apply px-3 py-2 font-bold rounded transition duration-150 ease-in-out border border-primary;
-    }
+  .dark & {
+    background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(250, 250, 250)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /%3E%3C/svg%3E');
+  }
+  &:focus {
+    @apply border-gray-600;
+    background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(250, 250, 250)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /%3E%3C/svg%3E');
+  }
+}
 
-    .btn-sm {
-        @apply px-3 py-2 text-sm h-[36px];
-    }
+@utility dark {
+  & .select {
+    background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(250, 250, 250)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /%3E%3C/svg%3E');
+  }
+}
 
-    .btn-xs {
-        @apply px-2 py-1 text-sm;
-    }
+@utility btn {
+  @apply px-3 py-2 font-bold rounded-sm transition duration-150 ease-in-out border border-primary cursor-pointer;
+}
 
-    .btn-outline {
-        @apply border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-50 hover:bg-gray-50 dark:hover:bg-gray-700;
-    }
+@utility btn-sm {
+  @apply px-3 py-2 text-sm h-[36px];
+}
 
-    .btn-secondary {
-        @apply bg-black text-white hover:bg-gray-800;
-    }
+@utility btn-xs {
+  @apply px-2 py-1 text-sm;
+}
 
-    .btn-primary {
-        @apply bg-primary text-black hover:bg-yellow-500 hover:text-black dark:bg-yellow-500 dark:text-black dark:hover:bg-yellow-400 dark:hover:border-yellow-400 dark:hover:text-black;
-    }
+@utility btn-outline {
+  @apply border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-50 hover:bg-gray-50 dark:hover:bg-gray-700;
+}
 
-    .btn-danger {
-        @apply bg-red-500 text-white hover:bg-red-600 border-red-500 hover:border-red-600 dark:border-red-700 dark:bg-red-700 dark:hover:bg-red-500 dark:hover:border-red-500;
-    }
+@utility btn-secondary {
+  @apply bg-black text-white hover:bg-gray-800;
+}
 
-    .text-blue {
-        @apply text-blue-600 dark:text-blue-300
-    }
+@utility btn-primary {
+  @apply bg-primary text-black hover:bg-yellow-500 hover:text-black dark:bg-yellow-500 dark:text-black dark:hover:bg-yellow-400 dark:hover:border-yellow-400 dark:hover:text-black;
+}
 
-    .text-orange {
-        @apply text-orange-500;
-    }
+@utility btn-danger {
+  @apply bg-red-500 text-white hover:bg-red-600 border-red-500 hover:border-red-600 dark:border-red-700 dark:bg-red-700 dark:hover:bg-red-500 dark:hover:border-red-500;
+}
 
-    .text-red {
-        @apply text-red-500;
-    }
+@utility text-blue {
+  @apply text-blue-600 dark:text-blue-300;
+}
+
+@utility text-orange {
+  @apply text-orange-500;
+}
+
+@utility text-red {
+  @apply text-red-500;
 }

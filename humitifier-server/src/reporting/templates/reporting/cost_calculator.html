@@ -3,10 +3,10 @@
 {% block page_title %}Server cost calculator | {{ block.super }}{% endblock %}
 
 {% block content %}
-    <div class="h-full--header w-full bg px-7 py-5">
+    <div class="h-full--header w-full bg-default px-7 py-5">
         <h1 class="text-3xl font-bold">Server cost calculator</h1>
 
-        <div class="flex items-center gap-3 p-3 mt-4 rounded bg-blue-300 dark:bg-blue-800">
+        <div class="flex items-center gap-3 p-3 mt-4 rounded-sm bg-blue-300 dark:bg-blue-800">
             {% include 'icons/info.html' %}
             <div>
                 This calculator provides estimates only and actual costs may vary. Please ask your contact if you require definitive answers.
@@ -16,7 +16,7 @@
         <div class="flex gap-10 mt-8">
 
             {# Form #}
-            <div class="lg:w-96">
+            <div class="ultrawide:w-xl lg:w-96">
                 <form method="post">
                     {% csrf_token %}
                     {{ form }}
@@ -32,7 +32,7 @@
 
             {# Results #}
             {% if costs %}
-                <div class="">
+                <div class="grow">
 
                     <h2 class="text-xl font-bold">Costs</h2>
                     <table class="mt-3 w-full">

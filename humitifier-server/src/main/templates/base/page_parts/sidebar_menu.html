@@ -10,7 +10,7 @@
             <li x-data="{show_children: {{ item.child_selected|yesno:'true,false' }} }" class="w-full">
                 {% if item.children %}
                     <div
-                        class="flex w-full items-center gap-3 py-2 px-3 cursor-pointer text-white hover:bg-neutral-800 rounded transition ease-in-out duration-150"
+                        class="flex w-full items-center gap-3 py-2 px-3 cursor-pointer text-white hover:bg-neutral-800 rounded-sm transition ease-in-out duration-150"
                         @click="show_children = !show_children"
                     >
                         {% if item.icon %}
@@ -35,7 +35,7 @@
 
                     <div
                         class="hidden mt-2 ml-4 pl-2 border-l border-gray-700"
-                        x-bind:class="show_children && '!flex'"
+                        x-bind:class="show_children && 'flex!'"
                     >
                         {% with menu_items=item.children %}
                             {% include 'base/page_parts/sidebar_menu.html' %}
@@ -47,7 +47,7 @@
                     <a
                         href="{{ item.url }}"
                         target="{{ item.target }}"
-                        class="flex gap-3 py-2 px-3 text-white hover:bg-neutral-800 rounded transition ease-in-out duration-150 {% if item.selected %}bg-neutral-800{% endif %}"
+                        class="flex gap-3 py-2 px-3 text-white hover:bg-neutral-800 rounded-sm transition ease-in-out duration-150 {% if item.selected %}bg-neutral-800{% endif %}"
                     >
                         {% if item.icon %}
                             {% include item.icon %}

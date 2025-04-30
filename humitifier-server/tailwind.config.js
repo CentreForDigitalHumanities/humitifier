@@ -3,18 +3,6 @@ const colors = require('tailwindcss/colors')
 /** @type {import('tailwindcss').Config} */
 module.exports = {
     content: ["./src/*/templates/**/*.html", './src/**/*.py'],
-    safelist: [
-        'sm:table-cell',
-        'md:table-cell',
-        'lg:table-cell',
-        'xl:table-cell',
-        '2xl:table-cell',
-        'ultrawide:table-cell',
-        'btn-danger',
-        'btn-primary',
-        '!flex',
-        '!block',
-    ],
     darkMode: ['selector'],
     theme: {
         container: {
@@ -36,14 +24,9 @@ module.exports = {
         },
         extend: {
             screens: {
-                'ultrawide': '2000px',
+                'ultrawide': '125rem',
             }
         }
-        // extend: {
-        //   colors: {
-        //     'primary': '#FFCD00',
-        //   }
-        // },
     },
     plugins: [
         function ({addVariant}) {
