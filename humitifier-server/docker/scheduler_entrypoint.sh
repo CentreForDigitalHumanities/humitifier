@@ -4,4 +4,4 @@
 LOG_LEVEL=${LOG_LEVEL:-INFO}
 
 # Run da scheduler
-exec ./run_in_venv.sh python -m celery -A humitifier_server beat -l "$LOG_LEVEL" --scheduler django_celery_beat.schedulers:DatabaseScheduler
+exec bash ./run_in_venv.sh python -m celery -A humitifier_server beat -l "$LOG_LEVEL" --scheduler django_celery_beat.schedulers:DatabaseScheduler
