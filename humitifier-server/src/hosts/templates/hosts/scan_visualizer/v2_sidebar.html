@@ -3,7 +3,7 @@
 <form method="get" class="flex gap-3 items-center mb-5" x-data="{}"
       x-ref="scanForm">
     <label for="scan" class="text-nowrap">Select scan:</label>
-    <select id="scan" name="scan" class="input flex-grow"
+    <select id="scan" name="scan" class="input grow"
             @change="$refs.scanForm.submit()">
         <option {% if current_scan == 'latest' %}selected{% endif %}
                 value="latest">

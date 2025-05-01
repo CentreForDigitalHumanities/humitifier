@@ -12,8 +12,12 @@ docker-compose.yaml
 .envrc
 .idea
 node_modules/
+humitifier-scanner/build
+humitifier-scanner/dist
+humitifier-scanner/*.spec
 
 # Supabase
 .branches
 .temp
 .env
+*.env

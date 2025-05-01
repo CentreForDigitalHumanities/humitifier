@@ -58,9 +58,9 @@
         <div class="flex">
             {% if scan_data.PuppetAgentStatus.disabled is not None %}
                 {% if scan_data.PuppetAgentStatus.disabled %}
-                    <div class="bg-red-400 dark:bg-red-700 py-0.5 px-2 rounded">Disabled</div>
+                    <div class="bg-red-400 dark:bg-red-700 py-0.5 px-2 rounded-sm">Disabled</div>
                 {% else %}
-                    <div class="bg-green-400 dark:bg-green-700 py-0.5 px-2 rounded">Enabled</div>
+                    <div class="bg-green-400 dark:bg-green-700 py-0.5 px-2 rounded-sm">Enabled</div>
                 {% endif %}
             {% else %}
                 <div class="text-gray-500">Unknown</div>
@@ -104,14 +104,14 @@
         <div class="flex gap-2">
             {% if scan_data.HostMeta.update_policy %}
                 {% if scan_data.HostMeta.update_policy.enable %}
-                    <div class="bg-green-400 dark:bg-green-700 py-0.5 px-2 rounded">Enabled</div>
+                    <div class="bg-green-400 dark:bg-green-700 py-0.5 px-2 rounded-sm">Enabled</div>
                 {% else %}
-                    <div class="bg-red-400 dark:bg-red-700 py-0.5 px-2 rounded">Not enabled</div>
+                    <div class="bg-red-400 dark:bg-red-700 py-0.5 px-2 rounded-sm">Not enabled</div>
                 {% endif %}
                 {% if scan_data.HostMeta.update_policy.apply_updates %}
-                    <div class="bg-green-400 dark:bg-green-700 py-0.5 px-2 rounded">Applied</div>
+                    <div class="bg-green-400 dark:bg-green-700 py-0.5 px-2 rounded-sm">Applied</div>
                 {% else %}
-                    <div class="bg-red-400 dark:bg-red-700 py-0.5 px-2 rounded">Not applied</div>
+                    <div class="bg-red-400 dark:bg-red-700 py-0.5 px-2 rounded-sm">Not applied</div>
                 {% endif %}
             {% else %}
                 <div class="text-gray-500">Unknown</div>

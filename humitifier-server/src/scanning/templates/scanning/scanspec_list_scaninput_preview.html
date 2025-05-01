@@ -4,7 +4,7 @@
     </button>
 
     <div class="absolute top-0 left-0 w-screen h-screen items-center justify-center z-50 bg-black bg-opacity-20" x-bind:class="show ? 'flex': 'hidden'" @click="show = false">
-        <div class="bg-white dark:bg-gray-700 rounded p-4 max-w-full max-h-full min-w-[600px]" @click.stop="">
+        <div class="bg-white dark:bg-gray-700 rounded-sm p-4 max-w-full max-h-full min-w-[600px]" @click.stop="">
             <div class="flex justify-between">
                 <h1 class="text-lg font-bold">
                     Scan specification preview
@@ -13,7 +13,7 @@
                     {% include 'icons/clear.html' %}
                 </button>
             </div>
-            <div class="bg-gray-200 dark:bg-gray-900 rounded p-3 mt-5">
+            <div class="bg-gray-200 dark:bg-gray-900 rounded-sm p-3 mt-5">
                 <pre>{{ obj.preview }}</pre>
             </div>
         </div>

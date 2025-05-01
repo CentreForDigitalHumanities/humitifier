@@ -16,7 +16,7 @@
         <div class="max-h-[50vh] overflow-y-auto">
             {% for item in data %}
                 <div
-                    class="rounded bg-gray-200 dark:bg-gray-800 p-3 mb-3 last:mb-0 border border-gray-300 dark:border-gray-700"
+                    class="rounded-sm bg-gray-200 dark:bg-gray-800 p-3 mb-3 last:mb-0 border border-gray-300 dark:border-gray-700"
                     x-data="{searchValue: '{{ item.search_value }}'}"
                     x-bind:class="searchValue.toLowerCase().includes(search.toLowerCase()) ? '' : 'hidden' "
                 >
