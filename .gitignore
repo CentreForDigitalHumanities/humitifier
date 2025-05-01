@@ -15,6 +15,7 @@ node_modules/
 humitifier-scanner/build
 humitifier-scanner/dist
 humitifier-scanner/*.spec
+humitifier-server/src/static
 
 # Supabase
 .branches
