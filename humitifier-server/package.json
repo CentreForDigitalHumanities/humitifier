@@ -8,7 +8,7 @@
     "tailwindcss": "^4.1.4"
   },
   "scripts": {
-    "tw:build": "npx @tailwindcss/cli -i src/main/static/main/css/tailwind.input.css -o src/main/static/main/css/tailwind.css",
+    "tw:build": "npx @tailwindcss/cli -i assets/css/tailwind.input.css -o src/main/static/main/css/tailwind.css",
     "tw:watch": "yarn tw:build --watch",
     "tw:prod": "yarn tw:build --minify"
   }
