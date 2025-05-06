@@ -169,11 +169,18 @@ class Hostname(BaseModel):
 
 
 class RetrieveScanSpec(BaseModel):
+    host: str | None = Field(
+        None,
+        description="Hostname to scan; defaults to the local host",
+    )
 
     def cli_cmd(self):
+        if not self.host:
+            self.host = platform.node()
+
         api_client = HumitifierAPIClient()
 
-        scan_spec = api_client.get_scan_spec(platform.node())
+        scan_spec = api_client.get_scan_spec(self.host)
 
         print(scan_spec.model_dump_json(indent=4))
 
