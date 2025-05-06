@@ -115,6 +115,12 @@ class BlocksMetricCollector(ShellCollector):
                     output_line.strip().split()
                 )
 
+                # Loop block devices are almost always at 100% usage
+                # So it makes no sense to track them in a metric
+                # They'll show up in the hardware fact anyway
+                if name.startswith("/dev/loop"):
+                    continue
+
                 blocks.append(
                     Block(
                         name=name.strip(),
