@@ -57,7 +57,7 @@ class ManualScan(BaseModel):
     def cli_cmd(self):
 
         if not self.host:
-            self.host = "localhost"
+            self.host = platform.node()
 
         # Collect all requested artefacts
 
