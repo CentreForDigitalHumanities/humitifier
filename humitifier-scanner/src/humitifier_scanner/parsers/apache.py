@@ -25,6 +25,7 @@ class ApacheConfigParser:
 
         with self.files_executor.open(filename) as f:
             self.contents = f.readlines()
+            self.contents = [str(l, encoding="utf-8") for l in self.contents]
             self.index = 0
 
         self.listen_ports: list[int] = []
@@ -170,6 +171,7 @@ class ApacheConfigParser:
             for file in files:
                 with self.files_executor.open(file) as include_file:
                     contents = include_file.readlines()
+                    contents = [str(l, encoding="utf-8") for l in contents]
                     self.contents[self.index : self.index] = contents
 
         except FileNotFoundError:

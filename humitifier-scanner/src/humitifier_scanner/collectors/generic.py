@@ -149,6 +149,7 @@ class GroupsFactCollector(FileCollector):
 
         with files_executor.open("/etc/group") as file:
             for output_line in file.readlines():
+                output_line = str(output_line, encoding="utf-8")
                 try:
                     name, _, gid, users = output_line.strip().split(":")
                     users = [] if users == "" else users.split(",")
@@ -170,6 +171,7 @@ class UsersFactCollector(FileCollector):
 
         with files_executor.open("/etc/passwd") as file:
             for output_line in file.readlines():
+                output_line = str(output_line, encoding="utf-8")
                 try:
                     name, _, uid, gid, info, home, shell = output_line.strip().split(
                         ":"
