@@ -29,15 +29,10 @@ class HostMetaFactCollector(ShellCollector):
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
     ) -> HostMeta:
-        result = shell_executor.execute("cat /hum/doc/server_facts.json")
+        with shell_executor.open_file("/hum/doc/server_facts.json") as file:
+            json_args = json.loads(file.read())
 
-        if result.return_code != 0:
-            return HostMeta()
-
-        json_str = "\n".join(result.stdout)
-        json_args = json.loads(json_str)
-
-        return HostMeta(**json_args)
+            return HostMeta(**json_args)
 
 
 class WebserverFactCollector(ShellCollector):
@@ -274,26 +269,22 @@ class RebootPolicyFactCollector(ShellCollector):
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
     ) -> RebootPolicy | None:
-        result = shell_executor.execute("cat /hum/doc/reboot_policy_facts.json")
 
-        if result.return_code != 0:
-            return None
+        with shell_executor.open_file("/hum/doc/reboot_policy_facts.json") as file:
+            json_args = json.loads(file.read())
 
-        json_str = "\n".join(result.stdout)
-        json_args = json.loads(json_str)
+            actual_data = json_args["reboot_policy"]
 
-        actual_data = json_args["reboot_policy"]
+            output = RebootPolicy(
+                configured=actual_data["ensure"] == "present",
+            )
 
-        output = RebootPolicy(
-            configured=actual_data["ensure"] == "present",
-        )
+            if "enable" in actual_data:
+                output.enabled = actual_data["enable"]
 
-        if "enable" in actual_data:
-            output.enabled = actual_data["enable"]
-
-        for item in ["cron_minute", "cron_hour", "cron_monthday"]:
-            if item in actual_data:
-                val = str(actual_data.get(item))
-                setattr(output, item, val)
+            for item in ["cron_minute", "cron_hour", "cron_monthday"]:
+                if item in actual_data:
+                    val = str(actual_data.get(item))
+                    setattr(output, item, val)
 
         return output

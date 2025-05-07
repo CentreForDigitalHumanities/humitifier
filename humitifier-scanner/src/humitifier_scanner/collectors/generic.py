@@ -146,16 +146,15 @@ class GroupsFactCollector(ShellCollector):
     ) -> Groups:
         groups = []
 
-        result = shell_executor.execute("cat /etc/group")
+        with shell_executor.open_file("/etc/group") as file:
+            for output_line in file.readlines():
+                try:
+                    name, _, gid, users = output_line.strip().split(":")
+                    users = [] if users == "" else users.split(",")
 
-        for output_line in result.stdout:
-            try:
-                name, _, gid, users = output_line.strip().split(":")
-                users = [] if users == "" else users.split(",")
-
-                groups.append(Group(name=name, gid=int(gid), users=users))
-            except ValueError:
-                self.add_error("Failed to parse group output")
+                    groups.append(Group(name=name, gid=int(gid), users=users))
+                except ValueError:
+                    self.add_error("Failed to parse group output")
 
         return Groups(groups)
 
@@ -168,23 +167,24 @@ class UsersFactCollector(ShellCollector):
     ) -> Users:
         users = []
 
-        result = shell_executor.execute("cat /etc/passwd")
-
-        for output_line in result.stdout:
-            try:
-                name, _, uid, gid, info, home, shell = output_line.strip().split(":")
-                users.append(
-                    User(
-                        name=name,
-                        uid=int(uid),
-                        gid=int(gid),
-                        info=info if info != "" else None,
-                        home=home,
-                        shell=shell,
+        with shell_executor.open_file("/etc/passwd") as file:
+            for output_line in file.readlines():
+                try:
+                    name, _, uid, gid, info, home, shell = output_line.strip().split(
+                        ":"
                     )
-                )
-            except ValueError:
-                self.add_error("Failed to parse user output")
+                    users.append(
+                        User(
+                            name=name,
+                            uid=int(uid),
+                            gid=int(gid),
+                            info=info if info != "" else None,
+                            home=home,
+                            shell=shell,
+                        )
+                    )
+                except ValueError:
+                    self.add_error("Failed to parse user output")
 
         return Users(users)
 
