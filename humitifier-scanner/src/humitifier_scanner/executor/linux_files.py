@@ -1,7 +1,9 @@
 import abc
 import stat
 import threading
+import shutil
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Literal, TextIO
 
 from paramiko import SFTPClient, SFTPFile
@@ -17,25 +19,38 @@ from .linux_shell import (
 
 
 class LinuxFilesExecutor(abc.ABC):
+    """
+    Abstract base class that provides a uniform interface for working with files and directories
+    in both local and SSH contexts.
 
-    def open(
-        self, filename: str | Path, mode: Literal["r", "rb", "rt"] = "r"
-    ) -> TextIO | SFTPFile:
+    Currently we support local and SSH contexts.
+
+    :ivar _check_path: Validates and potentially converts a given path to an absolute ``Path``
+        object. Ensures only absolute paths are used throughout operations.
+    :type _check_path: static method
+    """
+
+    def open(self, filename: str | Path) -> TextIO | SFTPFile:
+        """
+        Open a file given its path, ensuring consistent read-only behavior across both
+        local and SSH contexts.
+
+        Do note that paths must always be absolute; we do NOT have a cwd context we
+        manage.
+
+        :param filename: The path to the file to open, provided either as a string or a Path object.
+        :type filename: str | Path
+        :return: A file-like object representing the opened file.
+        :rtype: TextIO | SFTPFile
+        :raises FileNotFoundError: If the specified file cannot be found.
+        """
         logger.debug(f"Opening file {filename}")
 
-        if not isinstance(filename, Path):
-            filename = Path(filename)
-
-        if not filename.is_absolute():
-            logger.error(f"File {filename} is not a absolute path")
-            raise ValueError("Filename must be a absolute path")
-
-        if mode not in ["r", "rb", "rt"]:
-            logger.error(f"Mode {mode} is not supported")
-            raise ValueError("Mode must be 'r' or 'rb'")
+        filename = self._check_path(filename)
 
         try:
-            return self._open(filename, mode)
+            # SSH is always rb, so we force it rb on local for consistency
+            return self._open(filename, "rb")
         except FileNotFoundError as e:
             logger.error(f"File {filename} not found: {e}")
             raise e
@@ -43,19 +58,57 @@ class LinuxFilesExecutor(abc.ABC):
     def list_dir(
         self, dirpath: str | Path, what: Literal["files", "dirs", "both"] = "files"
     ) -> list[Path]:
-        if not isinstance(dirpath, Path):
-            dirpath = Path(dirpath)
+        """
+        Lists contents of a directory based on the specified type.
 
-        if not dirpath.is_absolute():
-            logger.error(f"Directory {dirpath} is not a absolute path")
-            raise ValueError("Filename must be a absolute path")
+        Do note that paths must always be absolute; we do NOT have a cwd context we
+        manage.
+
+        :param dirpath: Directory path to list contents from, either as a string
+            or Path object.
+        :param what: Specifies what to list from the directory. Possible values
+            are "files", "dirs", or "both". Defaults to "files".
+        :return: A list of Path objects representing the contents of the directory.
+        :rtype: list[Path]
+        """
+        dirpath = self._check_path(dirpath)
 
         logger.debug(f"Listing directory {dirpath}")
 
         return self._list_dir(dirpath, what)
 
+    def create_shadow_copy(self, source_dir: Path | str):
+        """Untested, do not use unless you want pain"""
+        source_dir = self._check_path(source_dir)
+        return RootShadowCopy(self, source_dir)
+
+    def _copy(self, source: Path | str, target: Path | str):
+        source = self._check_path(source)
+        target = self._check_path(target, False)
+
+        return self._cp(source, target)
+
+    @staticmethod
+    def _check_path(p: str | Path, needs_absolute: bool = True) -> Path:
+        if not isinstance(p, Path):
+            p = Path(p)
+
+        if needs_absolute and not p.is_absolute():
+            logger.error(f"Path {p} is not a absolute path")
+            raise ValueError("Path must be a absolute path")
+
+        return p
+
+    ##
+    ## Implementation specific
+    ##
+
     @abc.abstractmethod
     def _open(self, filename: Path, mode: str) -> TextIO | SFTPFile:
+        pass
+
+    @abc.abstractmethod
+    def _cp(self, source: Path, target: Path):
         pass
 
     @abc.abstractmethod
@@ -66,12 +119,30 @@ class LinuxFilesExecutor(abc.ABC):
 
 
 class LocalLinuxFilesExecutor(LinuxFilesExecutor):
+    """
+    Represents a local file executor inheriting from LinuxFilesExecutor.
+
+    This class provides functionalities to open files, copy files, and list
+    contents of directories using the local filesystem. Designed for tasks
+    that involve manipulating files and directories on Linux-based systems.
+    Each method encapsulates specific file-related operations, applying
+    appropriate validations and exceptions as necessary.
+    """
 
     def _open(self, filename: Path, mode: str) -> TextIO:
         if mode not in ["r", "rb", "rt"]:
             raise ValueError("Mode must be 'r' or 'rb'")
 
         return open(filename, mode)
+
+    def _cp(self, source: Path, target: Path):
+        if not source.exists():
+            raise FileNotFoundError(f"Source file does not exist: {source}")
+        if source.is_dir():
+            raise IsADirectoryError(f"Source is a directory, not a file: {source}")
+
+        logger.debug(f"Copying file from {source} to {target}")
+        shutil.copy(source, target)
 
     def _list_dir(
         self, dirpath: Path, what: Literal["files", "dirs", "both"]
@@ -98,6 +169,20 @@ class LocalLinuxFilesExecutor(LinuxFilesExecutor):
 
 
 class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
+    """
+    Handles file operations on a remote Linux system using SFTP.
+
+    This class extends LinuxFilesExecutor to work with files and directories on a
+    remote Linux machine. It uses a RemoteLinuxShellExecutor instance to manage
+    connection and execution of commands through SSH and SFTP protocols. The
+    primary purpose of this class is to facilitate file operations such as opening
+    files, file copying, and directory listing over a secure channel.
+
+    :ivar shell_executor: Executor for managing remote shell commands.
+    :type shell_executor: RemoteLinuxShellExecutor
+    :ivar sftp_client: SFTP client for managing file operations.
+    :type sftp_client: paramiko.sftp_client.SFTPClient
+    """
 
     def __init__(self, shell_executor: RemoteLinuxShellExecutor):
         super().__init__()
@@ -109,6 +194,11 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
             raise ValueError("Mode must be 'r' or 'rb'")
 
         return self.sftp_client.open(str(filename), mode)
+
+    def _cp(self, source: Path, target: Path):
+        logger.debug(f"Copying file from {source} to {target}")
+
+        self.sftp_client.get(str(source), str(target))
 
     def _list_dir(
         self, dirpath: Path, what: Literal["files", "dirs", "both"]
@@ -152,6 +242,31 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
     def __del__(self):
         logger.debug(f"Closing sftp connection")
         self.close()
+
+
+class RootShadowCopy:
+    def __init__(self, executor: LinuxFilesExecutor, source_dir: Path):
+        self.executor = executor
+        self.tmpdir = TemporaryDirectory(delete=False)
+
+        self._copy_dir(source_dir, Path(self.tmpdir.name))
+
+    def _copy_dir(self, source_dir: Path, target_dir: Path):
+        logger.debug(f"Copying directory {source_dir} to {target_dir}")
+        for subdir in self.executor.list_dir(source_dir, what="dirs"):
+            source_path = source_dir / subdir.name
+            target_path = target_dir / subdir.name
+            target_path.mkdir(parents=True, exist_ok=True)
+            self._copy_dir(source_path, target_path)
+
+        for file in self.executor.list_dir(source_dir, what="files"):
+            self.executor._copy(file, target_dir / file.name)
+
+    def __enter__(self):
+        return self.tmpdir.name
+
+    def __exit__(self, exc, value, traceback):
+        self.tmpdir.cleanup()
 
 
 class _ExecutorManager:
