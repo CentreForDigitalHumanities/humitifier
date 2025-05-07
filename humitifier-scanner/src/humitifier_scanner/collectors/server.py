@@ -103,19 +103,13 @@ class WebserverFactCollector(ShellCollector):
             ["ls", self._get_apache_file_path(apache_name)]
         )
 
-        config_files = [
-            cnf
-            for cnf in config_files_cmd.stdout
-            # if not cnf.endswith("_redirssl.conf")
-        ]
+        config_files = [cnf for cnf in config_files_cmd.stdout]
 
         for config_file in config_files:
-            get_contents_cmd = executor.execute(
-                ["cat", self._get_apache_file_path(apache_name, config_file)]
-            )
-
             webhosts.append(
-                ApacheConfigParser.parse(config_file, get_contents_cmd.stdout)
+                ApacheConfigParser.parse(
+                    self._get_apache_file_path(apache_name, config_file), executor
+                )
             )
 
         return webhosts

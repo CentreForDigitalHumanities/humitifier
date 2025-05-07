@@ -4,6 +4,8 @@ from humitifier_common.artefacts import (
     Webhost,
     WebhostRewriteRule,
 )
+from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
+from humitifier_scanner.logger import logger
 
 
 class ApacheConfigParser:
@@ -13,12 +15,17 @@ class ApacheConfigParser:
     LOCATION_LOOP = "location_loop"
 
     @classmethod
-    def parse(cls, filename, file_contents: list[str]) -> Webhost:
-        return cls(filename, file_contents)._parse()
+    def parse(cls, filename, shell_executor: LinuxShellExecutor) -> Webhost:
+        return cls(filename, shell_executor)._parse()
 
-    def __init__(self, filename, file_contents: list[str]):
+    def __init__(self, filename, shell_executor: LinuxShellExecutor):
         self.filename = filename
-        self.contents = file_contents
+
+        self.shell_executor = shell_executor
+
+        with self.shell_executor.open_file(filename) as f:
+            self.contents = f.readlines()
+            self.index = 0
 
         self.listen_ports: list[int] = []
         self.hostname: str = ""
@@ -43,7 +50,7 @@ class ApacheConfigParser:
             "<Location": lambda line: self._start_location_block(line),
             "<VirtualHost": lambda line: self._add_virtual_host(line),
             "Include ": lambda line: self._add_include(line),
-            "OptionalInclude ": lambda line: self._add_optional_include(line),
+            "IncludeOptional ": lambda line: self._add_optional_include(line),
         }
 
         self.location_handlers = {
@@ -53,7 +60,10 @@ class ApacheConfigParser:
         }
 
     def _parse(self) -> Webhost:
-        for line in map(str.strip, self.contents):
+        while self.index < len(self.contents):
+            line = self.contents[self.index].strip()
+            self.index += 1
+
             if self.mode == self.LOCATION_LOOP:
                 handlers = self.location_handlers
             else:
@@ -132,15 +142,35 @@ class ApacheConfigParser:
         if include.startswith('"') and include.endswith('"'):
             include = include[1:-1]
 
-        self.includes.append(include)
+        self._process_include(include)
 
     def _add_optional_include(self, line: str) -> None:
-        include = self._extract_value(line, "OptionalInclude ").strip()
+        include = self._extract_value(line, "IncludeOptional ").strip()
 
         if include.startswith('"') and include.endswith('"'):
             include = include[1:-1]
 
-        self.includes.append(include)
+        self._process_include(include)
+
+    def _process_include(self, filename):
+        if "*" in filename:
+            find_files_cmd = self.shell_executor.execute(
+                ["ls", filename],
+            )
+            files = find_files_cmd.stdout
+        else:
+            files = [filename]
+
+        self.includes.extend(files)
+
+        try:
+            for file in files:
+                with self.shell_executor.open_file(file) as include_file:
+                    contents = include_file.readlines()
+                    self.contents[self.index : self.index] = contents
+
+        except FileNotFoundError:
+            logger.debug(f"File {filename} not found")
 
     def _close_location_block(self) -> None:
         self.current_location = None
