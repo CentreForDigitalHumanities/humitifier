@@ -140,75 +140,98 @@ class WebserverFactCollector(FileCollector):
 
 class DNSFactCollector(Collector):
     fact = DNS
-
     optional_facts = [Webserver, NetworkInterfaces]
 
+    INET_FAMILY = "inet"
+    PTR_RECORD = "PTR"
+    A_RECORD = "A"
+    CNAME_RECORD = "CNAME"
+
     def collect(self, info: CollectInfo) -> DNS | None:
+        dns_data = DNS()
 
-        output = DNS()
+        if network_interfaces := info.optional_facts.get(NetworkInterfaces):
+            dns_data.reverse_dns_lookups = self._resolve_reverse_dns(network_interfaces)
 
-        if network_interfaces := info.optional_facts[NetworkInterfaces]:
-            network_interfaces: NetworkInterfaces = network_interfaces
+        if hostnames := self._extract_hostnames(
+            dns_data.reverse_dns_lookups, info.optional_facts.get(Webserver)
+        ):
+            dns_data.dns_lookups = self._resolve_dns_lookups(hostnames)
 
-            output.reverse_dns_lookups = {}
+        return dns_data
 
-            for interface in network_interfaces:
-                for address in interface.addresses:
-                    if address.family != "inet":
-                        continue
+    def _resolve_reverse_dns(
+        self, network_interfaces: NetworkInterfaces
+    ) -> dict[ipaddress.IPv4Address, list[str]]:
+        reverse_dns_lookups = {}
 
-                    raw_ip, prefix = address.address.split("/")
-                    ip = ipaddress.IPv4Address(raw_ip)
-                    if ip.is_private:
-                        logger.debug(f"IP {ip} is in a private range.")
-                        break
+        for interface in network_interfaces:
 
-                    output.reverse_dns_lookups[ip] = []
+            for address in interface.addresses:
+                # Ignore IPv6 for now
+                if address.family != self.INET_FAMILY:
+                    continue
 
-                    reverse_name = dns.reversename.from_address(str(ip))
+                raw_ip, _ = address.address.split("/")
+                ip = ipaddress.IPv4Address(raw_ip)
 
-                    try:
-                        resolved_hosts = dns.resolver.resolve(reverse_name, "PTR")
-                        for host in resolved_hosts:
-                            output.reverse_dns_lookups[ip].append(str(host))
+                # Ignore any private IPs (localhost and docker, mostly)
+                if ip.is_private:
+                    logger.debug(f"IP {ip} is in a private range.")
+                    continue
 
-                    except dns.resolver.NoAnswer:
-                        logger.debug(f"No PTR record found for IP {ip}")
-                    except Exception as e:
-                        logger.debug(f"DNS lookup error for IP {ip}: {e}")
+                reverse_name = dns.reversename.from_address(str(ip))
+                reverse_dns_lookups[ip] = []
 
+                try:
+                    resolved_hosts = dns.resolver.resolve(reverse_name, self.PTR_RECORD)
+                    reverse_dns_lookups[ip] = [str(host) for host in resolved_hosts]
+                except dns.resolver.NoAnswer:
+                    logger.debug(f"No PTR record found for IP {ip}")
+                except Exception as e:
+                    logger.debug(f"DNS lookup error for IP {ip}: {e}")
+
+        return reverse_dns_lookups
+
+    def _extract_hostnames(
+        self,
+        reverse_dns_lookups: dict[ipaddress.IPv4Address, list[str]],
+        webserver: Webserver | None,
+    ) -> set[str]:
         hostnames = set()
 
-        if output.reverse_dns_lookups:
-            for reverse_dns_lookup in output.reverse_dns_lookups.values():
-                for host in reverse_dns_lookup:
-                    hostnames.add(host[:-1])
+        if reverse_dns_lookups:
+            for hosts in reverse_dns_lookups.values():
+                hostnames.update([host[:-1] for host in hosts])
 
-        if webserver := info.optional_facts[Webserver]:
-            webserver: Webserver = webserver
-
+        if webserver:
             for host in webserver.hosts:
                 hostnames.add(host.hostname)
-                for alias in host.hostname_aliases:
-                    hostnames.add(alias)
+                hostnames.update(host.hostname_aliases)
 
-        # Yes, really, some banana created a vhost for localhost
         if "localhost" in hostnames:
             hostnames.remove("localhost")
 
-        if hostnames:
-            output.dns_lookups = []
+        return hostnames
+
+    def _resolve_dns_lookups(self, hostnames: set[str]) -> list[DNSLookup]:
+        dns_lookups = []
 
         for hostname in hostnames:
-            a_records = dns.resolver.resolve(hostname, "A", raise_on_no_answer=False)
-            a_records = [ipaddress.IPv4Address(str(record)) for record in a_records]
+            a_records = [
+                ipaddress.IPv4Address(str(record))
+                for record in dns.resolver.resolve(
+                    hostname, self.A_RECORD, raise_on_no_answer=False
+                )
+            ]
+            cname_records = [
+                str(record)
+                for record in dns.resolver.resolve(
+                    hostname, self.CNAME_RECORD, raise_on_no_answer=False
+                )
+            ]
 
-            cname_records = dns.resolver.resolve(
-                hostname, "CNAME", raise_on_no_answer=False
-            )
-            cname_records = [str(record) for record in cname_records]
-
-            output.dns_lookups.append(
+            dns_lookups.append(
                 DNSLookup(
                     name=hostname,
                     a_records=a_records,
@@ -216,7 +239,7 @@ class DNSFactCollector(Collector):
                 )
             )
 
-        return output
+        return dns_lookups
 
 
 class UptimeMetricCollector(ShellCollector):
