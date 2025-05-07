@@ -1,3 +1,4 @@
+import ipaddress
 import json
 import re
 from typing import Literal
@@ -5,14 +6,20 @@ from typing import Literal
 import yaml
 from datetime import datetime
 
-from .backend import CollectInfo, ShellCollector, FileCollector
+import dns.reversename, dns.resolver
+from pydantic import IPvAnyAddress
+
+from .backend import CollectInfo, Collector, ShellCollector, FileCollector, T
 from humitifier_scanner.constants import DEB_OS_LIST, RPM_OS_LIST
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 from humitifier_common.artefacts import (
+    DNS,
+    DNSLookup,
     HostMeta,
     HostnameCtl,
     IsWordpress,
+    NetworkInterfaces,
     PackageList,
     PuppetAgent,
     RebootPolicy,
@@ -23,6 +30,7 @@ from humitifier_common.artefacts import (
 from humitifier_scanner.parsers.apache import ApacheConfigParser
 from humitifier_scanner.parsers.nginx import NginxConfigParser
 from humitifier_scanner.utils import os_in_list
+from ..logger import logger
 
 
 class HostMetaFactCollector(FileCollector):
@@ -128,6 +136,87 @@ class WebserverFactCollector(FileCollector):
             webhosts.append(ApacheConfigParser.parse(config_file, executor))
 
         return webhosts
+
+
+class DNSFactCollector(Collector):
+    fact = DNS
+
+    optional_facts = [Webserver, NetworkInterfaces]
+
+    def collect(self, info: CollectInfo) -> DNS | None:
+
+        output = DNS()
+
+        if network_interfaces := info.optional_facts[NetworkInterfaces]:
+            network_interfaces: NetworkInterfaces = network_interfaces
+
+            output.reverse_dns_lookups = {}
+
+            for interface in network_interfaces:
+                for address in interface.addresses:
+                    if address.family != "inet":
+                        continue
+
+                    raw_ip, prefix = address.address.split("/")
+                    ip = ipaddress.IPv4Address(raw_ip)
+                    if ip.is_private:
+                        logger.debug(f"IP {ip} is in a private range.")
+                        break
+
+                    output.reverse_dns_lookups[ip] = []
+
+                    reverse_name = dns.reversename.from_address(str(ip))
+
+                    try:
+                        resolved_hosts = dns.resolver.resolve(reverse_name, "PTR")
+                        for host in resolved_hosts:
+                            output.reverse_dns_lookups[ip].append(str(host))
+
+                    except dns.resolver.NoAnswer:
+                        logger.debug(f"No PTR record found for IP {ip}")
+                    except Exception as e:
+                        logger.debug(f"DNS lookup error for IP {ip}: {e}")
+
+        hostnames = set()
+
+        if output.reverse_dns_lookups:
+            for reverse_dns_lookup in output.reverse_dns_lookups.values():
+                for host in reverse_dns_lookup:
+                    hostnames.add(host[:-1])
+
+        if webserver := info.optional_facts[Webserver]:
+            webserver: Webserver = webserver
+
+            for host in webserver.hosts:
+                hostnames.add(host.hostname)
+                for alias in host.hostname_aliases:
+                    hostnames.add(alias)
+
+        # Yes, really, some banana created a vhost for localhost
+        if "localhost" in hostnames:
+            hostnames.remove("localhost")
+
+        if hostnames:
+            output.dns_lookups = []
+
+        for hostname in hostnames:
+            a_records = dns.resolver.resolve(hostname, "A", raise_on_no_answer=False)
+            a_records = [ipaddress.IPv4Address(str(record)) for record in a_records]
+
+            cname_records = dns.resolver.resolve(
+                hostname, "CNAME", raise_on_no_answer=False
+            )
+            cname_records = [str(record) for record in cname_records]
+
+            output.dns_lookups.append(
+                DNSLookup(
+                    name=hostname,
+                    a_records=a_records,
+                    cname_records=cname_records,
+                )
+            )
+
+        return output
 
 
 class UptimeMetricCollector(ShellCollector):
