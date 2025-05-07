@@ -1,18 +1,14 @@
 import abc
-import platform
 import threading
 from dataclasses import dataclass
-from pathlib import Path
 from subprocess import list2cmdline
-from typing import Literal, TextIO
 
 import paramiko
-from paramiko import SFTPClient, SFTPFile
 
 from humitifier_scanner.config import CONFIG
 from humitifier_scanner.logger import logger
 
-LOCAL_HOSTS = ["localhost", "127.0.0.1", "::1", platform.node()]
+from .shared import LOCAL_HOSTS
 
 
 @dataclass
@@ -41,26 +37,6 @@ class LinuxShellExecutor(abc.ABC):
         :return: The output of the executed shell command encapsulated in a `ShellOutput` object.
         :rtype: ShellOutput
         """
-        pass
-
-    def open_file(
-        self, filename: str | Path, mode: Literal["r", "rb", "rt"] = "r"
-    ) -> TextIO | SFTPFile:
-        if not isinstance(filename, Path):
-            filename = Path(filename)
-
-        if not filename.is_absolute():
-            raise ValueError("Filename must be a absolute path")
-
-        if mode not in ["r", "rb", "rt"]:
-            raise ValueError("Mode must be 'r' or 'rb'")
-
-        logger.debug(f"Opening file {filename}")
-
-        return self._open_file(filename, mode)
-
-    @abc.abstractmethod
-    def _open_file(self, filename: Path, mode: str) -> TextIO | SFTPFile:
         pass
 
     @staticmethod
@@ -102,12 +78,6 @@ class LocalLinuxShellExecutor(LinuxShellExecutor):
             process.returncode,
         )
 
-    def _open_file(self, filename: Path, mode: str) -> TextIO:
-        if mode not in ["r", "rb", "rt"]:
-            raise ValueError("Mode must be 'r' or 'rb'")
-
-        return open(filename, mode)
-
 
 class RemoteLinuxShellExecutor(LinuxShellExecutor):
     DEFAULT_SSH_PORT = 22
@@ -125,7 +95,6 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         )
 
         self.ssh_client = self._get_ssh_client()
-        self.sftp_client: SFTPClient | None = None
 
         self.bastion_enabled = CONFIG.ssh.bastion is not None
 
@@ -220,8 +189,6 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         )
 
     def close(self):
-        if self.sftp_client:
-            self.sftp_client.close()
         self.ssh_client.close()
         if self.bastion_enabled:
             self.bastion_client.close()
@@ -261,16 +228,6 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         return ShellOutput(
             stdout_lines, stderr_lines, stdout.channel.recv_exit_status()
         )
-
-    def _open_file(self, filename: Path, mode: str) -> SFTPFile:
-        if mode not in ["r", "rb", "rt"]:
-            raise ValueError("Mode must be 'r' or 'rb'")
-
-        if self.sftp_client is None:
-            logger.debug(f"Creating SFTP client for host {self.host}")
-            self.sftp_client = self.ssh_client.open_sftp()
-
-        return self.sftp_client.open(str(filename), mode)
 
     #
     # Magic

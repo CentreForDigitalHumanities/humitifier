@@ -4,7 +4,7 @@ from humitifier_common.artefacts import (
     Webhost,
     WebhostRewriteRule,
 )
-from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
+from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 from humitifier_scanner.logger import logger
 
 
@@ -15,15 +15,15 @@ class ApacheConfigParser:
     LOCATION_LOOP = "location_loop"
 
     @classmethod
-    def parse(cls, filename, shell_executor: LinuxShellExecutor) -> Webhost:
-        return cls(filename, shell_executor)._parse()
+    def parse(cls, filename, files_executor: LinuxFilesExecutor) -> Webhost:
+        return cls(filename, files_executor)._parse()
 
-    def __init__(self, filename, shell_executor: LinuxShellExecutor):
+    def __init__(self, filename, files_executor: LinuxFilesExecutor):
         self.filename = filename
 
-        self.shell_executor = shell_executor
+        self.files_executor = files_executor
 
-        with self.shell_executor.open_file(filename) as f:
+        with self.files_executor.open(filename) as f:
             self.contents = f.readlines()
             self.index = 0
 
@@ -154,10 +154,13 @@ class ApacheConfigParser:
 
     def _process_include(self, filename):
         if "*" in filename:
-            find_files_cmd = self.shell_executor.execute(
-                ["ls", filename],
-            )
-            files = find_files_cmd.stdout
+            # Just a stupid custom * implementation, nothing to see here
+            filename_pre_wildcard = filename[: filename.index("*")]
+            filename_post_wildcard = filename[filename.index("*") + 1 :]
+            files = self.files_executor.list_dir(filename_pre_wildcard, what="files")
+            files = [
+                file for file in files if str(file).endswith(filename_post_wildcard)
+            ]
         else:
             files = [filename]
 
@@ -165,7 +168,7 @@ class ApacheConfigParser:
 
         try:
             for file in files:
-                with self.shell_executor.open_file(file) as include_file:
+                with self.files_executor.open(file) as include_file:
                     contents = include_file.readlines()
                     self.contents[self.index : self.index] = contents
 

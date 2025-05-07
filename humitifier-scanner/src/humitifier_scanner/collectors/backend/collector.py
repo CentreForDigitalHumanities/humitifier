@@ -4,6 +4,7 @@ from typing import Any, Type, TypeVar
 from humitifier_common.artefacts.registry.registry import ArtefactType
 from humitifier_scanner.exceptions import FatalCollectorError
 from humitifier_scanner.executor import Executors
+from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 from humitifier_scanner.logger import logger
 from humitifier_common.artefacts import registry as artefacts_registry
@@ -12,6 +13,7 @@ from humitifier_common.scan_data import ErrorTypeEnum, ScanError, ScanErrorMetad
 _BASE_COLLECTORS = [
     "Collector",
     "ShellCollector",
+    "FileCollector",
 ]
 T = TypeVar("T")
 
@@ -306,4 +308,42 @@ class ShellCollector(Collector):
         """Implement your shell-based collector logic here."""
         raise NotImplementedError(
             "Collector must implement a collect_from_shell method"
+        )
+
+
+class FileCollector(Collector):
+    """
+    Provides a base class for files-based collectors, as a shorthand class
+    for collectors using files-executors only.
+
+    The purpose of this class is to facilitate creating collectors that
+    rely on files executors for their functionality. It provides a premade
+    `collect` method that automatically retrieves the files executor
+    from the `info` argument and invokes the `collect_from_files` method,
+    which must be implemented by subclasses to define the specific logic
+    for collecting data using files.
+
+    :ivar required_executors: A list of executors required by this collector.
+    :type required_executors: list
+    """
+
+    required_executors = [Executors.FILES]
+
+    def collect(self, info: CollectInfo) -> T:
+        """Premade collect method for files-based collectors.
+        Will call `collect_from_files` with the files executor provided in the
+        `info` argument.
+        """
+        executor: LinuxFilesExecutor = info.executors.get(Executors.FILES)
+        if not executor:
+            raise ValueError("Files executor is required for this collector")
+
+        return self.collect_from_files(executor, info)
+
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
+    ) -> T:
+        """Implement your files-based collector logic here."""
+        raise NotImplementedError(
+            "Collector must implement a collect_from_files method"
         )

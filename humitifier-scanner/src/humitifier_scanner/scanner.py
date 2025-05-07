@@ -5,8 +5,7 @@ import sys
 from typing import Any, Type
 
 from humitifier_common.artefacts.registry.registry import ArtefactType
-from humitifier_scanner.collectors import CollectInfo, registry
-from humitifier_scanner.collectors.backend import Collector
+from humitifier_scanner.collectors.backend import Collector, CollectInfo, registry
 from humitifier_scanner.exceptions import (
     MissingRequiredFactError,
 )

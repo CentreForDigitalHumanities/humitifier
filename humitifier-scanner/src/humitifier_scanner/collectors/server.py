@@ -5,9 +5,10 @@ from typing import Literal
 import yaml
 from datetime import datetime
 
-from humitifier_scanner.collectors import CollectInfo, ShellCollector
+from .backend import CollectInfo, ShellCollector, FileCollector
 from humitifier_scanner.constants import DEB_OS_LIST, RPM_OS_LIST
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
+from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 from humitifier_common.artefacts import (
     HostMeta,
     HostnameCtl,
@@ -20,28 +21,29 @@ from humitifier_common.artefacts import (
     Webserver,
 )
 from humitifier_scanner.parsers.apache import ApacheConfigParser
+from humitifier_scanner.parsers.nginx import NginxConfigParser
 from humitifier_scanner.utils import os_in_list
 
 
-class HostMetaFactCollector(ShellCollector):
+class HostMetaFactCollector(FileCollector):
     fact = HostMeta
 
-    def collect_from_shell(
-        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
     ) -> HostMeta:
-        with shell_executor.open_file("/hum/doc/server_facts.json") as file:
+        with files_executor.open("/hum/doc/server_facts.json") as file:
             json_args = json.loads(file.read())
 
             return HostMeta(**json_args)
 
 
-class WebserverFactCollector(ShellCollector):
+class WebserverFactCollector(FileCollector):
     fact = Webserver
 
     required_facts = [PackageList, HostnameCtl]
 
-    def collect_from_shell(
-        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
     ) -> Webserver | None:
         hostname_ctl: HostnameCtl = info.required_facts.get(HostnameCtl)
         package_list: PackageList = info.required_facts.get(PackageList)
@@ -73,16 +75,6 @@ class WebserverFactCollector(ShellCollector):
         return apache_name
 
     @staticmethod
-    def _is_apache_installed(
-        apache_package: Literal["apache2", "httpd"], package_list: PackageList
-    ):
-        for package in package_list:
-            if package.name == apache_package:
-                return True
-
-        return False
-
-    @staticmethod
     def _get_apache_file_path(apache_name: str, file: str | None = None):
         if apache_name not in ["apache2", "httpd"]:
             return None
@@ -90,22 +82,14 @@ class WebserverFactCollector(ShellCollector):
         return f"/etc/{apache_name}/sites-enabled/{file or ""}"
 
     def _process_apache(
-        self, apache_name: str, executor: LinuxShellExecutor
+        self, apache_name: str, executor: LinuxFilesExecutor
     ) -> list[Webhost]:
         webhosts: list[Webhost] = []
 
-        config_files_cmd = executor.execute(
-            ["ls", self._get_apache_file_path(apache_name)]
-        )
-
-        config_files = [cnf for cnf in config_files_cmd.stdout]
+        config_files = executor.list_dir(self._get_apache_file_path(apache_name))
 
         for config_file in config_files:
-            webhosts.append(
-                ApacheConfigParser.parse(
-                    self._get_apache_file_path(apache_name, config_file), executor
-                )
-            )
+            webhosts.append(ApacheConfigParser.parse(config_file, executor))
 
         return webhosts
 
@@ -263,14 +247,14 @@ class IsWordpressFactCollector(ShellCollector):
         return IsWordpress(is_wp=False)
 
 
-class RebootPolicyFactCollector(ShellCollector):
+class RebootPolicyFactCollector(FileCollector):
     fact = RebootPolicy
 
-    def collect_from_shell(
-        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
     ) -> RebootPolicy | None:
 
-        with shell_executor.open_file("/hum/doc/reboot_policy_facts.json") as file:
+        with files_executor.open("/hum/doc/reboot_policy_facts.json") as file:
             json_args = json.loads(file.read())
 
             actual_data = json_args["reboot_policy"]
