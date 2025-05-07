@@ -78,7 +78,7 @@ class ApacheConfigParser:
         return {
             "listen_ports": self.listen_ports,
             "webserver": "apache",
-            "filename": self.filename,
+            "filename": str(self.filename),
             "hostname": self.hostname,
             "hostname_aliases": self.hostname_aliases,
             "document_root": self.document_root,
@@ -165,7 +165,7 @@ class ApacheConfigParser:
         else:
             files = [filename]
 
-        self.includes.extend(files)
+        self.includes.extend(map(str, files))
 
         try:
             for file in files:
