@@ -80,6 +80,8 @@ class CollectorMetaclass(type):
 
             if new_cls.required_facts:
                 raise ValueError("Metrics are not allowed to have required facts!")
+            if new_cls.optional_facts:
+                raise ValueError("Metrics are not allowed to have optional facts!")
 
         # Final check, see if we managed to resolve the facts
         if new_cls._artefact is None:
@@ -91,6 +93,9 @@ class CollectorMetaclass(type):
         # Check if all the required facts resolve
         for required_fact in new_cls.required_facts:
             cls._check_if_artefact_exists(new_cls, required_fact, "required_facts")
+        # Check if all the optional facts resolve
+        for optional_fact in new_cls.optional_facts:
+            cls._check_if_artefact_exists(new_cls, optional_fact, "optional_facts")
 
         from .registry import registry
 
@@ -147,6 +152,7 @@ class CollectorMetaclass(type):
 class CollectInfo:
     executors: dict[Executors, Any]
     required_facts: dict
+    optional_facts: dict
 
 
 class Collector(metaclass=CollectorMetaclass):
@@ -172,6 +178,8 @@ class Collector(metaclass=CollectorMetaclass):
     :type variant: str
     :ivar required_facts: A list of facts that must be provided for the collector to function.
     :type required_facts: list
+    :ivar required_facts: A list of facts that may be provided for fancy extras.
+    :type required_facts: list
     :ivar required_executors: A list of executors required for running the collector.
     :type required_executors: list[Executors]
     :ivar errors: A list of errors encountered during the collector's execution.
@@ -183,6 +191,7 @@ class Collector(metaclass=CollectorMetaclass):
     variant: str = "default"
 
     required_facts = []
+    optional_facts = []
     required_executors: list[Executors] = []
 
     def __init__(self):

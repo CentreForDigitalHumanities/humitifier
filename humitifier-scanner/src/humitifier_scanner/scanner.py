@@ -1,4 +1,5 @@
 import subprocess
+from collections import defaultdict, deque
 from datetime import datetime
 
 import sys
@@ -111,7 +112,16 @@ def _get_scan_order(
         if collector.artefact_type() == ArtefactType.FACT
     ]
 
+    dependencies = {}
+
     for collector in collectors:
+
+        for optional_fact in collector.optional_facts:
+            if optional_fact.__artefact_name__ in requested_facts:
+                if optional_fact not in dependencies:
+                    dependencies[optional_fact] = set()
+                dependencies[optional_fact].add(collector)
+
         for required_fact in collector.required_facts:
             if required_fact.__artefact_name__ not in requested_facts:
                 raise MissingRequiredFactError(
@@ -119,22 +129,51 @@ def _get_scan_order(
                     required_fact.__artefact_name__,
                 )
 
-    # make sure that any collector that requires another collector is
-    # scanned after the required collector
-    for collector in collectors.copy():
-        for required_fact in collector.required_facts:
-            required_implementation = registry.get(required_fact.__artefact_name__)
-            required_index = collectors.index(required_implementation)
-            implementation_index = collectors.index(collector)
+            if required_fact not in dependencies:
+                dependencies[required_fact] = set()
+            dependencies[required_fact].add(collector)
 
-            if required_index > implementation_index:
-                collectors.remove(collector)
-                collectors.insert(required_index, collector)
+    logger.debug(f"Resolved dependencies: {dependencies}")
 
-    scan_order = [collector.artefact_name() for collector in collectors]
-    logger.debug(f"Resolved artefact-scan order: {scan_order}")
+    scan_order = resolve_collector_order(collectors, dependencies)
+    _debug_scan_order = [collector.artefact_name() for collector in scan_order]
+    logger.debug(f"Resolved artefact-scan order: {_debug_scan_order}")
 
-    return collectors, errors
+    return scan_order, errors
+
+
+def resolve_collector_order(collectors, dependencies):
+    # Step 1: Build the dependency graph and in-degree count
+    dependency_graph = defaultdict(set)
+    num_dependencies = {collector: 0 for collector in collectors}
+
+    for required, dependents in dependencies.items():
+        required_implementation = registry.get(required.__artefact_name__)
+        for dependent in dependents:
+            dependency_graph[required_implementation].add(dependent)
+            num_dependencies[dependent] += 1
+
+    # Step 2: Initialize a queue with collectors that have no dependencies (num_dependencies 0)
+    queue = deque(
+        [collector for collector in collectors if num_dependencies[collector] == 0]
+    )
+    ordered_collectors = []
+
+    # Step 3: Topological Sort (Kahn's Algorithm)
+    while queue:
+        current = queue.popleft()
+        ordered_collectors.append(current)
+
+        for dependent in dependency_graph[current]:
+            num_dependencies[dependent] -= 1
+            if num_dependencies[dependent] == 0:
+                queue.append(dependent)
+
+    # Step 4: Validate for cyclic dependencies
+    if len(ordered_collectors) != len(collectors):
+        raise ValueError("Cycle detected in dependencies, order cannot be resolved.")
+
+    return ordered_collectors
 
 
 def _check_host_online(hostname):
@@ -170,7 +209,9 @@ def _run_collector(
     logger.debug(f"Starting collector {collector.artefact_name()}:{collector.variant}")
 
     required_executors, exc_errors = _get_executors(collector, input_data)
-    required_facts, fact_errors = _get_required_fact_data(collector, current_output)
+    required_facts, optional_facts, fact_errors = _get_fact_data(
+        collector, current_output
+    )
 
     if exc_errors:
         errors.extend(exc_errors)
@@ -185,6 +226,7 @@ def _run_collector(
     collect_info = CollectInfo(
         executors=required_executors,
         required_facts=required_facts,
+        optional_facts=optional_facts,
     )
     try:
         output, errors = collector().run(collect_info)
@@ -242,10 +284,11 @@ def _release_executors(input_data: ScanInput) -> None:
         release_executor(executor, input_data.hostname)
 
 
-def _get_required_fact_data(
+def _get_fact_data(
     collector: Type[Collector], current_output: ScanOutput
-) -> tuple[dict, list[ScanError]]:
+) -> tuple[dict, dict, list[ScanError]]:
     required_fact_data = {}
+    optional_fact_data = {}
     errors = []
 
     for required_fact in collector.required_facts:
@@ -269,4 +312,12 @@ def _get_required_fact_data(
             )
             errors.append(error)
 
-    return required_fact_data, errors
+    for optional_fact in collector.optional_facts:
+        try:
+            optional_fact_data[optional_fact] = current_output.facts[
+                optional_fact.__artefact_name__
+            ]
+        except KeyError as e:
+            optional_fact_data[optional_fact] = None
+
+    return required_fact_data, optional_fact_data, errors
