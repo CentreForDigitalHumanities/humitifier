@@ -1,6 +1,3 @@
-import tempfile
-from pprint import pformat
-
 from reconfigure.parsers import NginxParser
 
 from humitifier_common.artefacts import (
@@ -14,123 +11,127 @@ from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 
 
 class NginxConfigParser:
-    # Parser modes
-    # Determines which set of line-handlers will be used
-    DEFAULT_LOOP = "default_loop"
-    LOCATION_LOOP = "location_loop"
+    # Parser directive constants
+    LISTEN = "listen"
+    SERVER_NAME = "server_name"
+    ROOT = "root"
+    INCLUDE = "include"
+    LOCATION = "location"
+    AUTH_BASIC = "auth_basic"
+    RETURN = "return"
+
+    def __init__(self, filename, files_executor: LinuxFilesExecutor):
+        self.filename = filename
+        self.files_executor = files_executor
+        with self.files_executor.open(filename) as f:
+            self.contents = f.read()
 
     @classmethod
     def parse(cls, filename, files_executor: LinuxFilesExecutor) -> list[Webhost]:
         return cls(filename, files_executor)._parse()
 
-    def __init__(self, filename, files_executor: LinuxFilesExecutor):
-        self.filename = filename
-
-        self.files_executor = files_executor
-
-        with self.files_executor.open(filename) as f:
-            self.contents = f.read()
-
     def _parse(self) -> list[Webhost]:
-        webhosts: list[Webhost] = []
+        config_content = self._read_config_file()
+        parsed_data = NginxParser().parse(config_content)
+        return [self._process_server_block(server) for server in parsed_data]
 
-        data = self.files_executor.open(self.filename).read()
-        data = str(data, "utf-8")
+    def _read_config_file(self) -> str:
+        """Reads and decodes the configuration file content."""
+        raw_data = self.files_executor.open(self.filename).read()
+        return str(raw_data, "utf-8")
 
-        result = NginxParser().parse(data)
+    def _process_server_block(self, server: list) -> Webhost:
+        """Processes each server block and extracts relevant information."""
+        listen_ports = []
+        hostname, hostname_aliases = "", []
+        document_root, includes = "", []
+        locations = {}
 
-        for server in result:
-            listen_ports: list[int] = []
-            document_root: str = ""
-            hostname: str = ""
-            hostname_aliases: list[str] = []
-            locations: dict[str, WebhostLocation] = {}
-            includes: list[str] = []
+        for directive in server:
+            if directive.name == self.LISTEN:
+                self._process_listen_directive(directive, listen_ports)
+            elif directive.name == self.SERVER_NAME:
+                hostname, hostname_aliases = self._process_server_name_directive(
+                    directive, hostname, hostname_aliases
+                )
+            elif directive.name == self.ROOT:
+                document_root = directive.value
+            elif directive.name == self.INCLUDE:
+                includes.append(directive.value)
+            elif directive.name == self.LOCATION:
+                location_path, location_data, _includes = self._process_location_block(
+                    directive
+                )
+                locations[location_path] = location_data
+                includes.extend(_includes)
 
-            for item in server:
-                if item.name == "listen":
-                    port = item.value
-                    if ":" in port:
-                        port = port.split(":", maxsplit=1)[1]
+        return Webhost(
+            listen_ports=listen_ports,
+            webserver="nginx",
+            filename=str(self.filename),
+            document_root=document_root,
+            hostname=hostname,
+            hostname_aliases=hostname_aliases,
+            locations=locations,
+            rewrite_rules=[],
+            includes=includes,
+        )
 
-                    if " " in port:
-                        port = port.split(" ", maxsplit=1)[0]
+    def _process_listen_directive(self, directive, listen_ports: list[int]) -> None:
+        """Extracts and processes the listen ports."""
+        port = directive.value
+        if ":" in port:
+            port = port.split(":", maxsplit=1)[1]
+        if " " in port:
+            port = port.split(" ", maxsplit=1)[0]
+        try:
+            listen_ports.append(int(port))
+        except ValueError:
+            pass
 
-                    try:
-                        port = int(port)
-                        listen_ports.append(port)
-                    except:
-                        pass
+    def _process_server_name_directive(
+        self, directive, hostname: str, hostname_aliases: list[str]
+    ) -> tuple[str, list[str]]:
+        """Extracts hostname and hostname aliases."""
+        server_names = directive.value.split(" ")
+        if not hostname:
+            hostname = server_names.pop(0)
+        hostname_aliases += server_names
+        return hostname, hostname_aliases
 
-                elif item.name == "server_name":
-                    server_names = item.value.split(" ")
-                    if not hostname:
-                        hostname = server_names[0]
-                        del server_names[0]
+    def _process_location_block(
+        self, directive
+    ) -> tuple[str, WebhostLocation, list[str]]:
+        """Processes a location block and extracts its data."""
+        location_path = directive.parameter
+        location_root, proxy, auth = None, None, None
+        includes = []
+        rewrite_rules = []
 
-                    hostname_aliases += server_names
-
-                elif item.name == "root":
-                    document_root = item.value
-
-                elif item.name == "include":
-                    includes.append(item.value)
-
-                elif item.name == "location":
-                    location_path = item.parameter
-                    location_root = None
-                    proxy: WebhostProxy | None = None
-                    auth: WebhostAuth | None = None
-                    rewrite_rules: list[WebhostRewriteRule] = []
-
-                    for location_item in item.children:
-                        if location_item.name == "root":
-                            location_root = location_item.value
-                        elif location_item.name == "include":
-                            includes.append(location_item.value)
-
-                        elif location_item.name == "return":
-                            rewrite_rules.append(
-                                {
-                                    "conditions": [],
-                                    "rule": location_item.value,
-                                }
-                            )
-
-                        elif location_item.name == "auth_basic":
-                            auth = {
-                                "type": "basic",
-                                "provider": None,
-                            }
-
-                        elif location_item.name.endswith("_pass"):
-                            proxy_type = location_item.name.rsplit("_", maxsplit=1)[
-                                0
-                            ]
-                            proxy = {
-                                "type": proxy_type,
-                                "endpoint": location_item.value,
-                            }
-
-                    locations[location_path] = {
-                        "document_root": location_root,
-                        "proxy": proxy,
-                        "auth": auth,
-                        "rewrite_rules": rewrite_rules,
-                    }
-
-                webhosts.append(
-                    {
-                        "listen_ports": listen_ports,
-                        "webserver": "nginx",
-                        "filename": str(self.filename),
-                        "document_root": document_root,
-                        "hostname": hostname,
-                        "hostname_aliases": hostname_aliases,
-                        "locations": locations,
-                        "rewrite_rules": [],
-                        "includes": includes,
-                    }
+        for location_directive in directive.children:
+            if location_directive.name == self.ROOT:
+                location_root = location_directive.value
+            elif location_directive.name == self.INCLUDE:
+                includes.append(location_directive.value)
+            elif location_directive.name == self.RETURN:
+                rewrite_rules.append(
+                    WebhostRewriteRule(conditions=[], rule=location_directive.value)
+                )
+            elif location_directive.name == self.AUTH_BASIC:
+                auth = WebhostAuth(type="basic", provider=None)
+            elif location_directive.name.endswith("_pass"):
+                proxy = WebhostProxy(
+                    type=location_directive.name.rsplit("_", maxsplit=1)[0],
+                    endpoint=location_directive.value,
                 )
 
-        return webhosts
+        return (
+            location_path,
+            WebhostLocation(
+                document_root=location_root,
+                proxy=proxy,
+                auth=auth,
+                rewrite_rules=rewrite_rules,
+            ),
+            includes,
+        )
