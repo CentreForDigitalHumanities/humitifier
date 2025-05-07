@@ -25,6 +25,7 @@ def scan(input_data: ScanInput) -> ScanOutput:
     try:
         collectors, errors = _get_scan_order(input_data)
     except MissingRequiredFactError as e:
+        logger.error(f"Required fact {e.artefact_name} not requested!")
         error = ScanError(
             global_error=True,
             message=f"Required fact {e.artefact_name} not requested!",

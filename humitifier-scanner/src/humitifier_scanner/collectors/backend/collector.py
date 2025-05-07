@@ -205,11 +205,16 @@ class Collector(metaclass=CollectorMetaclass):
         # We don't log the error if it's a FatalCollectorError, as it's expected
         # that the collector has added a more detailed error message
         except FatalCollectorError:
+            logger.error(f"Fatal error encountered while collecting {info}")
             pass
         # Any other exceptions we create a ScanError for; while the collector
         # should be handling any errors itself, we want to make sure that we
         # log any unhandled exceptions
         except Exception as e:
+            logger.error(
+                f"Error encountered while collecting {self.artefact_name()}: {e}",
+                exc_info=True,
+            )
             self.errors.append(
                 ScanError(
                     message=str(e),
