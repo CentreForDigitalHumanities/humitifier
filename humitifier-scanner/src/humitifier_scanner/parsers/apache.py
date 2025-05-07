@@ -198,15 +198,17 @@ class ApacheConfigParser:
         current_location_obj = self.locations[self.current_location]
 
         auth_type = self._extract_value(line, "AuthType")
-        auth = current_location_obj.setdefault("auth", self._initialize_webhost_auth())
-        auth["type"] = auth_type
+        if "auth" not in current_location_obj or current_location_obj["auth"] is None:
+            current_location_obj["auth"] = self._initialize_webhost_auth()
+        current_location_obj["auth"]["type"] = auth_type
 
     def _add_auth_provider(self, line: str) -> None:
         current_location_obj = self.locations[self.current_location]
 
         provider = self._extract_value(line, "AuthBasicProvider")
-        auth = current_location_obj.setdefault("auth", self._initialize_webhost_auth())
-        auth["provider"] = provider
+        if "auth" not in current_location_obj or current_location_obj["auth"] is None:
+            current_location_obj["auth"] = self._initialize_webhost_auth()
+        current_location_obj["auth"]["provider"] = provider
 
     ##
     ## Helpers
