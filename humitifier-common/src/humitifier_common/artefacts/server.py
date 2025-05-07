@@ -31,6 +31,9 @@ class HostMeta(BaseModel):
     fileservers: list[str] | None = None
     databases: dict[str, list[str]] | None = None
 
+##
+## Webserver
+##
 
 class WebhostProxy(TypedDict):
     type: str
