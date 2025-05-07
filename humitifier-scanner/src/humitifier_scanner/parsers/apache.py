@@ -26,6 +26,7 @@ class ApacheConfigParser:
         self.document_root: str = ""
         self.locations: dict[str, WebhostLocation] = {}
         self.rewrite_rules: list[WebhostRewriteRule] = []
+        self.includes: list[str] = []
 
         self.rewrite_conditions = []
         self.current_location = None
@@ -41,6 +42,8 @@ class ApacheConfigParser:
             "RewriteRule": lambda line: self._add_rewrite_rule(line),
             "<Location": lambda line: self._start_location_block(line),
             "<VirtualHost": lambda line: self._add_virtual_host(line),
+            "Include ": lambda line: self._add_include(line),
+            "OptionalInclude ": lambda line: self._add_optional_include(line),
         }
 
         self.location_handlers = {
@@ -70,6 +73,7 @@ class ApacheConfigParser:
             "document_root": self.document_root,
             "locations": self.locations,
             "rewrite_rules": self.rewrite_rules,
+            "includes": self.includes,
         }
 
     ##
@@ -121,6 +125,22 @@ class ApacheConfigParser:
             self.listen_ports.append(int(port))
         except ValueError:
             pass
+
+    def _add_include(self, line: str) -> None:
+        include = self._extract_value(line, "Include ").strip()
+
+        if include.startswith('"') and include.endswith('"'):
+            include = include[1:-1]
+
+        self.includes.append(include)
+
+    def _add_optional_include(self, line: str) -> None:
+        include = self._extract_value(line, "OptionalInclude ").strip()
+
+        if include.startswith('"') and include.endswith('"'):
+            include = include[1:-1]
+
+        self.includes.append(include)
 
     def _close_location_block(self) -> None:
         self.current_location = None

@@ -63,6 +63,7 @@ class Webhost(TypedDict):
     hostname_aliases: list[str]
     locations: dict[str, WebhostLocation]
     rewrite_rules: list[WebhostRewriteRule]
+    includes: list[str]
 
 
 @fact(group=SERVER)
