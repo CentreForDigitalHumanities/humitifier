@@ -23,8 +23,6 @@ class NginxConfigParser:
     def __init__(self, filename, files_executor: LinuxFilesExecutor):
         self.filename = filename
         self.files_executor = files_executor
-        with self.files_executor.open(filename) as f:
-            self.contents = f.read()
 
     @classmethod
     def parse(cls, filename, files_executor: LinuxFilesExecutor) -> list[Webhost]:
