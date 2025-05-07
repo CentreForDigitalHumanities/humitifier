@@ -51,13 +51,49 @@ class WebserverFactCollector(FileCollector):
         webhosts: list[Webhost] = []
 
         apache_name = self._get_apache_name(hostname_ctl.os)
-
-        if apache_name is not None and self._is_apache_installed(
+        if apache_name is not None and self._is_webserver_installed(
             apache_name, package_list
         ):
-            webhosts += self._process_apache(apache_name, shell_executor)
+            webhosts += self._process_apache(apache_name, files_executor)
+
+        if self._is_webserver_installed("nginx", package_list):
+            webhosts += self._process_nginx(files_executor)
 
         return Webserver(hosts=webhosts)
+
+    ##
+    ## Generic
+    ##
+
+    @staticmethod
+    def _is_webserver_installed(
+        webserver_package: Literal["apache2", "httpd", "nginx"],
+        package_list: PackageList,
+    ):
+        for package in package_list:
+            if package.name == webserver_package:
+                return True
+
+        return False
+
+    ##
+    ## NGINX
+    ##
+
+    @staticmethod
+    def _get_nginx_file_path(file: str):
+        return
+
+    @staticmethod
+    def _process_nginx(executor: LinuxFilesExecutor) -> list[Webhost]:
+        webhosts: list[Webhost] = []
+
+        config_files = executor.list_dir("/etc/nginx/sites-enabled/")
+
+        for config_file in config_files:
+            webhosts += NginxConfigParser.parse(config_file, executor)
+
+        return webhosts
 
     ##
     ## Apache
