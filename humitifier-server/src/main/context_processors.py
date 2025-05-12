@@ -70,6 +70,7 @@ def layout_context(request):
             "Ravens know when someone is spying on them",
             "Flamingos can only eat with their heads upside down",
             "A group of crows is a 'murder'",
+            "Two crows together is an attempted murder",
             "In the 1870s, cats were being trained in Belgium to deliver mail to replace homing pigeons",
             "Antarctica’s international telephone dialling code is +672",
             "Thousands of rabbits once attacked Napoleon. The rabbits won.",
