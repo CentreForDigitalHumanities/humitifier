@@ -210,8 +210,9 @@ class ApacheConfigParser:
                         contents = include_file.readlines()
                         contents = [str(l, encoding="utf-8") for l in contents]
                         self.contents[self.index : self.index] = contents
-                except PermissionError:
+                except PermissionError as e:
                     # Happens with includes sometimes
+                    logger.debug(f"Permission denied for file {file}: {e}")
                     pass
 
         except FileNotFoundError:
