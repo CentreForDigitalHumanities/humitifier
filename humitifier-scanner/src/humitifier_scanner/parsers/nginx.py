@@ -116,7 +116,7 @@ class NginxConfigParser:
                     WebhostRewriteRule(conditions=[], rule=location_directive.value)
                 )
             elif location_directive.name == self.AUTH_BASIC:
-                auth = WebhostAuth(type="basic", provider=None)
+                auth = WebhostAuth(type="basic", provider=None, requires=[])
             elif location_directive.name.endswith("_pass"):
                 proxy = WebhostProxy(
                     type=location_directive.name.rsplit("_", maxsplit=1)[0],

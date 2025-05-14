@@ -1,5 +1,6 @@
 from humitifier_common.artefacts import (
     WebhostAuth,
+    WebhostAuthRequire,
     WebhostLocation,
     Webhost,
     WebhostProxy,
@@ -59,6 +60,9 @@ class ApacheConfigParser:
             "</Location>": lambda line: self._close_location_block(),
             "AuthType": lambda line: self._add_auth_type(line),
             "AuthBasicProvider": lambda line: self._add_auth_provider(line),
+            "Require": lambda line: self._add_require(line),
+            "Allow": lambda line: self._add_allow(line),
+            "Deny": lambda line: self._add_deny(line),
         }
 
     def _parse(self) -> Webhost:
@@ -76,17 +80,17 @@ class ApacheConfigParser:
                     handler(line)
                     break
 
-        return {
-            "listen_ports": self.listen_ports,
-            "webserver": "apache",
-            "filename": str(self.filename),
-            "hostname": self.hostname,
-            "hostname_aliases": self.hostname_aliases,
-            "document_root": self.document_root,
-            "locations": self.locations,
-            "rewrite_rules": self.rewrite_rules,
-            "includes": self.includes,
-        }
+        return Webhost(
+            listen_ports=self.listen_ports,
+            webserver="apache",
+            filename=str(self.filename),
+            hostname=self.hostname,
+            hostname_aliases=self.hostname_aliases,
+            document_root=self.document_root,
+            locations=self.locations,
+            rewrite_rules=self.rewrite_rules,
+            includes=self.includes,
+        )
 
     ##
     ## Handlers
@@ -147,6 +151,11 @@ class ApacheConfigParser:
 
     def _start_location_block(self, line: str) -> None:
         location = self._extract_value(line, "<Location", trim_end=True)
+
+        # Strip any surrounding quotes
+        if location.startswith('"') and location.endswith('"'):
+            location = location[1:-1]
+
         if location not in self.locations:
             self.locations[location] = self._initialize_webhost_location()
         self.current_location = location
@@ -233,6 +242,43 @@ class ApacheConfigParser:
             current_location_obj["auth"] = self._initialize_webhost_auth()
         current_location_obj["auth"]["provider"] = provider
 
+    def _add_require(self, line: str) -> None:
+        current_location_obj = self.locations[self.current_location]
+
+        require = self._extract_value(line, "Require")
+        if "auth" not in current_location_obj or current_location_obj["auth"] is None:
+            current_location_obj["auth"] = self._initialize_webhost_auth()
+
+        negation = False
+        items = require.split()
+
+        if items[0] == "not":
+            negation = True
+
+        type_index = 1 if negation else 0
+        _type = items[type_index]
+        values = items[type_index + 1 :]
+
+        current_location_obj["auth"]["requires"].append(
+            WebhostAuthRequire(
+                type=_type,
+                negation=negation,
+                values=values,
+            )
+        )
+
+    def _add_allow(self, line: str) -> None:
+        # Rewrite deprecated line to modern syntax
+        line = line.replace("Allow", "Require")
+
+        self._add_require(line)
+
+    def _add_deny(self, line: str) -> None:
+        # Rewrite deprecated line to modern syntax
+        line = line.replace("Deny", "Require not")
+
+        self._add_require(line)
+
     ##
     ## Helpers
     ##
@@ -244,7 +290,7 @@ class ApacheConfigParser:
 
     @staticmethod
     def _initialize_webhost_auth() -> WebhostAuth:
-        return {"type": "", "provider": None}
+        return {"type": "", "provider": None, "requires": []}
 
     @staticmethod
     def _initialize_webhost_location() -> WebhostLocation:

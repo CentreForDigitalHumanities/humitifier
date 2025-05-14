@@ -49,9 +49,16 @@ class WebhostRewriteRule(TypedDict):
     rule: str
 
 
+class WebhostAuthRequire(TypedDict):
+    type: str
+    negation: bool
+    values: list[str]
+
+
 class WebhostAuth(TypedDict):
     type: str
     provider: str | None
+    requires: list[WebhostAuthRequire]
 
 
 class WebhostLocation(TypedDict):
