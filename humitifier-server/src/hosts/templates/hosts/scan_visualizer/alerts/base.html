@@ -1,4 +1,4 @@
-<div class="flex items-center gap-3 p-3 mx-2 my-3 mb-0 rounded {% block style %}{% endblock %}">
+<div class="flex items-center gap-3 p-3 mx-2 my-3 mb-0 rounded-sm {% block style %}{% endblock %}">
     {% block icon %}{% endblock %}
     <div>{{ alert.message }}</div>
     {% if alert.can_acknowledge and request.user.is_superuser %}

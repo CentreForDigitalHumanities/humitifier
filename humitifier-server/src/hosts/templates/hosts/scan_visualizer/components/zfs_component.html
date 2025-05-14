@@ -4,7 +4,7 @@
 
 {% block content %}
     <div class="font-semibold mb-2">ZFS Pools</div>
-    <div class="grid grid-cols-[repeat(auto-fit,1fr)] center rounded bg-gray-200 dark:bg-gray-800 p-3 mb-3 border border-gray-300 dark:border-gray-700 ">
+    <div class="grid grid-cols-[repeat(auto-fit,1fr)] center rounded-sm bg-gray-200 dark:bg-gray-800 p-3 mb-3 border border-gray-300 dark:border-gray-700 ">
         {% for pool in zfs.pools %}
             <span class="font-semibold">{{ pool.name }}</span>
             <span class="text-right">{{ pool.used_mb|size_from_mb }} / {{ pool.size_mb|size_from_mb }}</span>
@@ -14,7 +14,7 @@
         {% endfor %}
     </div>
     <div class="font-semibold my-2">ZFS volumes</div>
-    <div class="grid grid-cols-[repeat(auto-fit,1fr)] center overflow-y-auto max-h-64 rounded bg-gray-200 dark:bg-gray-800 p-3 mb-3 border border-gray-300 dark:border-gray-700 ">
+    <div class="grid grid-cols-[repeat(auto-fit,1fr)] center overflow-y-auto max-h-64 rounded-sm bg-gray-200 dark:bg-gray-800 p-3 mb-3 border border-gray-300 dark:border-gray-700 ">
         {% for volume in zfs.volumes %}
             <span class="font-semibold">{{ volume.name }}</span>
             <div class="text-right align-end">{{ volume.used_mb|size_from_mb }} / {{ volume.size_mb|size_from_mb }}</div>

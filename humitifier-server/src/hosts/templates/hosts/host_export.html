@@ -6,7 +6,7 @@
 {% block page_title %}Hosts | {{ block.super }}{% endblock %}
 
 {% block content %}
-    <div class="h-full--header w-full bg transition ease-in-out duration-150">
+    <div class="h-full--header w-full bg-default transition ease-in-out duration-150">
         <div class="px-7 py-5 flex justify-between">
             <h1 class="text-3xl font-bold">Export host data</h1>
         </div>
@@ -21,10 +21,10 @@
             {% csrf_token %}
             {{ filterset.form }}
             <div class="flex gap-2 w-full">
-                <button class="btn light:btn-primary dark:btn-outline flex-grow" type="submit" name="csv">
+                <button class="btn light:btn-primary dark:btn-outline grow" type="submit" name="csv">
                     Export as CSV
                 </button>
-                <button class="btn light:btn-primary dark:btn-outline flex-grow" type="submit" name="host-list">
+                <button class="btn light:btn-primary dark:btn-outline grow" type="submit" name="host-list">
                     Export as host-list
                 </button>
             </div>

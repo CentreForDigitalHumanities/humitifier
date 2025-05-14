@@ -49,11 +49,14 @@ class PackageFilter(django_filters.Filter):
         if value:
             qs = qs.annotate(
                 package_exists=RawSQL(
-                    "SELECT 1 FROM jsonb_array_elements(\"hosts_host\".\"last_scan_cache\"->'PackageList') AS pkg WHERE pkg->>'name' = %s",
-                    [value],
+                    "SELECT count(*) FROM jsonb_array_elements("
+                    "\"hosts_host\".\"last_scan_cache\"->'facts'->'generic.PackageList'"
+                    ") AS pkg "
+                    "WHERE pkg->>'name' LIKE %s",
+                    [f"%{value}%"],
                 )
             )
-            return qs.filter(package_exists__isnull=False)
+            return qs.filter(package_exists__gt=0)
         return qs
 
 

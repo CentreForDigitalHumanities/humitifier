@@ -5,11 +5,11 @@
 {% block body %}
     <div class="h-screen w-screen absolute top-0 left-0 flex flex-col overflow-hidden">
         {% if layout.gitlab_gag %}
-            <div class="flex-grow-0 bg-blue-800 px-3 md:pl-72 py-2 text-center text-white font-bold">
+            <div class="grow-0 bg-blue-800 px-3 md:pl-72 py-2 text-center text-white font-bold">
                 It's thursday; A new critical security update for GitLab has probably been released. Click <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="underline">here</a> to see if that's true.
             </div>
         {% endif %}
-        <div class="w-full flex-grow overflow-hidden">
+        <div class="w-full grow overflow-hidden">
             {% include 'base/page_parts/sidebar.html' %}
 
             <section class="md:ml-72 min-h-full h-full overflow-auto">
@@ -21,7 +21,7 @@
             </section>
         </div>
         {% if debug %}
-            <div class="flex-grow-0 bg-red-700 px-3 md:pl-72 py-2 text-center text-white font-bold">
+            <div class="grow-0 bg-red-700 px-3 md:pl-72 py-2 text-center text-white font-bold">
                 DEBUG MODE
             </div>
         {% endif %}
@@ -30,7 +30,7 @@
     <div class="z-50 absolute right-2 bottom-2 p-2 max-w-full md:max-w-md flex flex-col gap-3">
         {% for message in messages %}
             <div
-                class="{{ message.level|map_message_colors }} rounded flex items-stretch"
+                class="{{ message.level|map_message_colors }} rounded-sm flex items-stretch"
                 x-data="{hide: false}"
                 :class="hide && 'hidden'"
             >
@@ -38,7 +38,7 @@
                     {{ message }}
                 </div>
                 <div
-                    class="ml-auto cursor-pointer select-none flex items-center justify-center p-2 bg-black bg-opacity-10"
+                    class="ml-auto cursor-pointer select-none flex items-center justify-center p-2 bg-black/10"
                     @click="hide = true"
                 >
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-5">

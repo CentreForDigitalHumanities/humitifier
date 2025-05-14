@@ -38,7 +38,7 @@
                     autocomplete="off"
                     id="search"
                     x-model.debounce.750ms="search"
-                    class="w-full p-3 bg-transparent focus-visible:outline-none"
+                    class="w-full p-3 bg-transparent focus-visible:outline-hidden"
                     placeholder="Search..."
                     x-model="search"
                     @keyup.escape="clear"
@@ -50,7 +50,7 @@
             </div>
             <template x-for="(option, index) in options" :key="option.value">
                 <div
-                    class="flex justify-between items-center px-3 py-2 border-b last:border-b-0 border-gray-100 dark:border-gray-800 hover:bg-gray-100 hover:dark:bg-gray-800 cursor-pointer"
+                    class="flex justify-between items-center px-3 py-2 border-b last:border-b-0 border-gray-100 dark:border-gray-800 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
                     @click="select(index,$event)"
                 >
                     <div x-text="option.text"></div>

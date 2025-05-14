@@ -1,10 +1,12 @@
 from datetime import datetime
+from ipaddress import IPv4Address
 
 from cron_descriptor import (
     FormatException,
     Options,
     get_description as get_cron_description,
 )
+from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 from hosts.scan_visualizers.base_components import (
@@ -19,6 +21,8 @@ from hosts.scan_visualizers.base_components import (
 from hosts.templatetags.host_tags import size_from_mb, uptime
 from humitifier_common.artefacts import (
     Blocks,
+    DNS,
+    DNSLookup,
     Groups,
     Hardware,
     HostMeta,
@@ -31,6 +35,8 @@ from humitifier_common.artefacts import (
     RebootPolicy,
     Uptime,
     Users,
+    Webhost,
+    Webserver,
     ZFS,
 )
 
@@ -81,6 +87,7 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
         return mark_safe(output)
 
 
+# Not used anymore, to be deleted TODO: delete this in 5.0
 class HostMetaVHostsVisualizer(SearchableCardsVisualizer):
     artefact = HostMeta
     title = "Apache vhosts"
@@ -120,6 +127,74 @@ class HostMetaVHostsVisualizer(SearchableCardsVisualizer):
         return items
 
 
+class WebserverVisualizer(SearchableCardsVisualizer):
+    artefact = Webserver
+    title = "Webserver"
+
+    def get_items(self) -> list[Card]:
+        items: list[Card] = []
+
+        for host in self.artefact_data.hosts:
+            host: Webhost = host
+
+            title = host.hostname + ":"
+            title += ",".join(map(str, host.listen_ports))
+
+            content = render_to_string(
+                template_name="hosts/scan_visualizer/components/webhost_contents.html",
+                context={"host": host},
+            )
+
+            items.append(
+                Card(
+                    title=title,
+                    content=content,
+                    search_value=host.hostname,
+                )
+            )
+        return items
+
+
+class DNSVisualizer(SearchableCardsVisualizer):
+    artefact = DNS
+    title = "DNS"
+
+    def get_items(self) -> list[Card]:
+        dns_lookups: list[DNSLookup] | None = self.artefact_data.dns_lookups
+        reverse_dns_lookups: dict[IPv4Address, list[str]] | None = (
+            self.artefact_data.reverse_dns_lookups
+        )
+
+        if not dns_lookups:
+            return []
+
+        items: list[Card] = []
+
+        for lookup in dns_lookups:
+            items.append(
+                Card(
+                    title=lookup.name,
+                    content_items={
+                        "A records": ", ".join(map(str, lookup.a_records or ["None"])),
+                        "CNAME records": ", ".join(lookup.cname_records or ["None"]),
+                    },
+                )
+            )
+
+        if reverse_dns_lookups:
+            for ip, reverse_lookup in reverse_dns_lookups.items():
+                items.append(
+                    Card(
+                        title=str(ip),
+                        content_items={
+                            "PTR records": ", ".join(reverse_lookup or ["None"])
+                        },
+                    )
+                )
+
+        return items
+
+
 class HostnameCtlVisualizer(ItemizedArtefactVisualizer):
     artefact = HostnameCtl
     title = "Host metadata"
@@ -145,7 +220,7 @@ class UptimeVisualizer(ArtefactVisualizer):
             host_uptime = uptime(self.artefact_data, self.scan_date)
 
             context["content"] = mark_safe(
-                f"<div class='flex align-center h-100'" f">{host_uptime}</div>"
+                f"<div class='flex align-center'" f">{host_uptime}</div>"
             )
 
         return context

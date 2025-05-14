@@ -4,6 +4,7 @@ from typing import Any, Type, TypeVar
 from humitifier_common.artefacts.registry.registry import ArtefactType
 from humitifier_scanner.exceptions import FatalCollectorError
 from humitifier_scanner.executor import Executors
+from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 from humitifier_scanner.logger import logger
 from humitifier_common.artefacts import registry as artefacts_registry
@@ -12,6 +13,7 @@ from humitifier_common.scan_data import ErrorTypeEnum, ScanError, ScanErrorMetad
 _BASE_COLLECTORS = [
     "Collector",
     "ShellCollector",
+    "FileCollector",
 ]
 T = TypeVar("T")
 
@@ -78,6 +80,8 @@ class CollectorMetaclass(type):
 
             if new_cls.required_facts:
                 raise ValueError("Metrics are not allowed to have required facts!")
+            if new_cls.optional_facts:
+                raise ValueError("Metrics are not allowed to have optional facts!")
 
         # Final check, see if we managed to resolve the facts
         if new_cls._artefact is None:
@@ -89,6 +93,9 @@ class CollectorMetaclass(type):
         # Check if all the required facts resolve
         for required_fact in new_cls.required_facts:
             cls._check_if_artefact_exists(new_cls, required_fact, "required_facts")
+        # Check if all the optional facts resolve
+        for optional_fact in new_cls.optional_facts:
+            cls._check_if_artefact_exists(new_cls, optional_fact, "optional_facts")
 
         from .registry import registry
 
@@ -145,6 +152,7 @@ class CollectorMetaclass(type):
 class CollectInfo:
     executors: dict[Executors, Any]
     required_facts: dict
+    optional_facts: dict
 
 
 class Collector(metaclass=CollectorMetaclass):
@@ -170,6 +178,8 @@ class Collector(metaclass=CollectorMetaclass):
     :type variant: str
     :ivar required_facts: A list of facts that must be provided for the collector to function.
     :type required_facts: list
+    :ivar required_facts: A list of facts that may be provided for fancy extras.
+    :type required_facts: list
     :ivar required_executors: A list of executors required for running the collector.
     :type required_executors: list[Executors]
     :ivar errors: A list of errors encountered during the collector's execution.
@@ -181,6 +191,7 @@ class Collector(metaclass=CollectorMetaclass):
     variant: str = "default"
 
     required_facts = []
+    optional_facts = []
     required_executors: list[Executors] = []
 
     def __init__(self):
@@ -203,11 +214,16 @@ class Collector(metaclass=CollectorMetaclass):
         # We don't log the error if it's a FatalCollectorError, as it's expected
         # that the collector has added a more detailed error message
         except FatalCollectorError:
+            logger.error(f"Fatal error encountered while collecting {info}")
             pass
         # Any other exceptions we create a ScanError for; while the collector
         # should be handling any errors itself, we want to make sure that we
         # log any unhandled exceptions
         except Exception as e:
+            logger.error(
+                f"Error encountered while collecting {self.artefact_name()}: {e}",
+                exc_info=True,
+            )
             self.errors.append(
                 ScanError(
                     message=str(e),
@@ -306,4 +322,42 @@ class ShellCollector(Collector):
         """Implement your shell-based collector logic here."""
         raise NotImplementedError(
             "Collector must implement a collect_from_shell method"
+        )
+
+
+class FileCollector(Collector):
+    """
+    Provides a base class for files-based collectors, as a shorthand class
+    for collectors using files-executors only.
+
+    The purpose of this class is to facilitate creating collectors that
+    rely on files executors for their functionality. It provides a premade
+    `collect` method that automatically retrieves the files executor
+    from the `info` argument and invokes the `collect_from_files` method,
+    which must be implemented by subclasses to define the specific logic
+    for collecting data using files.
+
+    :ivar required_executors: A list of executors required by this collector.
+    :type required_executors: list
+    """
+
+    required_executors = [Executors.FILES]
+
+    def collect(self, info: CollectInfo) -> T:
+        """Premade collect method for files-based collectors.
+        Will call `collect_from_files` with the files executor provided in the
+        `info` argument.
+        """
+        executor: LinuxFilesExecutor = info.executors.get(Executors.FILES)
+        if not executor:
+            raise ValueError("Files executor is required for this collector")
+
+        return self.collect_from_files(executor, info)
+
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
+    ) -> T:
+        """Implement your files-based collector logic here."""
+        raise NotImplementedError(
+            "Collector must implement a collect_from_files method"
         )

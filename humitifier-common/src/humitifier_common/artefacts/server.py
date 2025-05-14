@@ -2,6 +2,9 @@
 A collection of facts that only make sense to collect on a server.
 """
 
+from ipaddress import IPv4Address
+from typing import Literal, TypedDict
+
 from pydantic import BaseModel
 
 from humitifier_common.artefacts.groups import SERVER
@@ -28,6 +31,75 @@ class HostMeta(BaseModel):
     vhosts: list[dict[str, VHost]] | None = None
     fileservers: list[str] | None = None
     databases: dict[str, list[str]] | None = None
+
+
+##
+## Webserver
+##
+
+
+class WebhostProxy(BaseModel):
+    type: str
+    endpoint: str
+    options: dict[str, str] | None = None
+
+
+class WebhostRewriteRule(TypedDict):
+    conditions: list[str]
+    rule: str
+
+
+class WebhostAuthRequire(TypedDict):
+    type: str
+    negation: bool
+    values: list[str]
+
+
+class WebhostAuth(TypedDict):
+    type: str
+    provider: str | None
+    requires: list[WebhostAuthRequire]
+
+
+class WebhostLocation(TypedDict):
+    document_root: str | None
+    auth: WebhostAuth | None
+    proxy: WebhostProxy | None
+    rewrite_rules: list[WebhostRewriteRule] | None
+
+
+class Webhost(BaseModel):
+    listen_ports: list[int]
+    webserver: Literal["apache", "nginx"]
+    filename: str
+    document_root: str
+    hostname: str
+    hostname_aliases: list[str]
+    locations: dict[str, WebhostLocation]
+    rewrite_rules: list[WebhostRewriteRule]
+    includes: list[str]
+
+
+@fact(group=SERVER)
+class Webserver(BaseModel):
+    hosts: list[Webhost]
+
+
+##
+## DNS
+##
+
+
+class DNSLookup(BaseModel):
+    name: str
+    a_records: list[IPv4Address]
+    cname_records: list[str]
+
+
+@fact(group=SERVER)
+class DNS(BaseModel):
+    dns_lookups: list[DNSLookup] | None = None
+    reverse_dns_lookups: dict[IPv4Address, list[str]] | None = None
 
 
 ##

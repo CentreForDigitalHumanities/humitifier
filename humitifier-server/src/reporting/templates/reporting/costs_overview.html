@@ -4,11 +4,11 @@
 {% block page_title %}Server costs overview | {{ block.super }}{% endblock %}
 
 {% block content %}
-    <div class="h-full--header w-full bg py-5">
+    <div class="h-full--header w-full bg-default py-5">
         <div class="px-7 mb-5">
             <h1 class="text-3xl font-bold">Server costs overview</h1>
 
-            <div class="flex items-center gap-3 p-3 mt-4 rounded bg-blue-300 dark:bg-blue-800">
+            <div class="flex items-center gap-3 p-3 mt-4 rounded-sm bg-blue-300 dark:bg-blue-800">
                 {% include 'icons/info.html' %}
                 <div>
                     This calculator provides estimates only and actual costs may vary. Please ask your contact if you require definitive answers.
@@ -37,37 +37,37 @@
                         <table class="mt-3">
                             <tbody>
                                 <tr>
-                                    <td colspan="2" class="p-2 border dark:border-gray-700">
+                                    <td colspan="2" class="p-2 border border-gray-200 dark:border-gray-700">
                                         Total VM costs
                                     </td>
-                                    <td class="p-2 border dark:border-gray-700">
+                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
                                         {{ total_vm_costs|floatformat:2 }}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td class="p-2 border dark:border-gray-700">
+                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
                                         Total storage
                                     </td>
-                                    <td class="p-2 border dark:border-gray-700">
+                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
                                         {{ total_storage_usage|intcomma }} GB
                                     </td>
-                                    <td class="p-2 border dark:border-gray-700">
+                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
                                         {{ total_storage_costs|floatformat:2 }}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td colspan="2" class="p-2 border dark:border-gray-700">
+                                    <td colspan="2" class="p-2 border border-gray-200 dark:border-gray-700">
                                         Total support costs
                                     </td>
-                                    <td class="p-2 border dark:border-gray-700">
+                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
                                         {{ total_management_costs|floatformat:2 }}
                                     </td>
                                 </tr>
                                 <tr>
-                                    <td colspan="2" class="p-2 border border-t-2 dark:border-gray-700">
+                                    <td colspan="2" class="p-2 border border-gray-200 border-t-2 dark:border-gray-700">
                                         Total costs
                                     </td>
-                                    <td class="p-2 border border-t-2 dark:border-gray-700">
+                                    <td class="p-2 border border-gray-200 border-t-2 dark:border-gray-700">
                                         {{ total_costs|floatformat:2 }}
                                     </td>
                                 </tr>

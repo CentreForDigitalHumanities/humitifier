@@ -9,6 +9,11 @@
         <p>
             This host has not been scanned yet, or the scan has not been completed yet/failed.
         </p>
+        {% if host.can_schedule_scan %}
+            <a href="{% url 'scanning:start_scan_host' host.fqdn %}" class="btn light:btn-primary dark:btn-outline">
+            Queue scan
+            </a>
+        {% endif %}
         {% if layout.wild_wasteland %}
             <p>
                 As consolidation, please enjoy this random cat:
