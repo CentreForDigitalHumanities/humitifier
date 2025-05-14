@@ -38,9 +38,10 @@ class HostMeta(BaseModel):
 ##
 
 
-class WebhostProxy(TypedDict):
+class WebhostProxy(BaseModel):
     type: str
     endpoint: str
+    options: dict[str, str] | None = None
 
 
 class WebhostRewriteRule(TypedDict):

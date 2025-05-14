@@ -2,6 +2,7 @@ from humitifier_common.artefacts import (
     WebhostAuth,
     WebhostLocation,
     Webhost,
+    WebhostProxy,
     WebhostRewriteRule,
 )
 from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
@@ -113,10 +114,28 @@ class ApacheConfigParser:
             locations[path] = self._initialize_webhost_location()
 
         if proxy == "!":
-            locations[path]["proxy"] = {"type": "no_proxy", "endpoint": "!"}
+            locations[path]["proxy"] = WebhostProxy(
+                type="no_proxy",
+                endpoint="!",
+            )
         else:
             _type, proxy_endpoint = proxy.split(":", 1)
-            locations[path]["proxy"] = {"type": _type, "endpoint": proxy_endpoint}
+            options = None
+            if " " in proxy_endpoint:
+                options = {}
+
+                proxy_endpoint, options_segment = proxy_endpoint.split(" ", maxsplit=1)
+                raw_options = options_segment.split(" ")
+
+                for raw_option in raw_options:
+                    option, value = raw_option.split("=", maxsplit=1)
+                    options[option] = value
+
+            locations[path]["proxy"] = WebhostProxy(
+                type=_type,
+                endpoint=proxy_endpoint,
+                options=options,
+            )
 
     def _add_rewrite_condition(self, line: str) -> None:
         self.rewrite_conditions.append(self._extract_value(line, "RewriteCond"))
