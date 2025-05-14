@@ -1,7 +1,7 @@
 import abc
+import shlex
 import threading
 from dataclasses import dataclass
-from subprocess import list2cmdline
 
 import paramiko
 
@@ -214,7 +214,7 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         self, command: str | list[str], fail_silent: bool = False
     ) -> ShellOutput:
         if isinstance(command, list):
-            command = list2cmdline(command)
+            command = shlex.join(command)
         stdin, stdout, stderr = self._execute_command(command, fail_silent)
 
         # Strip empty lines
