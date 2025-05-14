@@ -4,7 +4,7 @@ from urllib.parse import urlparse
 from django.contrib.auth.mixins import AccessMixin, LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count
+from django.db.models import Count, F, Q
 from django.forms import Form
 from django.http import HttpResponseRedirect
 from django.shortcuts import resolve_url
@@ -250,7 +250,27 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
             )
             .count()
         )
-        num_fine = Host.objects.filter(alerts__isnull=True, archived=False).count()
+
+        # Complicated union
+        # The 'basic' case counts all hosts with 0 alerts
+        # The 'advanced' case counts all hosts with no unacknowledged alerts
+        num_fine = (
+            Host.objects.filter(archived=False, alerts__isnull=True)
+            # This annotate is needed for the union, as that adds this column
+            # The value is bogus and ignored
+            .annotate(unacknowledged_alerts=Count("id"))
+            .union(
+                Host.objects.exclude(alerts__isnull=True)
+                .annotate(
+                    unacknowledged_alerts=Count(
+                        "alerts",
+                        filter=Q(alerts__acknowledgement=None),
+                    )
+                )
+                .filter(unacknowledged_alerts=0, archived=False)
+            )
+            .count()
+        )
 
         return num_critical, num_warning, num_info, num_fine
 

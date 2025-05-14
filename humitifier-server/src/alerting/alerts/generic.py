@@ -45,8 +45,8 @@ class MemoryAlertGenerator(BaseArtefactAlertGenerator):
     # exceeded for an alert to be created with the given severity.
     THRESHOLDS = {
         (90, 70): AlertSeverity.CRITICAL,
-        (80, 40): AlertSeverity.WARNING,
-        (70, 30): AlertSeverity.INFO,
+        (80, 60): AlertSeverity.WARNING,
+        (70, 50): AlertSeverity.INFO,
     }
 
     def generate_alerts(self) -> AlertData | list[AlertData] | None:
@@ -105,11 +105,12 @@ class BlockDeviceUsageAlertGenerator(BaseArtefactAlertGenerator):
         alerts: list[AlertData] = []
 
         for block_device in blocks:
+            use_percent = round(block_device.use_percent, 1)
             if block_device.use_percent > self.CRITICAL_USAGE_THRESHOLD:
                 alerts.append(
                     AlertData(
                         severity=AlertSeverity.CRITICAL,
-                        message=f"Disk '{block_device.name}' usage exceeds {self.CRITICAL_USAGE_THRESHOLD}%",
+                        message=f"Disk '{block_device.name}' usage ({use_percent}%) exceeds {self.CRITICAL_USAGE_THRESHOLD}%",
                         custom_identifier=block_device.name,
                     )
                 )
@@ -117,7 +118,7 @@ class BlockDeviceUsageAlertGenerator(BaseArtefactAlertGenerator):
                 alerts.append(
                     AlertData(
                         severity=AlertSeverity.WARNING,
-                        message=f"Disk '{block_device.name}' usage exceeds {self.WARNING_USAGE_THRESHOLD}%",
+                        message=f"Disk '{block_device.name}' usage ({use_percent}%) exceeds {self.WARNING_USAGE_THRESHOLD}%",
                         custom_identifier=block_device.name,
                     )
                 )

@@ -9,7 +9,7 @@ from main.filters import (
     BooleanChoiceFilter,
     FiltersForm,
     MultipleChoiceFilterWidget,
-    NotNullFilter,
+    NullFilter,
     _get_choices,
 )
 from main.models import User
@@ -43,7 +43,7 @@ class AlertFilters(django_filters.FilterSet):
         exclude=True,
     )
 
-    acknowledged = NotNullFilter(
+    acknowledged = NullFilter(
         label="Alert acknowledged",
         field_name="acknowledgement",
     )
