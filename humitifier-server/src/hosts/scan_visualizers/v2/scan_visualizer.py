@@ -17,7 +17,8 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         visualizers.RebootPolicyVisualizer,
         visualizers.NetworkInterfacesVisualizer,
         visualizers.HostMetaVisualizer,
-        visualizers.HostMetaVHostsVisualizer,
+        visualizers.WebserverVisualizer,
+        # visualizers.HostMetaVHostsVisualizer, # deprecated in favor of above
         visualizers.HostnameCtlVisualizer,
         visualizers.PuppetAgentVisualizer,
         visualizers.IsWordpressVisualizer,

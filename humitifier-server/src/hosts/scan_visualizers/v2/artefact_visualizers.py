@@ -5,6 +5,7 @@ from cron_descriptor import (
     Options,
     get_description as get_cron_description,
 )
+from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
 from hosts.scan_visualizers.base_components import (
@@ -31,6 +32,8 @@ from humitifier_common.artefacts import (
     RebootPolicy,
     Uptime,
     Users,
+    Webhost,
+    Webserver,
     ZFS,
 )
 
@@ -81,6 +84,7 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
         return mark_safe(output)
 
 
+# Not used anymore, to be deleted TODO: delete this in 5.0
 class HostMetaVHostsVisualizer(SearchableCardsVisualizer):
     artefact = HostMeta
     title = "Apache vhosts"
@@ -117,6 +121,34 @@ class HostMetaVHostsVisualizer(SearchableCardsVisualizer):
                 )
             )
 
+        return items
+
+
+class WebserverVisualizer(SearchableCardsVisualizer):
+    artefact = Webserver
+    title = "Webserver"
+
+    def get_items(self) -> list[Card]:
+        items: list[Card] = []
+
+        for host in self.artefact_data.hosts:
+            host: Webhost = host
+
+            title = host.hostname + ":"
+            title += ",".join(map(str, host.listen_ports))
+
+            content = render_to_string(
+                template_name="hosts/scan_visualizer/components/webhost_contents.html",
+                context={"host": host},
+            )
+
+            items.append(
+                Card(
+                    title=title,
+                    content=content,
+                    search_value=host.hostname,
+                )
+            )
         return items
 
 
