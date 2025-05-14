@@ -9,7 +9,7 @@
                     {{ item.label_2 }}
                 {% endif %}
             </span>
-            <span class="text-right">{{ item.used }} / {{ item.total }}</span>
+            <span class="text-right">{{ item.used }} / {{ item.total }} ({{ item.percentage|floatformat:2 }}%)</span>
             <div class="bg-gray-200 dark:bg-gray-700 h-2 w-full rounded-full col-span-3 mt-1 mb-3 last:mb-0">
                 <div class="bg-blue-500 dark:bg-blue-300 h-2 rounded-full" style="width: {{ item.percentage }}%;"></div>
             </div>

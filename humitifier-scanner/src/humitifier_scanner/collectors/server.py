@@ -1,35 +1,253 @@
+import ipaddress
 import json
 import re
+from typing import Literal
 
 import yaml
 from datetime import datetime
 
-from humitifier_scanner.collectors import CollectInfo, ShellCollector
+import dns.reversename, dns.resolver
+from dns.resolver import NXDOMAIN
+from pydantic import IPvAnyAddress
+
+from .backend import CollectInfo, Collector, ShellCollector, FileCollector, T
+from humitifier_scanner.constants import DEB_OS_LIST, RPM_OS_LIST
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
+from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 from humitifier_common.artefacts import (
+    DNS,
+    DNSLookup,
     HostMeta,
+    HostnameCtl,
     IsWordpress,
+    NetworkInterfaces,
+    PackageList,
     PuppetAgent,
     RebootPolicy,
     Uptime,
+    Webhost,
+    Webserver,
 )
+from humitifier_scanner.parsers.apache import ApacheConfigParser
+from humitifier_scanner.parsers.nginx import NginxConfigParser
+from humitifier_scanner.utils import os_in_list
+from ..logger import logger
 
 
-class HostMetaFactCollector(ShellCollector):
+class HostMetaFactCollector(FileCollector):
     fact = HostMeta
 
-    def collect_from_shell(
-        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
     ) -> HostMeta:
-        result = shell_executor.execute("cat /hum/doc/server_facts.json")
+        with files_executor.open("/hum/doc/server_facts.json") as file:
+            json_args = json.loads(file.read())
 
-        if result.return_code != 0:
-            return HostMeta()
+            return HostMeta(**json_args)
 
-        json_str = "\n".join(result.stdout)
-        json_args = json.loads(json_str)
 
-        return HostMeta(**json_args)
+class WebserverFactCollector(FileCollector):
+    fact = Webserver
+
+    required_facts = [PackageList, HostnameCtl]
+
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
+    ) -> Webserver | None:
+        hostname_ctl: HostnameCtl = info.required_facts.get(HostnameCtl)
+        package_list: PackageList = info.required_facts.get(PackageList)
+
+        webhosts: list[Webhost] = []
+
+        apache_name = self._get_apache_name(hostname_ctl.os)
+        if apache_name is not None and self._is_webserver_installed(
+            apache_name, package_list
+        ):
+            webhosts += self._process_apache(apache_name, files_executor)
+
+        if self._is_webserver_installed("nginx", package_list):
+            webhosts += self._process_nginx(files_executor)
+
+        return Webserver(hosts=webhosts)
+
+    ##
+    ## Generic
+    ##
+
+    @staticmethod
+    def _is_webserver_installed(
+        webserver_package: Literal["apache2", "httpd", "nginx"],
+        package_list: PackageList,
+    ):
+        for package in package_list:
+            if package.name == webserver_package:
+                return True
+
+        return False
+
+    ##
+    ## NGINX
+    ##
+
+    @staticmethod
+    def _get_nginx_file_path(file: str):
+        return
+
+    @staticmethod
+    def _process_nginx(executor: LinuxFilesExecutor) -> list[Webhost]:
+        webhosts: list[Webhost] = []
+
+        config_files = executor.list_dir("/etc/nginx/sites-enabled/")
+
+        for config_file in config_files:
+            webhosts += NginxConfigParser.parse(config_file, executor)
+
+        return webhosts
+
+    ##
+    ## Apache
+    ##
+
+    @staticmethod
+    def _get_apache_name(os) -> Literal["apache2", "httpd"] | None:
+        apache_name = None
+        if os_in_list(os, DEB_OS_LIST):
+            apache_name = "apache2"
+
+        if os_in_list(os, RPM_OS_LIST):
+            apache_name = "httpd"
+
+        return apache_name
+
+    @staticmethod
+    def _get_apache_file_path(apache_name: str, file: str | None = None):
+        if apache_name not in ["apache2", "httpd"]:
+            return None
+
+        return f"/etc/{apache_name}/sites-enabled/{file or ""}"
+
+    def _process_apache(
+        self, apache_name: str, executor: LinuxFilesExecutor
+    ) -> list[Webhost]:
+        webhosts: list[Webhost] = []
+
+        config_files = executor.list_dir(self._get_apache_file_path(apache_name))
+
+        for config_file in config_files:
+            webhosts.append(ApacheConfigParser.parse(config_file, executor))
+
+        return webhosts
+
+
+class DNSFactCollector(Collector):
+    fact = DNS
+    optional_facts = [Webserver, NetworkInterfaces]
+
+    INET_FAMILY = "inet"
+    PTR_RECORD = "PTR"
+    A_RECORD = "A"
+    CNAME_RECORD = "CNAME"
+
+    def collect(self, info: CollectInfo) -> DNS | None:
+        dns_data = DNS()
+
+        if network_interfaces := info.optional_facts.get(NetworkInterfaces):
+            dns_data.reverse_dns_lookups = self._resolve_reverse_dns(network_interfaces)
+
+        if hostnames := self._extract_hostnames(
+            dns_data.reverse_dns_lookups, info.optional_facts.get(Webserver)
+        ):
+            dns_data.dns_lookups = self._resolve_dns_lookups(hostnames)
+
+        return dns_data
+
+    def _resolve_reverse_dns(
+        self, network_interfaces: NetworkInterfaces
+    ) -> dict[ipaddress.IPv4Address, list[str]]:
+        reverse_dns_lookups = {}
+
+        for interface in network_interfaces:
+
+            for address in interface.addresses:
+                # Ignore IPv6 for now
+                if address.family != self.INET_FAMILY:
+                    continue
+
+                raw_ip, _ = address.address.split("/")
+                ip = ipaddress.IPv4Address(raw_ip)
+
+                # Ignore any private IPs (localhost and docker, mostly)
+                if ip.is_private:
+                    logger.debug(f"IP {ip} is in a private range.")
+                    continue
+
+                reverse_name = dns.reversename.from_address(str(ip))
+                reverse_dns_lookups[ip] = []
+
+                try:
+                    resolved_hosts = dns.resolver.resolve(reverse_name, self.PTR_RECORD)
+                    reverse_dns_lookups[ip] = [str(host) for host in resolved_hosts]
+                except dns.resolver.NoAnswer:
+                    logger.debug(f"No PTR record found for IP {ip}")
+                except Exception as e:
+                    logger.debug(f"DNS lookup error for IP {ip}: {e}")
+
+        return reverse_dns_lookups
+
+    def _extract_hostnames(
+        self,
+        reverse_dns_lookups: dict[ipaddress.IPv4Address, list[str]],
+        webserver: Webserver | None,
+    ) -> set[str]:
+        hostnames = set()
+
+        if reverse_dns_lookups:
+            for hosts in reverse_dns_lookups.values():
+                hostnames.update([host[:-1] for host in hosts])
+
+        if webserver:
+            for host in webserver.hosts:
+                hostnames.add(host.hostname)
+                hostnames.update(host.hostname_aliases)
+
+        if "localhost" in hostnames:
+            hostnames.remove("localhost")
+
+        return hostnames
+
+    def _resolve_dns_lookups(self, hostnames: set[str]) -> list[DNSLookup]:
+        dns_lookups = []
+
+        for hostname in hostnames:
+            try:
+                a_records = [
+                    ipaddress.IPv4Address(str(record))
+                    for record in dns.resolver.resolve(
+                        hostname, self.A_RECORD, raise_on_no_answer=False
+                    )
+                ]
+            except NXDOMAIN:
+                a_records = []
+
+            try:
+                cname_records = [
+                    str(record)
+                    for record in dns.resolver.resolve(
+                        hostname, self.CNAME_RECORD, raise_on_no_answer=False
+                    )
+                ]
+            except NXDOMAIN:
+                cname_records = []
+
+            dns_lookups.append(
+                DNSLookup(
+                    name=hostname,
+                    a_records=a_records,
+                    cname_records=cname_records,
+                )
+            )
+
+        return dns_lookups
 
 
 class UptimeMetricCollector(ShellCollector):
@@ -185,32 +403,28 @@ class IsWordpressFactCollector(ShellCollector):
         return IsWordpress(is_wp=False)
 
 
-class RebootPolicyFactCollector(ShellCollector):
+class RebootPolicyFactCollector(FileCollector):
     fact = RebootPolicy
 
-    def collect_from_shell(
-        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
     ) -> RebootPolicy | None:
-        result = shell_executor.execute("cat /hum/doc/reboot_policy_facts.json")
 
-        if result.return_code != 0:
-            return None
+        with files_executor.open("/hum/doc/reboot_policy_facts.json") as file:
+            json_args = json.loads(file.read())
 
-        json_str = "\n".join(result.stdout)
-        json_args = json.loads(json_str)
+            actual_data = json_args["reboot_policy"]
 
-        actual_data = json_args["reboot_policy"]
+            output = RebootPolicy(
+                configured=actual_data["ensure"] == "present",
+            )
 
-        output = RebootPolicy(
-            configured=actual_data["ensure"] == "present",
-        )
+            if "enable" in actual_data:
+                output.enabled = actual_data["enable"]
 
-        if "enable" in actual_data:
-            output.enabled = actual_data["enable"]
-
-        for item in ["cron_minute", "cron_hour", "cron_monthday"]:
-            if item in actual_data:
-                val = str(actual_data.get(item))
-                setattr(output, item, val)
+            for item in ["cron_minute", "cron_hour", "cron_monthday"]:
+                if item in actual_data:
+                    val = str(actual_data.get(item))
+                    setattr(output, item, val)
 
         return output

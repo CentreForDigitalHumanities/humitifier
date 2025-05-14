@@ -1,7 +1,7 @@
 import json
 
 from humitifier_common.scan_data import ScanErrorMetadata
-from .backend import CollectInfo, ShellCollector
+from .backend import CollectInfo, ShellCollector, FileCollector
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor, ShellOutput
 from humitifier_common.artefacts import (
     AddressInfo,
@@ -22,6 +22,7 @@ from humitifier_common.artefacts import (
     Users,
 )
 from ..constants import DEB_OS_LIST, RPM_OS_LIST
+from ..executor.linux_files import LinuxFilesExecutor
 from ..utils import os_in_list
 
 
@@ -138,53 +139,55 @@ class BlocksMetricCollector(ShellCollector):
         return Blocks(blocks)
 
 
-class GroupsFactCollector(ShellCollector):
+class GroupsFactCollector(FileCollector):
     fact = Groups
 
-    def collect_from_shell(
-        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
     ) -> Groups:
         groups = []
 
-        result = shell_executor.execute("cat /etc/group")
+        with files_executor.open("/etc/group") as file:
+            for output_line in file.readlines():
+                output_line = str(output_line, encoding="utf-8")
+                try:
+                    name, _, gid, users = output_line.strip().split(":")
+                    users = [] if users == "" else users.split(",")
 
-        for output_line in result.stdout:
-            try:
-                name, _, gid, users = output_line.strip().split(":")
-                users = [] if users == "" else users.split(",")
-
-                groups.append(Group(name=name, gid=int(gid), users=users))
-            except ValueError:
-                self.add_error("Failed to parse group output")
+                    groups.append(Group(name=name, gid=int(gid), users=users))
+                except ValueError:
+                    self.add_error("Failed to parse group output")
 
         return Groups(groups)
 
 
-class UsersFactCollector(ShellCollector):
+class UsersFactCollector(FileCollector):
     fact = Users
 
-    def collect_from_shell(
-        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    def collect_from_files(
+        self, files_executor: LinuxFilesExecutor, info: CollectInfo
     ) -> Users:
         users = []
 
-        result = shell_executor.execute("cat /etc/passwd")
-
-        for output_line in result.stdout:
-            try:
-                name, _, uid, gid, info, home, shell = output_line.strip().split(":")
-                users.append(
-                    User(
-                        name=name,
-                        uid=int(uid),
-                        gid=int(gid),
-                        info=info if info != "" else None,
-                        home=home,
-                        shell=shell,
+        with files_executor.open("/etc/passwd") as file:
+            for output_line in file.readlines():
+                output_line = str(output_line, encoding="utf-8")
+                try:
+                    name, _, uid, gid, info, home, shell = output_line.strip().split(
+                        ":"
                     )
-                )
-            except ValueError:
-                self.add_error("Failed to parse user output")
+                    users.append(
+                        User(
+                            name=name,
+                            uid=int(uid),
+                            gid=int(gid),
+                            info=info if info != "" else None,
+                            home=home,
+                            shell=shell,
+                        )
+                    )
+                except ValueError:
+                    self.add_error("Failed to parse user output")
 
         return Users(users)
 

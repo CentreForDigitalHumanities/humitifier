@@ -28,6 +28,7 @@ def layout_context(request):
 
     if wild_wasteland:
         jokes = [
+            # @formatter:disable
             "Performs best on a 386",
             "Now with 100% more bugs!",
             "Performance edition",
@@ -70,6 +71,7 @@ def layout_context(request):
             "Ravens know when someone is spying on them",
             "Flamingos can only eat with their heads upside down",
             "A group of crows is a 'murder'",
+            "Two crows together is an attempted murder",
             "In the 1870s, cats were being trained in Belgium to deliver mail to replace homing pigeons",
             "Antarctica’s international telephone dialling code is +672",
             "Thousands of rabbits once attacked Napoleon. The rabbits won.",
@@ -77,6 +79,34 @@ def layout_context(request):
             "Playing dance music can help ward off mosquitoes",
             "“Avoid potential systems fans loop logs” - GPT-4o, 2025",
             "Trotse winnaar van de SPrins 'Gouden API' award 🏆",
+            "We don’t know who invented the fire hydrant, as those papers were lost when the US Patent Office... burned down.",
+            "Lego is the largest tyre manufacturer in the world",
+            "Orca are considered a natural predator of moose",
+            "In the UK, for every 1 degree Celsius the temperature drops, Heinz soup sales increase 3.4%",
+            "In 1999, hackers revealed a security flaw in Hotmail that permitted anybody to log in to any Hotmail account using the password 'eh'",
+            "The banana tree is not a tree and is in fact the worlds largest herb",
+            "The factual accuracy of these lines have been rated to be equal to or better than the accuracy of LLMs",
+            "Everything in the universe is either a banana or not a banana",
+            "A group of owls is called a parliament",
+            "Dolly Parton entered a Dolly Parton look-alike contest. And lost.",
+            "Flamingos are born white and their food dyes them pink",
+            mark_safe(
+                "You don't often get e-mail from the pope. "
+                "<a href='https://www.youtube.com/watch?v=YrV_P9xjHc8'>"
+                "Learn why this is important</a>"
+            ),
+            "99 little bugs in the code, 99 bugs in the code. Take one down, patch it around, 127 little bugs in the code.",
+            "When things work perfectly, check again. Something’s about to break.",
+            "Remember, downtime is just uptime waiting to happen.",
+            "Choo choo",
+            "AI-generated. Results may scare you",
+            "Error 503: Joke not available",
+            "Task failed successfully",
+            "First line of defense: blame DNS",
+            "Second line of defense: blame DNS again",
+            "Now powered by webdisassembly!",
+            "",
+            # @formatter:on
         ]
         tag_line = random.choice(jokes)
 

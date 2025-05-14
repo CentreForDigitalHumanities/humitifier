@@ -1,0 +1,130 @@
+<div class="text-gray-700 dark:text-gray-400">
+
+    <div
+        class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-1 gap-3 mt-3">
+
+        {% if host.hostname_aliases %}
+            <div class="font-semibold">Host aliasses</div>
+            <div>{{ host.hostname_aliases|join:", " }}</div>
+        {% endif %}
+
+        <div class="font-semibold">Webserver</div>
+        <div>{{ host.webserver|capfirst }}</div>
+
+        {% if host.document_root %}
+            <div class="font-semibold">Document root</div>
+            <div>{{ host.document_root }}</div>
+        {% endif %}
+
+
+        {% if host.locations %}
+            <div class="col-span-2 ">
+                <div class="font-semibold">Locations</div>
+            </div>
+
+            {% for path, location in host.locations.items %}
+                <div class="col-span-2 py-3 px-2 bg-gray-300 dark:bg-gray-700 border border-gray-400 dark:border-gray-600 rounded-sm mb-1">
+                    <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-1 gap-3">
+
+                        <div class="font-bold col-span-2 mb-3">{{ path }}</div>
+
+
+                        {% if location.document_root %}
+                            <div class="font-semibold">Document root</div>
+                            <div>{{ location.document_root }}</div>
+                        {% endif %}
+
+                        {% if location.auth %}
+                            {% if location.auth.type %}
+                                <div class="font-semibold">Auth type</div>
+                                <div>{{ location.auth.type }}</div>
+                            {% endif %}
+                            {% if location.auth.provider %}
+                                <div class="font-semibold">Auth provider</div>
+                                <div>{{ location.auth.provider }}</div>
+                            {% endif %}
+                            {% if location.auth.requires %}
+                                {% for require in location.auth.requires %}
+                                    <div class="font-semibold">Auth require</div>
+                                    <div>
+                                        {% if require.negation %}not{% endif %}
+                                        {{ require.type }}
+                                        {{ require.values|join:" " }}
+                                    </div>
+                                {% endfor %}
+                            {% endif %}
+                        {% endif %}
+
+                        {% if location.proxy %}
+                            {% if location.proxy.type != 'no_proxy' %}
+                                <div class="font-semibold">Proxy type</div>
+                                <div>{{ location.proxy.type }}</div>
+                                <div class="font-semibold">Proxy endpoint</div>
+                                <div>{{ location.proxy.endpoint }}</div>
+                            {% else %}
+                                <div class="font-semibold">Proxy type</div>
+                                <div>Disable proxy</div>
+                            {% endif %}
+                            {% if location.proxy.options %}
+                                <div class="font-semibold">Proxy options</div>
+                                <div>
+                                    {% for option, value in location.proxy.options.items %}
+                                        {{ option }}: {{ value }}{% if not forloop.last %},{% endif %}
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        {% endif %}
+
+                        {% if location.rewrite_rules %}
+                            <div class="font-semibold col-span-2">Rewrite rules</div>
+                            {% for rule in host.rewrite_rules %}
+                                {% for condition in rule.conditions %}
+                                    <div class="font-semibold pl-5">Condition</div>
+                                    <div class="pl-5">{{ condition }}</div>
+                                {% endfor %}
+                                <div class="font-semibold pl-5">Rule</div>
+                                <div class="pl-5">{{ rule.rule }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            {% endfor %}
+        {% endif %}
+
+        {% if host.rewrite_rules %}
+            <div class="col-span-2 py-3 px-2">
+                <div class=" border-b border-gray-400"></div>
+            </div>
+            <div class="font-semibold col-span-2">Rewrite rules</div>
+            {% for rule in host.rewrite_rules %}
+                {% for condition in rule.conditions %}
+                    <div class="font-semibold pl-5">Condition</div>
+                    <div class="pl-5">{{ condition }}</div>
+                {% endfor %}
+                <div class="font-semibold pl-5">Rule</div>
+                <div class="pl-5">{{ rule.rule }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="col-span-2 py-3 px-2">
+            <div class=" border-b border-gray-400"></div>
+        </div>
+
+        <div class="font-semibold">Config file</div>
+        <div>
+            {{ host.filename }}
+        </div>
+
+        {% if host.includes %}
+            <div class="font-semibold">Included files</div>
+            <div class="col-span-2">
+                <ul class="list-['-'] pl-5 space-y-1">
+                    {{ host.includes|unordered_list }}
+                </ul>
+            </div>
+        {% endif %}
+
+
+    </div>
+
+</div>
