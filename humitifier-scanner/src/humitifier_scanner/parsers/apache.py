@@ -205,10 +205,14 @@ class ApacheConfigParser:
 
         try:
             for file in files:
-                with self.files_executor.open(file) as include_file:
-                    contents = include_file.readlines()
-                    contents = [str(l, encoding="utf-8") for l in contents]
-                    self.contents[self.index : self.index] = contents
+                try:
+                    with self.files_executor.open(file) as include_file:
+                        contents = include_file.readlines()
+                        contents = [str(l, encoding="utf-8") for l in contents]
+                        self.contents[self.index : self.index] = contents
+                except PermissionError:
+                    # Happens with includes sometimes
+                    pass
 
         except FileNotFoundError:
             logger.debug(f"File {filename} not found")
