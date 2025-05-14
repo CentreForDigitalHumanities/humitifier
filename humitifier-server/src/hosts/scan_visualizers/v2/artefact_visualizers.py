@@ -181,15 +181,16 @@ class DNSVisualizer(SearchableCardsVisualizer):
                 )
             )
 
-        for ip, reverse_lookup in reverse_dns_lookups.items():
-            items.append(
-                Card(
-                    title=str(ip),
-                    content_items={
-                        "PTR records": ", ".join(reverse_lookup or ["None"])
-                    },
+        if reverse_dns_lookups:
+            for ip, reverse_lookup in reverse_dns_lookups.items():
+                items.append(
+                    Card(
+                        title=str(ip),
+                        content_items={
+                            "PTR records": ", ".join(reverse_lookup or ["None"])
+                        },
+                    )
                 )
-            )
 
         return items
 
