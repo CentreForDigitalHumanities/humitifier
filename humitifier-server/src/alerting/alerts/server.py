@@ -95,6 +95,12 @@ class DNSAlertGenerator(BaseArtefactAlertGenerator):
         found_ips: list[IPv4Address] = dns_info.reverse_dns_lookups.keys()
 
         for lookup in dns_info.dns_lookups:
+            if not lookup.a_records and not lookup.cname_records:
+                alerts.append(AlertData(
+                    severity=AlertSeverity.WARNING,
+                    message=f"{lookup.name} could not be resolved in DNS",
+                    custom_identifier=f"{lookup.name}_NXDOMAIN",
+                ))
             for a_record in lookup.a_records:
                 if a_record not in found_ips:
                     alerts.append(
