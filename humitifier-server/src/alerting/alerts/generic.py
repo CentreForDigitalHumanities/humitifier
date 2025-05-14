@@ -45,8 +45,8 @@ class MemoryAlertGenerator(BaseArtefactAlertGenerator):
     # exceeded for an alert to be created with the given severity.
     THRESHOLDS = {
         (90, 70): AlertSeverity.CRITICAL,
-        (80, 40): AlertSeverity.WARNING,
-        (70, 30): AlertSeverity.INFO,
+        (80, 60): AlertSeverity.WARNING,
+        (70, 50): AlertSeverity.INFO,
     }
 
     def generate_alerts(self) -> AlertData | list[AlertData] | None:
