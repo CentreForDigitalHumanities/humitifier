@@ -7,6 +7,7 @@ import yaml
 from datetime import datetime
 
 import dns.reversename, dns.resolver
+from dns.resolver import NXDOMAIN
 from pydantic import IPvAnyAddress
 
 from .backend import CollectInfo, Collector, ShellCollector, FileCollector, T
@@ -218,18 +219,25 @@ class DNSFactCollector(Collector):
         dns_lookups = []
 
         for hostname in hostnames:
-            a_records = [
-                ipaddress.IPv4Address(str(record))
-                for record in dns.resolver.resolve(
-                    hostname, self.A_RECORD, raise_on_no_answer=False
-                )
-            ]
-            cname_records = [
-                str(record)
-                for record in dns.resolver.resolve(
-                    hostname, self.CNAME_RECORD, raise_on_no_answer=False
-                )
-            ]
+            try:
+                a_records = [
+                    ipaddress.IPv4Address(str(record))
+                    for record in dns.resolver.resolve(
+                        hostname, self.A_RECORD, raise_on_no_answer=False
+                    )
+                ]
+            except NXDOMAIN:
+                a_records = []
+
+            try:
+                cname_records = [
+                    str(record)
+                    for record in dns.resolver.resolve(
+                        hostname, self.CNAME_RECORD, raise_on_no_answer=False
+                    )
+                ]
+            except NXDOMAIN:
+                cname_records = []
 
             dns_lookups.append(
                 DNSLookup(
