@@ -16,6 +16,7 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         visualizers.HardwareVisualizer,
         visualizers.RebootPolicyVisualizer,
         visualizers.NetworkInterfacesVisualizer,
+        visualizers.DNSVisualizer,
         visualizers.HostMetaVisualizer,
         visualizers.WebserverVisualizer,
         # visualizers.HostMetaVHostsVisualizer, # deprecated in favor of above

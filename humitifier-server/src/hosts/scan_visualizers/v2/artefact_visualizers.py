@@ -1,4 +1,5 @@
 from datetime import datetime
+from ipaddress import IPv4Address
 
 from cron_descriptor import (
     FormatException,
@@ -20,6 +21,8 @@ from hosts.scan_visualizers.base_components import (
 from hosts.templatetags.host_tags import size_from_mb, uptime
 from humitifier_common.artefacts import (
     Blocks,
+    DNS,
+    DNSLookup,
     Groups,
     Hardware,
     HostMeta,
@@ -149,6 +152,45 @@ class WebserverVisualizer(SearchableCardsVisualizer):
                     search_value=host.hostname,
                 )
             )
+        return items
+
+
+class DNSVisualizer(SearchableCardsVisualizer):
+    artefact = DNS
+    title = "DNS"
+
+    def get_items(self) -> list[Card]:
+        dns_lookups: list[DNSLookup] | None = self.artefact_data.dns_lookups
+        reverse_dns_lookups: dict[IPv4Address, list[str]] | None = (
+            self.artefact_data.reverse_dns_lookups
+        )
+
+        if not dns_lookups:
+            return []
+
+        items: list[Card] = []
+
+        for lookup in dns_lookups:
+            items.append(
+                Card(
+                    title=lookup.name,
+                    content_items={
+                        "A records": ", ".join(map(str, lookup.a_records or ["None"])),
+                        "CNAME records": ", ".join(lookup.cname_records or ["None"]),
+                    },
+                )
+            )
+
+        for ip, reverse_lookup in reverse_dns_lookups.items():
+            items.append(
+                Card(
+                    title=str(ip),
+                    content_items={
+                        "PTR records": ", ".join(reverse_lookup or ["None"])
+                    },
+                )
+            )
+
         return items
 
 
