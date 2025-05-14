@@ -145,7 +145,7 @@ class UptimeVisualizer(ArtefactVisualizer):
             host_uptime = uptime(self.artefact_data, self.scan_date)
 
             context["content"] = mark_safe(
-                f"<div class='flex align-center h-100'" f">{host_uptime}</div>"
+                f"<div class='flex align-center'" f">{host_uptime}</div>"
             )
 
         return context
