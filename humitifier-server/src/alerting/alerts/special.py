@@ -31,11 +31,12 @@ class ZFSUsageAlertGenerator(BaseArtefactAlertGenerator):
         alerts = []
         for item in items:
             percent_usage = item.used_mb / item.size_mb * 100
+            percent_usage = round(percent_usage, 1)
             if percent_usage > self.HIGH_USAGE_THRESHOLD:
                 alerts.append(
                     AlertData(
                         severity=AlertSeverity.CRITICAL,
-                        message=f"ZFS {item_type} '{item.name}' usage exceeds {self.HIGH_USAGE_THRESHOLD}%",
+                        message=f"ZFS {item_type} '{item.name}' usage ({percent_usage}%) exceeds {self.HIGH_USAGE_THRESHOLD}%",
                         custom_identifier=f"{item_type}-{item.name}",
                     )
                 )
@@ -43,7 +44,7 @@ class ZFSUsageAlertGenerator(BaseArtefactAlertGenerator):
                 alerts.append(
                     AlertData(
                         severity=AlertSeverity.WARNING,
-                        message=f"ZFS {item_type} '{item.name}' usage exceeds {self.WARNING_USAGE_THRESHOLD}%",
+                        message=f"ZFS {item_type} '{item.name}' usage ({percent_usage}%) exceeds {self.WARNING_USAGE_THRESHOLD}%",
                         custom_identifier=f"{item_type}-{item.name}",
                     )
                 )
