@@ -95,6 +95,7 @@ class LinuxFilesExecutor(abc.ABC):
 
         if needs_absolute and not p.is_absolute():
             logger.error(f"Path {p} is not a absolute path")
+            logger.error(type(p))
             raise ValueError("Path must be a absolute path")
 
         return p
@@ -205,27 +206,30 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
     ) -> list[Path]:
         items = []
 
-        for item in self.sftp_client.listdir_attr(str(dirpath)):
-            stat_to_eval = item
+        try:
+            for item in self.sftp_client.listdir_attr(str(dirpath)):
+                stat_to_eval = item
 
-            # If we found a symbolic link, we need to follow it
-            if stat.S_ISLNK(item.st_mode):
-                # Normalize always gives a full absolute path, which is better
-                # than `readlink`
-                target = self.sftp_client.normalize(str(dirpath / item.filename))
-                logger.debug(f"Followed link {item.filename}: {target}")
+                # If we found a symbolic link, we need to follow it
+                if stat.S_ISLNK(item.st_mode):
+                    # Normalize always gives a full absolute path, which is better
+                    # than `readlink`
+                    target = self.sftp_client.normalize(str(dirpath / item.filename))
+                    logger.debug(f"Followed link {item.filename}: {target}")
 
-                # Replace out item object with the `stat` of the actual destination
-                stat_to_eval = self.sftp_client.stat(target)
+                    # Replace out item object with the `stat` of the actual destination
+                    stat_to_eval = self.sftp_client.stat(target)
 
-            if what == "files":
-                if stat.S_ISREG(stat_to_eval.st_mode):
+                if what == "files":
+                    if stat.S_ISREG(stat_to_eval.st_mode):
+                        items.append(item.filename)
+                elif what == "dirs":
+                    if stat.S_ISDIR(stat_to_eval.st_mode):
+                        items.append(item.filename)
+                else:
                     items.append(item.filename)
-            elif what == "dirs":
-                if stat.S_ISDIR(stat_to_eval.st_mode):
-                    items.append(item.filename)
-            else:
-                items.append(item.filename)
+        except FileNotFoundError:
+            return []
 
         return [dirpath / item for item in items]
 
