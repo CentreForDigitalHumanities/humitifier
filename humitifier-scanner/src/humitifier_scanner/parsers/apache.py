@@ -111,8 +111,12 @@ class ApacheConfigParser:
         locations = self.locations
         if path not in locations:
             locations[path] = self._initialize_webhost_location()
-        _type, proxy_endpoint = proxy.split(":", 1)
-        locations[path]["proxy"] = {"type": _type, "endpoint": proxy_endpoint}
+
+        if proxy == "!":
+            locations[path]["proxy"] = {"type": "no_proxy", "endpoint": "!"}
+        else:
+            _type, proxy_endpoint = proxy.split(":", 1)
+            locations[path]["proxy"] = {"type": _type, "endpoint": proxy_endpoint}
 
     def _add_rewrite_condition(self, line: str) -> None:
         self.rewrite_conditions.append(self._extract_value(line, "RewriteCond"))
