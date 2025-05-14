@@ -195,6 +195,10 @@ class ApacheConfigParser:
                 file for file in files if str(file).endswith(filename_post_wildcard)
             ]
         else:
+            if (filename.startswith("'") and filename.endswith("'")) or (
+                filename.startswith('"') and filename.endswith('"')
+            ):
+                filename = filename[1:-1]
             files = [filename]
 
         self.includes.extend(map(str, files))
