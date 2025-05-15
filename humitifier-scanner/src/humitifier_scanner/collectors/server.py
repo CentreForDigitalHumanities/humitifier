@@ -213,6 +213,8 @@ class DNSFactCollector(Collector):
         if "localhost" in hostnames:
             hostnames.remove("localhost")
 
+        hostnames = {hostname for hostname in hostnames if not hostname.startswith("*")}
+
         return hostnames
 
     def _resolve_dns_lookups(self, hostnames: set[str]) -> list[DNSLookup]:
