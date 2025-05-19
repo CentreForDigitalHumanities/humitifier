@@ -4,6 +4,7 @@ import threading
 from dataclasses import dataclass
 
 import paramiko
+import socket
 
 from humitifier_scanner.config import CONFIG
 from humitifier_scanner.logger import logger
@@ -193,28 +194,50 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         if self.bastion_enabled:
             self.bastion_client.close()
 
+    def _reconnect(self):
+        self.close()
+        self.ssh_client = self._get_ssh_client()
+        self._connect()
+
     #
     # Execution
     #
 
+    def _with_reconnect_retry(self, func, *args, **kwargs):
+        retry = False
+        while True:
+            try:
+                return func(*args, **kwargs)
+            except (paramiko.ssh_exception.SSHException, OSError, socket.error) as e:
+                if not retry:
+                    logger.warning(f"SSH error in {func.__name__}(), retrying after reconnect: {e}")
+                    self._reconnect()
+                    retry = True
+                    continue
+                raise
+
     def _execute_command(self, command: str, fail_silent: bool = False):
-        logger.debug(f"Executing command on {self.host}: {command}")
-        stdin, stdout, stderr = self.ssh_client.exec_command(command)
+        def do_exec():
+            logger.debug(f"Executing command on {self.host}: {command}")
+            stdin, stdout, stderr = self.ssh_client.exec_command(command)
 
-        if stdout.channel.recv_exit_status() != 0:
-            log_cmd = logger.debug if fail_silent else logger.error
-            log_cmd(
-                f"Command '{command}' failed with return code {stdout.channel.recv_exit_status()}."
-                f" Stderr: {stderr.read().decode()}"
-            )
+            if stdout.channel.recv_exit_status() != 0:
+                log_cmd = logger.debug if fail_silent else logger.error
+                log_cmd(
+                    f"Command '{command}' failed with return code {stdout.channel.recv_exit_status()}."
+                    f" Stderr: {stderr.read().decode()}"
+                )
 
-        return stdin, stdout, stderr
+            return stdin, stdout, stderr
+
+        return self._with_reconnect_retry(do_exec)
 
     def execute(
         self, command: str | list[str], fail_silent: bool = False
     ) -> ShellOutput:
         if isinstance(command, list):
             command = shlex.join(command)
+
         stdin, stdout, stderr = self._execute_command(command, fail_silent)
 
         # Strip empty lines
