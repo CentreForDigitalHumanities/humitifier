@@ -22,6 +22,9 @@ from humitifier_common.scan_data import (
 
 
 def scan(input_data: ScanInput) -> ScanOutput:
+    if input_data is None:
+        raise ValueError("input_data is None")
+
     today = datetime.now().astimezone()
     try:
         collectors, errors = _get_scan_order(input_data)

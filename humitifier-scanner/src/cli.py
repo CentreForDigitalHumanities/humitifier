@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import platform
+import sys
 from enum import Enum
 from pprint import pprint
 from typing import Optional
@@ -25,6 +25,7 @@ from humitifier_scanner.scanner import scan
 from humitifier_common.scan_data import ArtefactScanOptions, ScanInput
 from humitifier_common.artefacts import registry as artefact_registry
 from humitifier_scanner.logger import logger
+from humitifier_scanner.utils import get_local_fqdn
 
 
 ##
@@ -57,7 +58,7 @@ class ManualScan(BaseModel):
     def cli_cmd(self):
 
         if not self.host:
-            self.host = platform.node()
+            self.host = get_local_fqdn()
 
         # Collect all requested artefacts
 
@@ -124,11 +125,15 @@ class Scan(BaseModel):
 
     def cli_cmd(self):
         if not self.host:
-            self.host = platform.node()
+            self.host = get_local_fqdn()
 
         api_client = HumitifierAPIClient()
 
         scan_spec = api_client.get_scan_spec(self.host)
+
+        if not scan_spec:
+            print("Did not receive scan_spec from API")
+            sys.exit(1)
 
         result = scan(scan_spec)
 
@@ -165,7 +170,7 @@ class PrintConfig(BaseModel):
 class Hostname(BaseModel):
 
     def cli_cmd(self):
-        print(platform.node())
+        print(get_local_fqdn())
 
 
 class RetrieveScanSpec(BaseModel):
@@ -176,11 +181,17 @@ class RetrieveScanSpec(BaseModel):
 
     def cli_cmd(self):
         if not self.host:
-            self.host = platform.node()
+            self.host = get_local_fqdn()
+
+        print(self.host)
 
         api_client = HumitifierAPIClient()
 
         scan_spec = api_client.get_scan_spec(self.host)
+
+        if not scan_spec:
+            print("Did not receive scan_spec")
+            sys.exit(1)
 
         print(scan_spec.model_dump_json(indent=4))
 
