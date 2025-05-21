@@ -19,6 +19,7 @@ from humitifier_common.scan_data import (
     ScanInput,
     ScanOutput,
 )
+from humitifier_scanner.utils import get_local_fqdn
 
 
 def scan(input_data: ScanInput) -> ScanOutput:
@@ -180,6 +181,10 @@ def resolve_collector_order(collectors, dependencies):
 
 
 def _check_host_online(hostname):
+    # Localhost is always online, by definition
+    if _check_host_is_localhost(hostname):
+        return True
+
     # Why are we building in support for Windows? Reasons!
     ping_count_arg = "-n" if sys.platform.lower() == "win32" else "-c"
 
@@ -201,6 +206,11 @@ def _check_host_online(hostname):
     except Exception as e:
         logger.error(f"An error occurred while trying to contact host {hostname}: {e}")
         return False
+
+def _check_host_is_localhost(hostname):
+    localhost = get_local_fqdn()
+
+    return localhost == hostname
 
 
 def _run_collector(
