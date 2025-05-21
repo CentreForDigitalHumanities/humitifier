@@ -7,6 +7,8 @@ from tempfile import TemporaryDirectory
 from typing import Literal, TextIO
 
 from paramiko import SFTPClient, SFTPFile
+import paramiko
+import socket
 
 from humitifier_scanner.logger import logger
 
@@ -188,25 +190,44 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
     def __init__(self, shell_executor: RemoteLinuxShellExecutor):
         super().__init__()
         self.shell_executor = shell_executor
+        self.sftp_client: SFTPClient = None
+        self._connect()
+
+    def _connect(self):
         self.sftp_client: SFTPClient = shell_executor.ssh_client.open_sftp()
+
+    def _reconnect(self):
+        self._close()
+        self.shell_executor._reconnect()
+        self._connect()
+
+    def _with_reconnect_retry(self, func, *args, **kwargs):
+        retry = False
+        while True:
+            try:
+                return func(*args, **kwargs)
+            except (paramiko.ssh_exception.SSHException, OSError, socket.error) as e:
+                if not retry:
+                    logger.warning(f"SSH error in {func.__name__}(), retrying after reconnect: {e}")
+                    self._reconnect()
+                    retry = True
+                    continue
+                raise
 
     def _open(self, filename: Path, mode: str) -> SFTPFile:
         if mode not in ["r", "rb", "rt"]:
             raise ValueError("Mode must be 'r' or 'rb'")
-
-        return self.sftp_client.open(str(filename), mode)
+        return self._with_reconnect_retry(self.sftp_client.open, str(filename), mode)
 
     def _cp(self, source: Path, target: Path):
         logger.debug(f"Copying file from {source} to {target}")
-
-        self.sftp_client.get(str(source), str(target))
+        return self._with_reconnect_retry(self.sftp_client.get, str(source), str(target))
 
     def _list_dir(
         self, dirpath: Path, what: Literal["files", "dirs", "both"]
     ) -> list[Path]:
-        items = []
-
-        try:
+        def do_list():
+            items = []
             for item in self.sftp_client.listdir_attr(str(dirpath)):
                 stat_to_eval = item
 
@@ -228,10 +249,11 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
                         items.append(item.filename)
                 else:
                     items.append(item.filename)
+            return [dirpath / item for item in items]
+        try:
+            return self._with_reconnect_retry(do_list)
         except FileNotFoundError:
             return []
-
-        return [dirpath / item for item in items]
 
     #
     # Management stuff
