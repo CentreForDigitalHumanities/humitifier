@@ -13,6 +13,16 @@ def os_in_list(os: str, os_list: list[str]) -> bool:
 
 
 def get_local_fqdn():
+    """
+    Retrieve the fully qualified domain name (FQDN) of the local machine.
+    The function first checks if a local hostname is explicitly configured in `CONFIG.local_host`.
+    If not, it attempts to determine the local IP address and resolve it to a hostname using DNS.
+    If both methods fail, it falls back to the system's default hostname. (Which
+    might be a FQDN, but is not guaranteed to be)
+
+    Returns:
+        str: The FQDN of the local machine, or the hostname if the FQDN cannot be determined.
+    """
     if CONFIG.local_host:
         return CONFIG.local_host
 
@@ -25,6 +35,7 @@ def get_local_fqdn():
 
 def _get_local_ip() -> str | None:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    # Fail fast, the IP won't respond
     s.settimeout(0)
     try:
         # doesn't have to be reachable
