@@ -5,7 +5,7 @@ target-version = [
 
 [tool.poetry]
 name = "humitifier-server"
-version = "4.5.1"
+version = "4.5.3"
 description = ""
 authors = [
     "Mees, T.D. (Ty) <t.d.mees@uu.nl>",

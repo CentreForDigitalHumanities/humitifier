@@ -207,6 +207,7 @@ def _check_host_online(hostname):
         logger.error(f"An error occurred while trying to contact host {hostname}: {e}")
         return False
 
+
 def _check_host_is_localhost(hostname):
     localhost = get_local_fqdn()
 
