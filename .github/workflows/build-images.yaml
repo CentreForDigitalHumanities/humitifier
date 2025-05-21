@@ -2,19 +2,24 @@ name: Build and Push Docker Images
 
 on:
   push:
+    # Run for these branches
     branches:
       - 'main'
       - 'develop'
       - 'experimental'
+    # This is used to run on releases (which are git tags under the hood)
     tags:
       - '*'
   pull_request:
+    # For CI
     branches:
       - 'main'
       - 'develop'
 
 env:
   AGENT_IMAGE_NAME: humitifier-scanner
+  ## We built from the root of the project, because we need to copy in
+  ## Humitifier-common
   AGENT_DOCKERFILE_PATH: ./humitifier-scanner/Dockerfile
   AGENT_CONTEXT_PATH: .
   SERVER_IMAGE_NAME: humitifier-server
@@ -28,6 +33,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      # Needed to push stuff into the registry
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -35,12 +41,27 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      # This step will automatically handle adding the required container
+      # metadata
       - name: Docker meta
         id: meta
         uses: docker/metadata-action@v5
         with:
+          # This will set the url the container can be pulled from
           images: |
             ghcr.io/centrefordigitalhumanities/humitifier/${{ env.AGENT_IMAGE_NAME }}
+          # This will set the required tags on the built-container
+          ## type=ref,event=branch will make a :<branch> tag (which will move
+          ## to each latest build of said branch)
+          ## type=ref,event=pr will do the same, but with the PR name. (Note
+          ## this is not pushed)
+          ## type=pep440,pattern={{version}} will make a tag for a release,
+          ## Copying over the whole git-tag-name (e.g. 4.5.2)
+          ## type=pep440,pattern={{major}}.{{minor}} will make a tag based on
+          ## the version, but stripping the patch section (e.g. 4.5)
+          ## Thus, a release container will have 2 tags (e.g. 4.5 AND 4.5.2)
+          ## One special note: the pep440 types also assign the 'latest'
+          ## tag automatically if it's the highest known version-number
           tags: |
             type=ref,event=branch
             type=ref,event=pr
@@ -51,9 +72,13 @@ jobs:
         id: build
         uses: docker/build-push-action@v6
         with:
+          # Context; in other words, the 'root-dir' when building
           context: ${{ env.AGENT_CONTEXT_PATH }}
+          # Dockerfile
           file: ${{ env.AGENT_DOCKERFILE_PATH }}
+          # Only push on branch/tag pushes
           push: ${{ github.event_name != 'pull_request' }}
+          # Get labels and tags from the previous step
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
