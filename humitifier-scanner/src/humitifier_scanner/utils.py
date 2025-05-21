@@ -1,7 +1,7 @@
 import platform
 import socket
 
-import dns
+import dns.reversename, dns.resolver
 
 from .config import CONFIG
 
