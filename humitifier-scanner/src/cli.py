@@ -25,6 +25,7 @@ from humitifier_scanner.scanner import scan
 from humitifier_common.scan_data import ArtefactScanOptions, ScanInput
 from humitifier_common.artefacts import registry as artefact_registry
 from humitifier_scanner.logger import logger
+from humitifier_scanner.utils import get_local_fqdn
 
 
 ##
@@ -165,7 +166,7 @@ class PrintConfig(BaseModel):
 class Hostname(BaseModel):
 
     def cli_cmd(self):
-        print(platform.node())
+        print(get_local_fqdn())
 
 
 class RetrieveScanSpec(BaseModel):
@@ -176,7 +177,9 @@ class RetrieveScanSpec(BaseModel):
 
     def cli_cmd(self):
         if not self.host:
-            self.host = platform.node()
+            self.host = get_local_fqdn()
+
+        print(self.host)
 
         api_client = HumitifierAPIClient()
 

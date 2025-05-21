@@ -8,7 +8,6 @@ from datetime import datetime
 
 import dns.reversename, dns.resolver
 from dns.resolver import NXDOMAIN
-from pydantic import IPvAnyAddress
 
 from .backend import CollectInfo, Collector, ShellCollector, FileCollector, T
 from humitifier_scanner.constants import DEB_OS_LIST, RPM_OS_LIST

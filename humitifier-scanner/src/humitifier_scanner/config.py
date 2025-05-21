@@ -99,6 +99,7 @@ class _Settings:
     ##
     ssh: SSHConfig | None = None
     log_level: str = "INFO"
+    local_host: str | None = None
 
     ##
     ## Celery settings
