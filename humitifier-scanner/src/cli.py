@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import platform
 from enum import Enum
 from pprint import pprint
 from typing import Optional
@@ -58,7 +57,7 @@ class ManualScan(BaseModel):
     def cli_cmd(self):
 
         if not self.host:
-            self.host = platform.node()
+            self.host = get_local_fqdn()
 
         # Collect all requested artefacts
 
@@ -125,11 +124,15 @@ class Scan(BaseModel):
 
     def cli_cmd(self):
         if not self.host:
-            self.host = platform.node()
+            self.host = get_local_fqdn()
 
         api_client = HumitifierAPIClient()
 
         scan_spec = api_client.get_scan_spec(self.host)
+
+        if not scan_spec:
+            print("Did not receive scan_spec from API")
+            exit(1)
 
         result = scan(scan_spec)
 
@@ -184,6 +187,10 @@ class RetrieveScanSpec(BaseModel):
         api_client = HumitifierAPIClient()
 
         scan_spec = api_client.get_scan_spec(self.host)
+
+        if not scan_spec:
+            print("Did not receive scan_spec")
+            exit(1)
 
         print(scan_spec.model_dump_json(indent=4))
 
