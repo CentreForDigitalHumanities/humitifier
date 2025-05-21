@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import sys
 from enum import Enum
 from pprint import pprint
 from typing import Optional
@@ -132,7 +133,7 @@ class Scan(BaseModel):
 
         if not scan_spec:
             print("Did not receive scan_spec from API")
-            exit(1)
+            sys.exit(1)
 
         result = scan(scan_spec)
 
@@ -190,7 +191,7 @@ class RetrieveScanSpec(BaseModel):
 
         if not scan_spec:
             print("Did not receive scan_spec")
-            exit(1)
+            sys.exit(1)
 
         print(scan_spec.model_dump_json(indent=4))
 
