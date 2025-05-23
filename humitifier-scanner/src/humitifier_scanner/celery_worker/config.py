@@ -43,4 +43,6 @@ def init_sentry(**_kwargs):
             traces_sample_rate=1.0,
             transport=CustomHttpTransport,
             release=HUMITIFIER_VERSION,
+            profile_session_sample_rate=1.0,
+            profile_lifecycle="trace",
         )
