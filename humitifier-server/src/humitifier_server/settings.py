@@ -17,13 +17,14 @@ from urllib.parse import urlparse
 from django.core.exceptions import ImproperlyConfigured
 from rest_framework.reverse import reverse_lazy
 from sentry_sdk import HttpTransport
+from sentry_sdk.integrations.celery import CeleryIntegration
 
 from . import env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-HUMITIFIER_VERSION = "4.5.1"
+HUMITIFIER_VERSION = "4.5.4"
 HUMITIFIER_VERSION_NAME = "It can't be DNS!"
 
 # Quick-start development settings - unsuitable for production
@@ -391,12 +392,16 @@ if DSN:
     sentry_sdk.init(
         dsn=DSN,
         traces_sample_rate=1.0,
-        _experiments={
-            "continuous_profiling_auto_start": True,
-        },
+        profile_session_sample_rate=1.0,
+        profile_lifecycle="trace",
         before_send=before_send,
         transport=CustomHttpTransport,
         release=HUMITIFIER_VERSION,
+        integrations=[
+            CeleryIntegration(
+                monitor_beat_tasks=True,
+            ),
+        ],
     )
 
 ## Celery
