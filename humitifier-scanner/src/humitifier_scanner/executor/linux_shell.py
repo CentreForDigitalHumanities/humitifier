@@ -1,4 +1,3 @@
-import abc
 import shlex
 import threading
 from dataclasses import dataclass
@@ -10,75 +9,22 @@ import socket
 from humitifier_scanner.config import CONFIG
 from humitifier_scanner.logger import logger
 
-from .shared import LOCAL_HOSTS
+from .shared import LOCAL_HOSTS, ShellExecutor, LocalShellExecutor, ShellOutput
 
 
-@dataclass
-class ShellOutput:
-    stdout: list[str]
-    stderr: list[str]
-    return_code: int
-
-
-class LinuxShellExecutor(abc.ABC):
-
-    @abc.abstractmethod
-    def execute(
-        self, command: str | list[str], fail_silent: bool = False
-    ) -> ShellOutput:
-        """
-        Provides an abstract method for executing a command in a shell-like environment and obtaining its
-        output as a `ShellOutput` object. The method must be implemented by subclasses and allows handling
-        of execution failures optionally in a silent manner.
-
-        :param command: The shell command to execute.
-        :type command: str
-        :param fail_silent: Determines whether the method suppresses errors during command
-            execution. Defaults to False.
-        :type fail_silent: bool
-        :return: The output of the executed shell command encapsulated in a `ShellOutput` object.
-        :rtype: ShellOutput
-        """
-        pass
+class LinuxShellExecutor(ShellExecutor):
 
     @staticmethod
-    def get(host: str) -> "LinuxShellExecutor":
+    def get(host: str) -> "ShellExecutor":
         if host in LOCAL_HOSTS:
             return LocalLinuxShellExecutor()
 
         return RemoteLinuxShellExecutor(host)
 
 
-class LocalLinuxShellExecutor(LinuxShellExecutor):
-
-    def execute(
-        self, command: str | list[str], fail_silent: bool = False
-    ) -> ShellOutput:
-        import subprocess
-
-        logger.debug(f"Executing command locally: {command}")
-
-        process = subprocess.Popen(
-            command,
-            shell=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        stdout, stderr = process.communicate()
-
-        # Strip empty lines
-        stdout_lines = [line.decode() for line in stdout.splitlines() if line.strip()]
-        stderr_lines = [line.decode() for line in stderr.splitlines() if line.strip()]
-
-        if process.returncode != 0:
-            log_cmd = logger.debug if fail_silent else logger.error
-            log_cmd(f"Command '{command}' failed with return code {process.returncode}")
-
-        return ShellOutput(
-            stdout_lines,
-            stderr_lines,
-            process.returncode,
-        )
+class LocalLinuxShellExecutor(LocalShellExecutor):
+    # Linux is not all that special
+    pass
 
 
 class RemoteLinuxShellExecutor(LinuxShellExecutor):

@@ -8,11 +8,15 @@ from .linux_files import (
     close_connection as close_linux_file_executor,
     get_executor as get_linux_file_executor,
 )
-
+from .powershell import (
+    close_connection as close_powershell_executor,
+    get_executor as get_powershell_executor,
+)
 
 class Executors(Enum):
     SHELL = "shell"
     FILES = "files"
+    POWERSHELL = "powershell"
 
 
 def get_executor(executor: Executors, host: str):
@@ -20,6 +24,8 @@ def get_executor(executor: Executors, host: str):
         return get_linux_shell_executor(host)
     elif executor == Executors.FILES:
         return get_linux_file_executor(host)
+    elif executor == Executors.POWERSHELL:
+        return get_powershell_executor(host)
 
     raise ValueError(f"Unknown executor: {executor}")
 
@@ -29,5 +35,7 @@ def release_executor(executor: Executors, host: str):
         return close_linux_shell_executor(host)
     elif executor == Executors.FILES:
         return close_linux_file_executor(host)
+    elif executor == Executors.POWERSHELL:
+        return close_powershell_executor(host)
 
     raise ValueError(f"Unknown executor: {executor}")
