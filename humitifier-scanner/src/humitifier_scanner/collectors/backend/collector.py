@@ -6,6 +6,7 @@ from humitifier_scanner.exceptions import FatalCollectorError
 from humitifier_scanner.executor import Executors
 from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
+from humitifier_scanner.executor.powershell import PowershellExecutor
 from humitifier_scanner.logger import logger
 from humitifier_common.artefacts import registry as artefacts_registry
 from humitifier_common.scan_data import ErrorTypeEnum, ScanError, ScanErrorMetadata
@@ -13,6 +14,7 @@ from humitifier_common.scan_data import ErrorTypeEnum, ScanError, ScanErrorMetad
 _BASE_COLLECTORS = [
     "Collector",
     "ShellCollector",
+    "PowershellCollector",
     "FileCollector",
 ]
 T = TypeVar("T")
@@ -322,6 +324,44 @@ class ShellCollector(Collector):
         """Implement your shell-based collector logic here."""
         raise NotImplementedError(
             "Collector must implement a collect_from_shell method"
+        )
+
+
+class PowershellCollector(Collector):
+    """
+    Provides a base class for powershell-based collectors, as a shorthand class
+    for collectors using powershell-executors only.
+
+    The purpose of this class is to facilitate creating collectors that
+    rely on power shell executors for their functionality. It provides a premade
+    `collect` method that automatically retrieves the shell executor
+    from the `info` argument and invokes the `collect_from_shell` method,
+    which must be implemented by subclasses to define the specific logic
+    for collecting data using shell commands.
+
+    :ivar required_executors: A list of executors required by this collector.
+    :type required_executors: list
+    """
+
+    required_executors = [Executors.POWERSHELL]
+
+    def collect(self, info: CollectInfo) -> T:
+        """Premade collect method for files-based collectors.
+        Will call `collect_from_files` with the files executor provided in the
+        `info` argument.
+        """
+        executor: PowershellExecutor = info.executors.get(Executors.POWERSHELL)
+        if not executor:
+            raise ValueError("Powershell executor is required for this collector")
+
+        return self.collect_from_powershell(executor, info)
+
+    def collect_from_powershell(
+        self, shell_executor: PowershellExecutor, info: CollectInfo
+    ) -> T:
+        """Implement your powershell-based collector logic here."""
+        raise NotImplementedError(
+            "Collector must implement a collect_from_powershell method"
         )
 
 
