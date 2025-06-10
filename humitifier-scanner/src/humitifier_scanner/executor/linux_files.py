@@ -194,10 +194,10 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
         self._connect()
 
     def _connect(self):
-        self.sftp_client: SFTPClient = shell_executor.ssh_client.open_sftp()
+        self.sftp_client: SFTPClient = self.shell_executor.ssh_client.open_sftp()
 
     def _reconnect(self):
-        self._close()
+        self.close()
         self.shell_executor._reconnect()
         self._connect()
 
@@ -260,7 +260,8 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
     #
 
     def close(self):
-        self.sftp_client.close()
+        if self.sftp_client:
+            self.sftp_client.close()
 
     def __repr__(self):
         return f"<RemoteLinuxFilesExecutor>"

@@ -190,8 +190,9 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         )
 
     def close(self):
-        self.ssh_client.close()
-        if self.bastion_enabled:
+        if self.ssh_client:
+            self.ssh_client.close()
+        if self.bastion_enabled and self.bastion_client:
             self.bastion_client.close()
 
     def _reconnect(self):
