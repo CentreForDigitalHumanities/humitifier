@@ -44,6 +44,10 @@ class ScanData:
 
     @cached_property
     def parsed_data(self) -> ScanOutput | None:
+        # Should only happen in tests
+        if not self.raw_data:
+            return None
+
         # Not supported by version 1 of the scan output format :(
         if self.version == 1:
             logger.debug(

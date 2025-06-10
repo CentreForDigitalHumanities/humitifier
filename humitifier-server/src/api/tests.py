@@ -2,6 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from hosts.models import DataSource, DataSourceType, Host
+from humitifier_common.scan_data import ScanInput, ScanOutput
 
 
 class ApiTestCaseMixin:
@@ -55,29 +56,59 @@ class ApiTestCaseMixin:
 
 class OAuthTestCase(ApiTestCaseMixin, TestCase):
 
+    def setUp(self):
+        super().setUp()
+
+        self.scan_obj = ScanOutput(
+            original_input=ScanInput(hostname="fake.mcfake.com", artefacts={}),
+            scan_date="2011-11-10T00:00:00Z",
+            hostname="example.org",
+            facts={},
+            metrics={},
+            errors=[],
+        )
+
+    def _create_host(self, overrides: dict = None):
+        host_data = {
+            "fqdn": "example.org",
+            "data_source_id": 1,
+            "department": "Example",
+            "customer": "Example",
+            "contact": "x@example.org",
+            "has_tofu_config": False,
+            "otap_stage": "test",
+        }
+
+        if overrides:
+            host_data.update(overrides)
+
+        Host.objects.create(**host_data)
+
     def test_has_read_access(self):
         test_request = self.read_client.get("/api/hosts/")
 
-        self.assertEqual(test_request.status_code, 200)
+        self.assertRequestSuccessful(test_request)
 
     def test_has_system_access(self):
+        self._create_host()
         test_request = self.system_client.post(
-            "/api/upload_scans/", data=[], format="json"
+            "/api/upload_scans/", data=self.scan_obj.model_dump(), format="json"
         )
 
-        self.assertEqual(test_request.status_code, 200)
+        self.assertRequestSuccessful(test_request)
 
     def test_read_no_system_access(self):
+        self._create_host()
         test_request = self.read_client.post(
-            "/api/upload_scans/", data=[], format="json"
+            "/api/upload_scans/", data=self.scan_obj.model_dump(), format="json"
         )
 
-        self.assertEqual(test_request.status_code, 403)
+        self.assertRequestUnsuccessful(test_request)
 
     def test_system_no_read_access(self):
         test_request = self.system_client.get("/api/hosts/")
 
-        self.assertEqual(test_request.status_code, 403)
+        self.assertRequestUnsuccessful(test_request)
 
 
 class HostSyncTestCase(ApiTestCaseMixin, TestCase):

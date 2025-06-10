@@ -10,6 +10,7 @@ from api.permissions import TokenHasApplication
 from api.serializers import DataSourceSyncSerializer, ScanSpecSerializer
 from hosts.models import DataSource, DataSourceType, Host
 from humitifier_common.scan_data import ScanOutput
+from humitifier_server.logger import logger
 from scanning.utils import _get_processing_chain
 
 
