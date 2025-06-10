@@ -85,7 +85,7 @@ jobs:
           POSTGRES_DB: postgres
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: postgres
-          POSTGRES_HOST: postgres
+          POSTGRES_HOST: localhost
         run: |
           source $VENV
           python src/manage.py test src/
