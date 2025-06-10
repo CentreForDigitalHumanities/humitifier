@@ -457,3 +457,6 @@ class Scan(models.Model):
 
     def get_scan_object(self) -> ScanData:
         return ScanData.from_raw_scan(self.data, self.created_at)
+
+    def __repr__(self):
+        return f"<Scan: {self.host}: {self.created_at}>"
