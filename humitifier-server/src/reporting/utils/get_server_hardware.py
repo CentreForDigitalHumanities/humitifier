@@ -20,9 +20,7 @@ def get_host_hardware(hosts: Iterable[Host]) -> list[Server]:
         scan_obj: ScanData = host.get_scan_object()
 
         if server := get_hardware_fact(scan_obj):
-            output.append(
-                server
-            )
+            output.append(server)
 
     return output
 
@@ -50,7 +48,7 @@ def get_hardware_fact(scan_obj: ScanData) -> Server | None:
     hardware: Hardware = scan_obj.parsed_data.facts[Hardware.__artefact_name__]
 
     return Server(
-                    hostname=scan_obj.parsed_data.hostname,
-                    scan_date=scan_obj.scan_date,
-                    hardware=hardware,
-                )
+        hostname=scan_obj.parsed_data.hostname,
+        scan_date=scan_obj.scan_date,
+        hardware=hardware,
+    )
