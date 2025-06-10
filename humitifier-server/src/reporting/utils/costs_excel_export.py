@@ -9,7 +9,7 @@ from openpyxl.worksheet.worksheet import Worksheet
 from hosts.models import Host
 from reporting.models import CostsScheme
 from reporting.utils import calculate_from_hardware_artefact
-from reporting.utils.get_server_hardware import get_server_hardware
+from reporting.utils.get_server_hardware import get_host_hardware
 
 
 def _get_customer_sheet_name(customer: str | None) -> str:
@@ -85,7 +85,7 @@ def create_cost_excel(
 
         hosts = Host.objects.filter(customer=customer, archived=False)
 
-        server_details = get_server_hardware(hosts)
+        server_details = get_host_hardware(hosts)
 
         total_server_costs = Decimal("0")
         total_support_costs = Decimal("0")

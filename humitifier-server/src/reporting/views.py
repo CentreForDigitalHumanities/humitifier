@@ -28,7 +28,7 @@ from reporting.models import CostsScheme
 from reporting.tables import CostsOverviewTable, CostsSchemeTable
 from reporting.utils import calculate_costs, calculate_from_hardware_artefact
 from reporting.utils.costs_excel_export import create_cost_excel
-from reporting.utils.get_server_hardware import get_server_hardware
+from reporting.utils.get_server_hardware import get_host_hardware
 
 
 class CostsSchemeListView(
@@ -230,7 +230,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
         if customer:
             hosts = hosts.filter(customer=customer)
 
-        servers = get_server_hardware(hosts)
+        servers = get_host_hardware(hosts)
 
         data = []
         total_vm_costs = Decimal("0")
