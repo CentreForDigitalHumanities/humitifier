@@ -21,6 +21,8 @@ env:
   POSTGRES_HOST: localhost
   POSTGRES_DB: djtesting
   POSTGRES_PORT: 5432
+  RABBITMQ_USER: humitifier
+  RABBITMQ_PASSWORD: humitifier
 
 jobs:
   build:
@@ -47,6 +49,15 @@ jobs:
         ports:
           # Maps tcp port 5432 on service container to the host
           - 5432:5432
+
+      rabbitmq:
+        image: rabbitmq:4-management
+        env:
+            RABBITMQ_DEFAULT_USER: ${{ env.RABBITMQ_USER }}
+            RABBITMQ_DEFAULT_PASS: ${{ env.RABBITMQ_PASSWORD }}
+        ports:
+          - "15672:15672"
+          - "5672:5672"
 
     steps:
       #
