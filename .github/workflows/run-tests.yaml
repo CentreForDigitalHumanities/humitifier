@@ -88,4 +88,4 @@ jobs:
           POSTGRES_HOST: postgres
         run: |
           source $VENV
-          python src/manage.py test
+          python src/manage.py test src/
