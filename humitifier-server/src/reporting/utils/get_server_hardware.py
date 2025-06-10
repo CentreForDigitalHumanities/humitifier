@@ -13,7 +13,7 @@ class Server:
     scan_date: datetime
 
 
-def get_host_hardware(hosts: Iterable[Host]) -> list[Server]:
+def get_hardware_for_hosts(hosts: Iterable[Host]) -> list[Server]:
     output: list[Server] = []
 
     for host in hosts:
