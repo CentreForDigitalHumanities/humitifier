@@ -2,6 +2,7 @@ import dataclasses
 import uuid
 from datetime import datetime
 from functools import cached_property
+from typing import Optional
 
 from django.db import models
 from django.db.models import Case, F, Value, When
@@ -44,6 +45,10 @@ class ScanData:
 
     @cached_property
     def parsed_data(self) -> ScanOutput | None:
+        # Should only happen in tests
+        if not self.raw_data:
+            return None
+
         # Not supported by version 1 of the scan output format :(
         if self.version == 1:
             logger.debug(
@@ -201,6 +206,8 @@ class Host(models.Model):
     archived = models.BooleanField(default=False)
 
     archival_date = models.DateTimeField(null=True)
+
+    billable = models.BooleanField(default=False)
 
     last_scan_scheduled = models.DateTimeField(null=True)
 
@@ -435,11 +442,54 @@ class Host(models.Model):
 
         return None
 
+    @property
+    def is_offline(self):
+        if last_offline_period := self.get_last_offline_period():
+            return last_offline_period.end_date is None
+
+        return False
+
+    def get_last_offline_period(self) -> Optional["HostOfflinePeriod"]:
+        return self.offline_periods.all().order_by(
+            '-start_date'
+        ).first()
+
+    def set_powerstate(self, offline: bool):
+        if offline:
+            self.set_offline()
+        else:
+            self.set_online()
+
+    def set_offline(self):
+        if last_offline_period := self.get_last_offline_period():
+            if last_offline_period.end_date is None:
+                return
+
+        HostOfflinePeriod.objects.create(
+            host=self,
+            start_date=timezone.now(),
+        )
+
+    def set_online(self):
+        if last_offline_period := self.get_last_offline_period():
+            if last_offline_period.end_date is None:
+                last_offline_period.end_date = timezone.now()
+                last_offline_period.save()
+
     def __str__(self):
         return self.fqdn
 
     def __repr__(self):
         return f"<Host: {self.fqdn}>"
+
+
+class HostOfflinePeriod(models.Model):
+
+    host = models.ForeignKey(Host, on_delete=models.CASCADE, related_name="offline_periods")
+
+    start_date = models.DateTimeField()
+
+    end_date = models.DateTimeField(null=True, blank=True)
 
 
 class Scan(models.Model):
@@ -457,3 +507,6 @@ class Scan(models.Model):
 
     def get_scan_object(self) -> ScanData:
         return ScanData.from_raw_scan(self.data, self.created_at)
+
+    def __repr__(self):
+        return f"<Scan: {self.host}: {self.created_at}>"

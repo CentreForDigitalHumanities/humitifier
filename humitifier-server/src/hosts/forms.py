@@ -54,6 +54,7 @@ class HostForm(forms.ModelForm):
             "scan_spec_override",
             "has_tofu_config",
             "otap_stage",
+            "billable",
             "department",
             "customer",
             "contact",

@@ -46,18 +46,65 @@ class PackageFilter(django_filters.Filter):
     }
 
     def filter(self, qs, value):
-        if value:
-            qs = qs.annotate(
-                package_exists=RawSQL(
-                    "SELECT count(*) FROM jsonb_array_elements("
-                    "\"hosts_host\".\"last_scan_cache\"->'facts'->'generic.PackageList'"
-                    ") AS pkg "
-                    "WHERE pkg->>'name' LIKE %s",
-                    [f"%{value}%"],
-                )
-            )
-            return qs.filter(package_exists__gt=0)
-        return qs
+        """Main filter method to determine which package filter to apply."""
+        if not value:
+            return qs
+
+        if "==" in value:
+            package, version = value.split("==", maxsplit=1)
+            return self.filter_package_exact_version(qs, package, version)
+        elif "~=" in value:
+            package, version = value.split("~=", maxsplit=1)
+            return self.filter_package_start_version(qs, package, version)
+
+        return self.filter_package(qs, value)
+
+    def _build_package_query(self, name_filter, version_filter=None, exact_match=False):
+        """
+        Helper method to build the common SQL query for package filtering.
+
+        :param name_filter: The name filter pattern (string).
+        :param version_filter: The version filter pattern (string), optional.
+        :param exact_match: Whether to use an exact match for the `version_filter`.
+        :return: Tuple of raw SQL and params.
+        """
+        query = (
+            "SELECT count(*) FROM jsonb_array_elements("
+            "\"hosts_host\".\"last_scan_cache\"->'facts'->'generic.PackageList'"
+            ") AS pkg WHERE pkg->>'name' LIKE %s"
+        )
+        params = [f"%{name_filter}%"]
+
+        if version_filter:
+            operator = "=" if exact_match else "LIKE"
+            query += f" AND pkg->>'version' {operator} %s"
+            params.append(version_filter if exact_match else f"%{version_filter}%")
+
+        return query, params
+
+    def filter_package(self, qs, value):
+        """
+        Filters the queryset based on package existence.
+        """
+        query, params = self._build_package_query(value)
+        qs = qs.annotate(package_exists=RawSQL(query, params))
+        return qs.filter(package_exists__gt=0)
+
+    def filter_package_exact_version(self, qs, package, version):
+        """
+        Filters the queryset for an exact package version match.
+        """
+        query, params = self._build_package_query(package, version, exact_match=True)
+        qs = qs.annotate(package_exists=RawSQL(query, params))
+        return qs.filter(package_exists__gt=0)
+
+    def filter_package_start_version(self, qs, package, version):
+        """
+        Filters the queryset for a package version starting with `version`.
+        """
+        query, params = self._build_package_query(package, version, exact_match=False)
+        qs = qs.annotate(package_exists=RawSQL(query, params))
+        return qs.filter(package_exists__gt=0)
 
 
 class HostAlertSeverityFilter(ChoiceFilter):

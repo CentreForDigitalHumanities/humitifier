@@ -1,0 +1,106 @@
+name: Run server tests
+
+on:
+  push:
+    branches:
+      - 'main'
+      - 'develop'
+      - 'experimental'
+    tags:
+      - '*'
+  pull_request:
+    branches:
+      - 'main'
+      - 'develop'
+      - 'experimental'
+
+env:
+  PYTHON_VERSION: 3.13
+  POSTGRES_USER: postgres
+  POSTGRES_PASSWORD: postgres
+  POSTGRES_HOST: localhost
+  POSTGRES_DB: djtesting
+  POSTGRES_PORT: 5432
+  RABBITMQ_USER: humitifier
+  RABBITMQ_PASSWORD: humitifier
+
+jobs:
+  build:
+    runs-on: "ubuntu-latest"
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: 'humitifier-server'
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+        # Set health checks to wait until postgres has started
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          # Maps tcp port 5432 on service container to the host
+          - 5432:5432
+
+      rabbitmq:
+        image: rabbitmq:4-management
+        env:
+            RABBITMQ_DEFAULT_USER: ${{ env.RABBITMQ_USER }}
+            RABBITMQ_DEFAULT_PASS: ${{ env.RABBITMQ_PASSWORD }}
+        ports:
+          - "15672:15672"
+          - "5672:5672"
+
+    steps:
+      #
+      # Setup
+      #
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+           python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+
+      - name: Load cached venv
+        if: matrix.os != 'windows-latest'
+        id: cached-poetry-dependencies
+        uses: actions/cache@v4
+        with:
+          path: humitifier-scanner/.venv
+          key: venv-tests-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('humitifier-server/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --only=main,dev --compile --no-interaction
+
+      #
+      # Run tests
+      #
+
+      - name: Run Tests
+        env:
+          POSTGRES_USER: ${{ env.POSTGRES_USER }}
+          POSTGRES_PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          POSTGRES_HOST: ${{ env.POSTGRES_HOST }}
+          POSTGRES_DB: ${{ env.POSTGRES_DB }}
+          POSTGRES_PORT: ${{ env.POSTGRES_PORT }}
+        run: |
+          source $VENV
+          python src/manage.py test src/
