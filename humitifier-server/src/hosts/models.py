@@ -451,7 +451,7 @@ class Host(models.Model):
 
     def get_last_offline_period(self) -> Optional["HostOfflinePeriod"]:
         return self.offline_periods.all().order_by(
-            'start_date'
+            '-start_date'
         ).first()
 
     def set_powerstate(self, offline: bool):
