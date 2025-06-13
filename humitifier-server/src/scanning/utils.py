@@ -28,6 +28,11 @@ def start_full_scan(
     host.last_scan_scheduled = timezone.now()
     host.save()
 
+    # Bit of a hack, to skip the actual scan here
+    # TODO: make the schedular itself ignore offline hosts
+    if host.is_offline:
+        return
+
     _start_scan(host, force=force, delay_seconds=delay_seconds)
 
 

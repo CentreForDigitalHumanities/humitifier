@@ -2,6 +2,7 @@ from django.test import TestCase
 from rest_framework.test import APIClient
 
 from hosts.models import DataSource, DataSourceType, Host
+from humitifier_common.scan_data import ScanInput, ScanOutput
 
 
 class ApiTestCaseMixin:
@@ -55,29 +56,59 @@ class ApiTestCaseMixin:
 
 class OAuthTestCase(ApiTestCaseMixin, TestCase):
 
+    def setUp(self):
+        super().setUp()
+
+        self.scan_obj = ScanOutput(
+            original_input=ScanInput(hostname="fake.mcfake.com", artefacts={}),
+            scan_date="2011-11-10T00:00:00Z",
+            hostname="example.org",
+            facts={},
+            metrics={},
+            errors=[],
+        )
+
+    def _create_host(self, overrides: dict = None):
+        host_data = {
+            "fqdn": "example.org",
+            "data_source_id": 1,
+            "department": "Example",
+            "customer": "Example",
+            "contact": "x@example.org",
+            "has_tofu_config": False,
+            "otap_stage": "test",
+        }
+
+        if overrides:
+            host_data.update(overrides)
+
+        Host.objects.create(**host_data)
+
     def test_has_read_access(self):
         test_request = self.read_client.get("/api/hosts/")
 
-        self.assertEqual(test_request.status_code, 200)
+        self.assertRequestSuccessful(test_request)
 
     def test_has_system_access(self):
+        self._create_host()
         test_request = self.system_client.post(
-            "/api/upload_scans/", data=[], format="json"
+            "/api/upload_scans/", data=self.scan_obj.model_dump(), format="json"
         )
 
-        self.assertEqual(test_request.status_code, 200)
+        self.assertRequestSuccessful(test_request)
 
     def test_read_no_system_access(self):
+        self._create_host()
         test_request = self.read_client.post(
-            "/api/upload_scans/", data=[], format="json"
+            "/api/upload_scans/", data=self.scan_obj.model_dump(), format="json"
         )
 
-        self.assertEqual(test_request.status_code, 403)
+        self.assertRequestUnsuccessful(test_request)
 
     def test_system_no_read_access(self):
         test_request = self.system_client.get("/api/hosts/")
 
-        self.assertEqual(test_request.status_code, 403)
+        self.assertRequestUnsuccessful(test_request)
 
 
 class HostSyncTestCase(ApiTestCaseMixin, TestCase):
@@ -103,7 +134,7 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         if overrides:
             host_data.update(overrides)
 
-        Host.objects.create(**host_data)
+        return Host.objects.create(**host_data)
 
     def _send_sync(self, hosts):
         return self.system_client.post(
@@ -146,6 +177,36 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         self.assertEqual(host.contact, "x@example.org")
         self.assertEqual(host.has_tofu_config, False)
         self.assertEqual(host.otap_stage, "development")
+        self.assertEqual(host.billable, False)
+
+    def test_new_billable_host(self):
+        self.assertEqual(self.data_source.hosts.count(), 0)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Example",
+                    "customer": "Example",
+                    "contact": "x@example.org",
+                    "has_tofu_config": False,
+                    "otap_stage": "development",
+                    "billable": True,
+                },
+            ]
+        )
+
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], [])
+        self.assertEqual(response["created"], ["example.org"])
+        self.assertEqual(response["archived"], [])
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.billable, True)
 
     def test_existing_host_update(self):
         self._create_host()
@@ -179,6 +240,37 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         self.assertEqual(host.contact, "y@example.org")
         self.assertEqual(host.has_tofu_config, True)
         self.assertEqual(host.otap_stage, "development")
+
+    def test_existing_billable_host_update(self):
+        self._create_host()
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Another department",
+                    "customer": "Another customer",
+                    "contact": "y@example.org",
+                    "has_tofu_config": True,
+                    "otap_stage": "development",
+                    "billable": True,
+                },
+            ]
+        )
+
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], ["example.org"])
+        self.assertEqual(response["created"], [])
+        self.assertEqual(response["archived"], [])
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.billable, True)
 
     def test_archive_host(self):
         self._create_host()
@@ -317,3 +409,134 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
 
         self.assertEqual(Host.objects.count(), 1)
         self.assertEqual(self.data_source.hosts.count(), 1)
+
+    def test_set_offline(self):
+        self._create_host()
+        self.assertEqual(Host.objects.count(), 1)
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Example",
+                    "customer": "Example",
+                    "contact": "x@example.org",
+                    "has_tofu_config": False,
+                    "otap_stage": "development",
+                    "offline": True,
+                },
+            ]
+        )
+
+        self.assertRequestSuccessful(test_request)
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.is_offline, True)
+
+    def test_set_offline_twice(self):
+        self._create_host()
+        self.assertEqual(Host.objects.count(), 1)
+
+        payload = [
+            {
+                "fqdn": "example.org",
+                "department": "Example",
+                "customer": "Example",
+                "contact": "x@example.org",
+                "has_tofu_config": False,
+                "otap_stage": "development",
+                "offline": True,
+            },
+        ]
+        test_request_1 = self._send_sync(payload)
+        test_request_2 = self._send_sync(payload)
+
+        self.assertRequestSuccessful(test_request_1)
+        self.assertRequestSuccessful(test_request_2)
+
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.is_offline, True)
+        # There should online be one
+        self.assertEqual(host.offline_periods.count(), 1)
+
+    def test_set_online(self):
+        host = self._create_host()
+        host.set_offline()
+        self.assertEqual(Host.objects.count(), 1)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Example",
+                    "customer": "Example",
+                    "contact": "x@example.org",
+                    "has_tofu_config": False,
+                    "otap_stage": "development",
+                    "offline": False,
+                },
+            ]
+        )
+
+        self.assertRequestSuccessful(test_request)
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.is_offline, False)
+
+    def test_set_online_twice(self):
+        host = self._create_host()
+        host.set_offline()
+        self.assertEqual(Host.objects.count(), 1)
+
+        payload = [
+            {
+                "fqdn": "example.org",
+                "department": "Example",
+                "customer": "Example",
+                "contact": "x@example.org",
+                "has_tofu_config": False,
+                "otap_stage": "development",
+                "offline": False,
+            },
+        ]
+        test_request_1 = self._send_sync(payload)
+        test_request_2 = self._send_sync(payload)
+
+        self.assertRequestSuccessful(test_request_1)
+        self.assertRequestSuccessful(test_request_2)
+
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.is_offline, False)
+        # There should online be one
+        self.assertEqual(host.offline_periods.count(), 1)
+
+    def test_switch_powerstate_some_times(self):
+        self._create_host()
+        self.assertEqual(Host.objects.count(), 1)
+
+        set_online_payload = {
+            "fqdn": "example.org",
+            "department": "Example",
+            "customer": "Example",
+            "contact": "x@example.org",
+            "has_tofu_config": False,
+            "otap_stage": "development",
+            "offline": False,
+        }
+        set_offline_payload = set_online_payload.copy()
+        set_offline_payload.update({"offline": True})
+
+        set_online_payload = [set_online_payload]
+        set_offline_payload = [set_offline_payload]
+
+        test_request_1 = self._send_sync(set_offline_payload)
+        test_request_2 = self._send_sync(set_online_payload)
+        test_request_3 = self._send_sync(set_offline_payload)
+        test_request_4 = self._send_sync(set_online_payload)
+
+        self.assertRequestSuccessful(test_request_1)
+        self.assertRequestSuccessful(test_request_2)
+        self.assertRequestSuccessful(test_request_3)
+        self.assertRequestSuccessful(test_request_4)
+
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.is_offline, False)
+        # There should online be two now, as we switched the state 4 times
+        self.assertEqual(host.offline_periods.count(), 2)

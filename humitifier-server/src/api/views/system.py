@@ -10,6 +10,7 @@ from api.permissions import TokenHasApplication
 from api.serializers import DataSourceSyncSerializer, ScanSpecSerializer
 from hosts.models import DataSource, DataSourceType, Host
 from humitifier_common.scan_data import ScanOutput
+from humitifier_server.logger import logger
 from scanning.utils import _get_processing_chain
 
 
@@ -252,12 +253,14 @@ class DatastoreSyncView(APIView):
             # Update other static info
             host.has_tofu_config = new_data.get("has_tofu_config", host.has_tofu_config)
             host.otap_stage = new_data.get("otap_stage", host.otap_stage)
+            host.billable = new_data.get("billable", host.billable)
 
             # If this host is unclaimed, we set the data_source attr to claim it
             if host.data_source is None:
                 host.data_source = data_source
 
             host.save()
+            host.set_powerstate(offline=new_data.get("offline"))
 
             if host.archived:
                 host.unarchive()
@@ -274,9 +277,11 @@ class DatastoreSyncView(APIView):
                 "contact": new_data.get("contact"),
                 "has_tofu_config": new_data.get("has_tofu_config"),
                 "otap_stage": new_data.get("otap_stage"),
+                "billable": new_data.get("billable"),
             }
 
-            Host.objects.create(**data)
+            host = Host.objects.create(**data)
+            host.set_powerstate(offline=new_data.get("offline"))
 
         return Response(
             {
