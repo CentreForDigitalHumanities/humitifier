@@ -104,6 +104,8 @@ class DataSourceSyncHostSerializer(serializers.Serializer):
 
     otap_stage = serializers.CharField()
 
+    billable = serializers.BooleanField(default=False)
+
 
 class DataSourceSyncSerializer(serializers.Serializer):
 

@@ -206,6 +206,8 @@ class Host(models.Model):
 
     archival_date = models.DateTimeField(null=True)
 
+    billable = models.BooleanField(default=False)
+
     last_scan_scheduled = models.DateTimeField(null=True)
 
     data_source = models.ForeignKey(

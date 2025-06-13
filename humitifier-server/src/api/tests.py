@@ -177,6 +177,36 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         self.assertEqual(host.contact, "x@example.org")
         self.assertEqual(host.has_tofu_config, False)
         self.assertEqual(host.otap_stage, "development")
+        self.assertEqual(host.billable, False)
+
+    def test_new_billable_host(self):
+        self.assertEqual(self.data_source.hosts.count(), 0)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Example",
+                    "customer": "Example",
+                    "contact": "x@example.org",
+                    "has_tofu_config": False,
+                    "otap_stage": "development",
+                    "billable": True,
+                },
+            ]
+        )
+
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], [])
+        self.assertEqual(response["created"], ["example.org"])
+        self.assertEqual(response["archived"], [])
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.billable, True)
 
     def test_existing_host_update(self):
         self._create_host()
@@ -210,6 +240,37 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         self.assertEqual(host.contact, "y@example.org")
         self.assertEqual(host.has_tofu_config, True)
         self.assertEqual(host.otap_stage, "development")
+
+    def test_existing_billable_host_update(self):
+        self._create_host()
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        test_request = self._send_sync(
+            [
+                {
+                    "fqdn": "example.org",
+                    "department": "Another department",
+                    "customer": "Another customer",
+                    "contact": "y@example.org",
+                    "has_tofu_config": True,
+                    "otap_stage": "development",
+                    "billable": True,
+                },
+            ]
+        )
+
+        self.assertRequestSuccessful(test_request)
+
+        response = test_request.data
+        self.assertEqual(response["updated"], ["example.org"])
+        self.assertEqual(response["created"], [])
+        self.assertEqual(response["archived"], [])
+
+        self.assertEqual(self.data_source.hosts.count(), 1)
+
+        host = Host.objects.get(fqdn="example.org")
+        self.assertEqual(host.billable, True)
 
     def test_archive_host(self):
         self._create_host()
