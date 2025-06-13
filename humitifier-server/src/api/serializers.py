@@ -106,6 +106,8 @@ class DataSourceSyncHostSerializer(serializers.Serializer):
 
     billable = serializers.BooleanField(default=False)
 
+    offline = serializers.BooleanField(default=False)
+
 
 class DataSourceSyncSerializer(serializers.Serializer):
 

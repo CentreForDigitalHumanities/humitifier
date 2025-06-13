@@ -260,6 +260,7 @@ class DatastoreSyncView(APIView):
                 host.data_source = data_source
 
             host.save()
+            host.set_powerstate(offline=new_data.get("offline"))
 
             if host.archived:
                 host.unarchive()
@@ -279,7 +280,8 @@ class DatastoreSyncView(APIView):
                 "billable": new_data.get("billable"),
             }
 
-            Host.objects.create(**data)
+            host = Host.objects.create(**data)
+            host.set_powerstate(offline=new_data.get("offline"))
 
         return Response(
             {

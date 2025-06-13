@@ -37,6 +37,7 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         "contact": "Contact",
         "scan_spec": "Scan spec.",
         "billable": "Billable",
+        "is_offline": "Is offline",
     }
 
     def get_context(self, **kwargs):
