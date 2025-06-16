@@ -4,7 +4,7 @@ import threading
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Literal, TextIO
+from typing import Callable, Literal, TextIO
 
 from paramiko import SFTPClient, SFTPFile
 import paramiko
@@ -201,14 +201,21 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
         self.shell_executor._reconnect()
         self._connect()
 
-    def _with_reconnect_retry(self, func, *args, **kwargs):
+    def _with_reconnect_retry(self, method: str | Callable, *args, **kwargs):
         retry = False
         while True:
             try:
+                if callable(method):
+                    func = method
+                else:
+                    func = getattr(self.sftp_client, method)
+
                 return func(*args, **kwargs)
-            except (paramiko.ssh_exception.SSHException, OSError, socket.error) as e:
+            except (paramiko.ssh_exception.SSHException, socket.error) as e:
                 if not retry:
-                    logger.warning(f"SSH error in {func.__name__}(), retrying after reconnect: {e}")
+                    logger.warning(
+                        f"SSH error in {method}(), retrying after reconnect: {e}"
+                    )
                     self._reconnect()
                     retry = True
                     continue
@@ -217,11 +224,11 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
     def _open(self, filename: Path, mode: str) -> SFTPFile:
         if mode not in ["r", "rb", "rt"]:
             raise ValueError("Mode must be 'r' or 'rb'")
-        return self._with_reconnect_retry(self.sftp_client.open, str(filename), mode)
+        return self._with_reconnect_retry("open", str(filename), mode)
 
     def _cp(self, source: Path, target: Path):
         logger.debug(f"Copying file from {source} to {target}")
-        return self._with_reconnect_retry(self.sftp_client.get, str(source), str(target))
+        return self._with_reconnect_retry("get", str(source), str(target))
 
     def _list_dir(
         self, dirpath: Path, what: Literal["files", "dirs", "both"]
@@ -250,6 +257,7 @@ class RemoteLinuxFilesExecutor(LinuxFilesExecutor):
                 else:
                     items.append(item.filename)
             return [dirpath / item for item in items]
+
         try:
             return self._with_reconnect_retry(do_list)
         except FileNotFoundError:

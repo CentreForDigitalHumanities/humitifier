@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "humitifier-scanner"
-version = "4.6.0"
+version = "4.6.1"
 description = ""
 authors = ["Mees, T.D. (Ty) <t.d.mees@uu.nl>"]
 readme = "README.md"
