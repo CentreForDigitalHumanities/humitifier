@@ -2,6 +2,7 @@ import abc
 import shlex
 import threading
 from dataclasses import dataclass
+from typing import Callable
 
 import paramiko
 import socket
@@ -191,9 +192,13 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
 
     def close(self):
         if self.ssh_client:
+            logger.debug(f"Closing ssh connection to {self.host}")
             self.ssh_client.close()
+            self.ssh_client = None
         if self.bastion_enabled and self.bastion_client:
+            logger.debug(f"Closing ssh connection to {self.bastion_host}")
             self.bastion_client.close()
+            self.bastion_client = None
 
     def _reconnect(self):
         self.close()
@@ -204,14 +209,21 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
     # Execution
     #
 
-    def _with_reconnect_retry(self, func, *args, **kwargs):
+    def _with_reconnect_retry(self, method: str | Callable, *args, **kwargs):
         retry = False
         while True:
             try:
+                if callable(method):
+                    func = method
+                else:
+                    func = getattr(self.ssh_client, method)
+
                 return func(*args, **kwargs)
             except (paramiko.ssh_exception.SSHException, OSError, socket.error) as e:
                 if not retry:
-                    logger.warning(f"SSH error in {func.__name__}(), retrying after reconnect: {e}")
+                    logger.warning(
+                        f"SSH error in {method}(), retrying after reconnect: {e}"
+                    )
                     self._reconnect()
                     retry = True
                     continue
@@ -261,7 +273,6 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
         return f"<RemoteLinuxShellExecutor(host={self.host}, port={self.port})>"
 
     def __del__(self):
-        logger.debug(f"Closing ssh connection to {self.host}")
         self.close()
 
 
