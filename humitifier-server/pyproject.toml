@@ -26,7 +26,7 @@ sentry-sdk = {extras = ["celery", "django"], version = "^2.22.0"}
 mozilla-django-oidc = "^4.0.1"
 drf-spectacular = "^0.28.0"
 django-oauth-toolkit = "^3.0.1"
-celery = "5.5.2"
+celery = "5.5.3"
 django-celery-beat = "^2.7.0"
 django-celery-results = "^2.5.1"
 cron-descriptor = "^1.4.5"
