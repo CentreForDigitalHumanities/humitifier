@@ -9,13 +9,18 @@ from humitifier_scanner.constants import HUMITIFIER_VERSION
 if not CONFIG.celery:
     raise ValueError("Celery config is not set in the config")
 
-if not CONFIG.celery.rabbit_mq_url:
-    raise ValueError("RabbitMQ URL is not set in the config")
+broker_url = None
+if CONFIG.celery.rabbit_mq_url:
+    broker_url = CONFIG.celery.rabbit_mq_url.unicode_string()
+elif CONFIG.celery.redis_dsn:
+    broker_url = CONFIG.celery.redis_dsn.unicode_string()
 
+if not broker_url:
+    raise ValueError("Neither RabbitMQ URL nor Redis DSN is set in the config")
 
 app = Celery(
     "humitifier_scanner",
-    broker=CONFIG.celery.rabbit_mq_url.unicode_string(),
+    broker=broker_url,
     broker_connection_retry_on_startup=True,
 )
 

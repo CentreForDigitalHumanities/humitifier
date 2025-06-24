@@ -24,7 +24,7 @@ pyinstaller = "^6.12.0"
 optional = true
 
 [tool.poetry.group.celery.dependencies]
-celery = "5.5.3"
+celery = {extras = ["redis"], version = "5.5.3"}
 
 [tool.poetry.group.standalone]
 optional = true

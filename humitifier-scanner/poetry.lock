@@ -37,6 +37,17 @@ files = [
 ]
 
 [[package]]
+name = "async-timeout"
+version = "5.0.1"
+description = "Timeout context manager for asyncio programs"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "async_timeout-5.0.1-py3-none-any.whl", hash = "sha256:39e3809566ff85354557ec2398b55e096c8364bacac9405a7a1fa429e77fe76c"},
+    {file = "async_timeout-5.0.1.tar.gz", hash = "sha256:d9321a7a3d5a6a5e187e824d2fa0793ce379a202935782d555d6e9d2735677d3"},
+]
+
+[[package]]
 name = "bcrypt"
 version = "4.3.0"
 description = "Modern password hashing for your software and your servers"
@@ -172,7 +183,10 @@ click = ">=8.1.2,<9.0"
 click-didyoumean = ">=0.3.0"
 click-plugins = ">=1.1.1"
 click-repl = ">=0.2.0"
-kombu = ">=5.5.2,<5.6"
+kombu = [
+    {version = ">=5.5.2,<5.6"},
+    {version = "*", extras = ["redis"], optional = true, markers = "extra == \"redis\""},
+]
 python-dateutil = ">=2.8.2"
 vine = ">=5.1.0,<6.0"
 
@@ -568,7 +582,7 @@ wmi = ["wmi (>=1.5.1)"]
 
 [[package]]
 name = "humitifier-common"
-version = "4.6.1"
+version = "4.6.2"
 description = ""
 optional = false
 python-versions = "^3.11"
@@ -610,6 +624,7 @@ files = [
 [package.dependencies]
 amqp = ">=5.1.1,<6.0.0"
 packaging = "*"
+redis = {version = ">=4.5.2,<4.5.5 || >4.5.5,<5.0.2 || >5.0.2,<=5.2.1", optional = true, markers = "extra == \"redis\""}
 tzdata = {version = ">=2025.2", markers = "python_version >= \"3.9\""}
 vine = "5.1.0"
 
@@ -1112,6 +1127,24 @@ files = [
 chardet = "*"
 
 [[package]]
+name = "redis"
+version = "5.2.1"
+description = "Python client for Redis database and key-value store"
+optional = false
+python-versions = ">=3.8"
+files = [
+    {file = "redis-5.2.1-py3-none-any.whl", hash = "sha256:ee7e1056b9aea0f04c6c2ed59452947f34c4940ee025f5dd83e6a6418b6989e4"},
+    {file = "redis-5.2.1.tar.gz", hash = "sha256:16f2e22dff21d5125e8481515e386711a34cbec50f0e44413dd7d9c060a54e0f"},
+]
+
+[package.dependencies]
+async-timeout = {version = ">=4.0.3", markers = "python_full_version < \"3.11.3\""}
+
+[package.extras]
+hiredis = ["hiredis (>=3.0.0)"]
+ocsp = ["cryptography (>=36.0.1)", "pyopenssl (==23.2.1)", "requests (>=2.31.0)"]
+
+[[package]]
 name = "requests"
 version = "2.32.4"
 description = "Python HTTP for Humans."
@@ -1327,4 +1360,4 @@ files = [
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11,<3.14"
-content-hash = "b71aab44cbb03ef8306c26fcd021cad8ea9d7cb82f5c5338a74fcb5e96dcf05a"
+content-hash = "60a55a48585333507ae85cbd5e1b4f36f54e4c6bc113aafb3d6c01fe3e695361"
