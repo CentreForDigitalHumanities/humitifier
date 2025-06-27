@@ -15,6 +15,7 @@ pyyaml = "^6.0.2"
 sentry-sdk = {extras = ["celery"], version = "^2.22.0"}
 reconfigure = "^0.1.82"
 dnspython = "^2.7.0"
+pywinrm = {extras = ["credssp", "kerberos"], version = "^0.5.0"}
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"

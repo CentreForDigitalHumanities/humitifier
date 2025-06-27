@@ -2,6 +2,8 @@ FROM python:3.13-alpine AS builder
 
 ENV PYTHONUNBUFFERED=1
 
+RUN apk add --no-cache krb5-pkinit krb5-dev krb5 build-base
+
 RUN pip install poetry && poetry config virtualenvs.in-project true
 
 WORKDIR /app
@@ -27,7 +29,7 @@ ENV PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-RUN apk add --no-cache bash
+RUN apk add --no-cache bash krb5-pkinit krb5
 
 RUN mkdir /etc/humitifier
 

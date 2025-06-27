@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import Tuple, Type
+from typing import Literal, Tuple, Type
 
 from pydantic import AmqpDsn, AnyHttpUrl, BaseModel, Field, RedisDsn, Secret
 from pydantic_settings import (
@@ -90,6 +90,13 @@ class SSHConfig(BaseModel):
     bastion: SSHBastionConfig | None = None
 
 
+class WinRMConfig(BaseModel):
+    user: str
+    password: str
+    auth_mechanism: Literal["basic", "kerberos", "ntlm", "credssp"] = "ntlm"
+    server_cert_validation: bool = False
+
+
 ##
 ## Main config
 ##
@@ -99,6 +106,7 @@ class _Settings:
     ## Common settings
     ##
     ssh: SSHConfig | None = None
+    winrm: WinRMConfig | None = None
     log_level: str = "INFO"
     local_host: str | None = None
 
