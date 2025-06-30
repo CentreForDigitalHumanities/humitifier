@@ -96,7 +96,7 @@
 
   --color-primary: #ffcd00;
 
-  --breakpoint-ultrawide: 625rem;
+  --breakpoint-ultrawide: 100rem;
 }
 
 @utility container {
