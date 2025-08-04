@@ -231,22 +231,33 @@ class MemoryVisualizer(BarsArtefactVisualizer):
     artefact = Memory
 
     def get_bar_items(self) -> list[Bar]:
+        if self.artefact_data.total_mb != 0:
+            memory_percentage = (
+                self.artefact_data.used_mb / self.artefact_data.total_mb * 100
+            )
+        else:
+            # Set to 100 to make sure as this is a high-priority issue
+            memory_percentage = 100
+
+        if self.artefact_data.swap_total_mb != 0:
+            swap_percentage = (
+                self.artefact_data.swap_used_mb / self.artefact_data.swap_total_mb * 100
+            )
+        else:
+            swap_percentage = 0
+
         return [
             Bar(
                 label_1="Memory",
                 used=size_from_mb(self.artefact_data.used_mb),
                 total=size_from_mb(self.artefact_data.total_mb),
-                percentage=self.artefact_data.used_mb
-                / self.artefact_data.total_mb
-                * 100,
+                percentage=memory_percentage,
             ),
             Bar(
                 label_1="Swap",
                 used=size_from_mb(self.artefact_data.swap_used_mb),
                 total=size_from_mb(self.artefact_data.swap_total_mb),
-                percentage=self.artefact_data.swap_used_mb
-                / self.artefact_data.swap_total_mb
-                * 100,
+                percentage=swap_percentage,
             ),
         ]
 
