@@ -53,10 +53,20 @@ class MemoryAlertGenerator(BaseArtefactAlertGenerator):
         if not self.artefact_data:
             return None
 
-        percent_mem = self.artefact_data.used_mb / self.artefact_data.total_mb * 100
-        percent_swap = (
-            self.artefact_data.swap_used_mb / self.artefact_data.swap_total_mb * 100
-        )
+        # If there is no memory, avoid a zero-division error
+        if self.artefact_data.total_mb != 0:
+            percent_mem = self.artefact_data.used_mb / self.artefact_data.total_mb * 100
+        else:
+            # There is an extra alert for this case, but as this should never happen
+            # we're going to throw all the errors
+            percent_mem = 100
+        # If there is no swap, avoid a zero-division error
+        if self.artefact_data.swap_total_mb != 0:
+            percent_swap = (
+                self.artefact_data.swap_used_mb / self.artefact_data.swap_total_mb * 100
+            )
+        else:
+            percent_swap = 0
 
         for threshold, severity in self.THRESHOLDS.items():
             mem_threshold, swap_threshold = threshold
@@ -67,6 +77,38 @@ class MemoryAlertGenerator(BaseArtefactAlertGenerator):
                 )
 
         return None
+
+
+class NoMemoryAlertGenerator(BaseArtefactAlertGenerator):
+    artefact = Memory
+    verbose_name = "Missing memory/swap"
+
+    def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        if not self.artefact_data:
+            return None
+
+        alerts = []
+
+        if self.artefact_data.total_mb == 0:
+            alerts.append(
+                AlertData(
+                    severity=AlertSeverity.CRITICAL,
+                    message="THERE IS NO MEMORY IN THIS HOST!!!!!!! HOW?!?!?!?! (You "
+                    "should (hopefully) never see this)",
+                    custom_identifier="memory",
+                )
+            )
+
+        if self.artefact_data.swap_total_mb == 0:
+            alerts.append(
+                AlertData(
+                    severity=AlertSeverity.INFO,
+                    message="This host has no SWAP available",
+                    custom_identifier="swap",
+                )
+            )
+
+        return alerts
 
 
 class OutdatedOSAlertGenerator(BaseArtefactAlertGenerator):
