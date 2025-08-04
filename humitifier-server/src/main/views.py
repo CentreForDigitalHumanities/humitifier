@@ -291,7 +291,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
             .annotate(count=Count("id"))
         )
 
-    def get_hosts_by_datasoure(self):
+    def get_hosts_by_datasource(self):
         return (
             Host.objects.get_for_user(self.request.user)
             .filter(archived=False)
@@ -369,7 +369,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
         num_critical, num_warning, num_info, num_fine = self.get_alert_stats()
         context["alert_message_counts"] = self.get_alert_count_by_message()
         context["otap_counts"] = self.get_host_count_by_otap()
-        context["datasource_counts"] = self.get_hosts_by_datasoure()
+        context["datasource_counts"] = self.get_hosts_by_datasource()
 
         context["num_critical"] = num_critical
         context["num_warning"] = num_warning
