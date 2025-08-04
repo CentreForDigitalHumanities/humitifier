@@ -156,3 +156,56 @@ class HistoricalCleanTests(TestCase):
         historical_clean()
 
         self.assertEqual(self.host.scans.count(), 6)
+
+    def test_rolling_window(self):
+        # 2024 chosen because 1 jan is on a monday, makes reasoning easy
+        epoch = timezone.make_aware(datetime(2024, 1, 1, 5, 0, 0))
+
+        # January
+        for day in range(31):
+            self._create_scan_with_date(epoch + timedelta(days=day))
+            self._create_scan_with_date(
+                epoch + timedelta(days=day, seconds=2)
+            )
+
+        self.assertEqual(self.host.scans.count(), 31 * 2)
+
+        february_epoch = timezone.make_aware(datetime(2024, 2, 1, 5, 0, 0))
+        for day in range(365 - 31):
+            date = february_epoch + timedelta(days=day)
+            self._create_scan_with_date(date)
+            self._create_scan_with_date(
+                date + timedelta(seconds=2)
+            )
+
+            clean_time = date + timedelta(hours=2)
+            with mock.patch('django.utils.timezone.now', mock.Mock(return_value=clean_time)):
+                historical_clean()
+
+            expected_total = calculate_expected_total(date)
+            self.assertEqual(self.host.scans.count(), expected_total, "Failed on day {}".format(day))
+
+
+def calculate_expected_total(current_date: datetime):
+    """
+    Dynamically calculate the expected total number of records for any date
+    in any month of any year, based on the rolling 7-day window and monthly records.
+    """
+    # Initialize the expected total count
+    expected_total = 0
+
+    # Add "today's" records
+    expected_total += 2  # Assuming 2 scans per day for "today"
+
+    # Handle records for the past 7 days (excluding "today")
+    expected_total += 6
+
+    # Include records for each past month up to the current one
+    day = current_date.day
+    month = current_date.month
+    if day < 8:
+        expected_total += month - 1
+    else:
+        expected_total += month
+
+    return expected_total

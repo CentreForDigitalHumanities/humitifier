@@ -174,12 +174,184 @@
                     },
                 },
             });
+            let datasource = document.getElementById('datasourceChart');
+            new Chart(datasource, {
+                type: 'pie',
+                data: {
+                    labels: [
+                        {% for ds in datasource_counts %}
+                            '{{ ds.data_source__name|strip_quotes }}',
+                        {% endfor %}
+                    ],
+                    datasets: [{
+                        label: 'Hosts per data source',
+                        data: [
+                            {% for ds in datasource_counts %}
+                                {{ ds.count }},
+                            {% endfor %}
+                        ],
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Hosts by data source',
+                        }
+                    },
+                },
+            });
+            {% if layout.wild_wasteland %}
+            let gremlins = document.getElementById('gremlinsChart');
+            new Chart(gremlins, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        ''
+                    ],
+                    datasets: [
+                        {% for gremlin in gremlins %}
+                            {
+                                label: "{{ gremlin.label }}",
+                                data: [
+                                    {{ gremlin.count }}
+                                ],
+                            },
+                        {% endfor %}
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Detected gremlins',
+                        }
+                    },
+                },
+            });
+            let topExcuses = document.getElementById('topExcusesChart');
+            new Chart(topExcuses, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        ''
+                    ],
+                    datasets: [
+                        {% for excuse in top_excuses_for_downtime %}
+                            {
+                                label: "{{ excuse.label }}",
+                                data: [
+                                    {{ excuse.count }}
+                                ],
+                            },
+                        {% endfor %}
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Top excuses for downtime',
+                        }
+                    },
+                },
+            });
+            let ducks = document.getElementById('ducksChart');
+            new Chart(ducks, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        ''
+                    ],
+                    datasets: [
+                        {% for duck in ducks_per_dc %}
+                            {
+                                label: "{{ duck.label }}",
+                                data: [
+                                    {{ duck.count }}
+                                ],
+                            },
+                        {% endfor %}
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Number of ducks per location',
+                        }
+                    },
+                },
+            });
+            let productivity = document.getElementById('productivityChart');
+            new Chart(productivity, {
+                type: 'bar',
+                data: {
+                    labels: [
+                        {% for p in productivity %}
+                            '{{ p.label }}',
+                        {% endfor %}
+                    ],
+                    datasets: [
+                        {
+                            label: 'Productivity',
+                            data: [
+                                {% for p in productivity %}
+                                    {{ p.percent }},
+                                {% endfor %}
+                            ],
+                        },
+                        {
+                            label: 'Coffee machine downtime',
+                            data: [
+                                {% for c in coffee_machine_downtime %}
+                                    {{ c.percent }},
+                                {% endfor %}
+                            ],
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                        },
+                        title: {
+                            display: true,
+                            text: 'Productivity distribution',
+                        }
+                    },
+                },
+            });
+            {% endif %}
         });
     </script>
 {% endblock %}
 
 {% block content %}
-    <div class="p-3 pb-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 ultrawide:grid-cols-5 gap-3">
+    <div class="p-3 pb-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 megawide:grid-cols-5 gigawide:grid-cols-6 gap-3">
         <div class="section">
             <canvas id="alertsChart"></canvas>
         </div>
@@ -195,6 +367,24 @@
         <div class="section">
             <canvas id="customerChart"></canvas>
         </div>
+        <div class="section">
+            <canvas id="datasourceChart"></canvas>
+        </div>
+        {% if layout.wild_wasteland %}
+            {# Easter egg stats; these fill in empty spaces in the stats because _someone_ complained about the empty space #}
+            <div class="section hidden 2xl:block gigawide:hidden">
+                <canvas id="topExcusesChart"></canvas>
+            </div>
+            <div class="section hidden 2xl:block gigawide:hidden">
+                <canvas id="ducksChart"></canvas>
+            </div>
+            <div class="section hidden megawide:block gigawide:hidden">
+                <canvas id="productivityChart"></canvas>
+            </div>
+            <div class="section hidden megawide:block gigawide:hidden">
+                <canvas id="gremlinsChart"></canvas>
+            </div>
+        {% endif %}
     </div>
     <div class="p-3">
         <div class="section transition ease-in-out duration-150">

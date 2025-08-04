@@ -96,7 +96,9 @@
 
   --color-primary: #ffcd00;
 
-  --breakpoint-ultrawide: 625rem;
+  --breakpoint-ultrawide: 100rem;
+  --breakpoint-megawide: 150rem;
+  --breakpoint-gigawide: 200rem; /* Sadly, I cannot top insane wide */
 }
 
 @utility container {
