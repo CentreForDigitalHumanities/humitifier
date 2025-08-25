@@ -60,7 +60,7 @@ class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
         filtered_qs = self.filterset.qs
         # We're going to need the data for the alerts in the template
         # So, let's prefetch it here for _performance_
-        filtered_qs = filtered_qs.prefetch_related("alerts")
+        filtered_qs = filtered_qs.prefetch_related("alerts", "alert_acknowledgements")
 
         return filtered_qs.distinct()
 

@@ -57,8 +57,8 @@ class ScanData:
             return None
 
         # Should not happen in prod
-        if 'scan_date' not in self.raw_data:
-            self.raw_data['scan_date'] = self.scan_date.isoformat()
+        if "scan_date" not in self.raw_data:
+            self.raw_data["scan_date"] = self.scan_date.isoformat()
 
         return ScanOutput(**self.raw_data)
 
@@ -71,6 +71,7 @@ class DataSourceType(models.TextChoices):
 class ScanScheduling(models.TextChoices):
     MANUAL = ("manual", "Manual/host initiated scanning")
     SCHEDULED = ("scheduled", "Scheduled scanning")
+
 
 def _json_value(field: str):
     """
@@ -276,9 +277,7 @@ class Host(models.Model):
     ## Methods
     ##
 
-    def add_scan(
-        self, scan_data, *, cache_scan: bool = True
-    ):
+    def add_scan(self, scan_data, *, cache_scan: bool = True):
         if self.archived:
             return None
 
@@ -316,17 +315,59 @@ class Host(models.Model):
     def num_info_alerts(self):
         return self._get_alerts_for_severity(AlertSeverity.INFO, count=True)
 
+    @property
+    def num_acknowledged_alerts(self):
+        # Use the prefetched objects if they are available
+        # It's not quicker for a single query, but it is for multiple queries
+        # (Read: the list page)
+        if "alerts" in self._prefetched_objects_cache:
+            if 'alert_acknowledgements' in self._prefetched_objects_cache:
+                acknowledged_alerts = [
+                    ack._alert_id
+                    for ack in self._prefetched_objects_cache["alert_acknowledgements"]
+                ]
+                alerts = [
+                    alert for alert in self.alerts.all()
+                    if alert.id in acknowledged_alerts
+                ]
+            else:
+                alerts = [
+                    alert
+                    for alert in self.alerts.all()
+                    if alert.get_acknowledgment() is not None
+                ]
+
+            return len(alerts)
+
+        return self.alerts.exclude(acknowledgement=None).count()
+
     def _get_alerts_for_severity(self, severity, count=False):
         # Use the prefetched objects if they are available
         # It's not quicker for a single query, but it is for multiple queries
         # (Read: the list page)
         if "alerts" in self._prefetched_objects_cache:
-            alerts = [alert for alert in self.alerts.all() if (alert.severity == severity)]
+            if 'alert_acknowledgements' in self._prefetched_objects_cache:
+                acknowledged_alerts = [
+                    ack._alert_id
+                    for ack in self._prefetched_objects_cache["alert_acknowledgements"]
+                ]
+                alerts = [
+                    alert for alert in self.alerts.all()
+                    if alert.severity == severity and alert.id not in acknowledged_alerts
+                ]
+            else:
+                alerts = [
+                    alert
+                    for alert in self.alerts.all()
+                    if alert.severity == severity
+                    and alert.get_acknowledgment() is None
+                ]
+
             if count:
                 return len(alerts)
             return alerts
 
-        qs = self.alerts.filter(severity=severity)
+        qs = self.alerts.filter(severity=severity, acknowledgement=None)
 
         if count:
             return qs.count()
@@ -450,9 +491,7 @@ class Host(models.Model):
         return False
 
     def get_last_offline_period(self) -> Optional["HostOfflinePeriod"]:
-        return self.offline_periods.all().order_by(
-            '-start_date'
-        ).first()
+        return self.offline_periods.all().order_by("-start_date").first()
 
     def set_powerstate(self, offline: bool):
         if offline:
@@ -485,7 +524,9 @@ class Host(models.Model):
 
 class HostOfflinePeriod(models.Model):
 
-    host = models.ForeignKey(Host, on_delete=models.CASCADE, related_name="offline_periods")
+    host = models.ForeignKey(
+        Host, on_delete=models.CASCADE, related_name="offline_periods"
+    )
 
     start_date = models.DateTimeField()
 
