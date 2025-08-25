@@ -15,6 +15,20 @@ from main.filters import (
 from main.models import User
 
 
+class IncludeAcknowledgedFilter(django_filters.ChoiceFilter):
+    def __init__(self, *args, **kwargs):
+        kwargs["choices"] = [
+            (True, "Include acknowledged alerts"),
+        ]
+        kwargs["field_name"] = "archived"
+        super().__init__(*args, **kwargs)
+
+    def filter(self, qs, value):
+        if not value:
+            return qs.filter(acknowledgement=None)
+        return qs
+
+
 class AlertFilters(django_filters.FilterSet):
     class Meta:
         model = Alert
@@ -43,9 +57,8 @@ class AlertFilters(django_filters.FilterSet):
         exclude=True,
     )
 
-    acknowledged = NullFilter(
-        label="Alert acknowledged",
-        field_name="acknowledgement",
+    acknowledged = IncludeAcknowledgedFilter(
+        empty_label="Exclude acknowledged alerts",
     )
 
 
