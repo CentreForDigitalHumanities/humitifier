@@ -15,5 +15,10 @@
                 {% include 'icons/critical.html' %} {{ obj.num_critical_alerts }}
             </div>
         {% endif %}
+        {% if obj.num_acknowledged_alerts %}
+            <div class="text-neutral-400">
+                {% include 'icons/snooze.html' %} {{ obj.num_acknowledged_alerts }}
+            </div>
+        {% endif %}
     {% endif %}
 </div>

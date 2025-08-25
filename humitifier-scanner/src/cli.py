@@ -31,6 +31,95 @@ from humitifier_scanner.utils import get_local_fqdn
 ##
 ## CLI commands
 ##
+class BulkManualScan(BaseModel):
+    hosts_file: str = Field(
+        description="File containing a list of hosts to scan, one per line"
+    )
+
+    artefact: list[str] = Field(
+        default_factory=list,
+        description="Fact to scan; multiple can be specified by repeating the "
+        "option. If used in combination with the 'fact_group' "
+        "option, add an '!' prefix to explicitly disable one fact in a group.",
+    )
+    artefact_group: list[str] = Field(
+        default_factory=list,
+        description="Fact group to scan; multiple can be specified by "
+        "repeating the option. Individual facts can still be overridden with "
+        "the 'fact' option. ",
+    )
+
+    indent_results: Optional[int] = Field(
+        4,
+        description="Indentation level for the printed results",
+    )
+
+
+    def cli_cmd(self):
+
+        if not self.hosts_file:
+            raise ValueError("hosts_file is None")
+
+        with open(self.hosts_file, "r") as f:
+            hosts = f.read().splitlines()
+
+        # Collect all requested artefacts
+
+        requested_artefacts = []
+        # Add all facts from the requested groups
+        for group in self.artefact_group:
+            requested_artefacts.extend(
+                [
+                    fact.__artefact_name__
+                    for fact in artefact_registry.get_all_in_group(group)
+                ]
+            )
+
+        # Add any individual facts
+        for artefact in self.artefact:
+            artefact_name = artefact
+            knockout = artefact_name.startswith("!")
+            variant = "default"
+
+            # Remove the knockout prefix
+            if knockout:
+                artefact_name = artefact_name[1:]
+
+            if ":" in artefact:
+                artefact_name, variant = artefact.split(":", 1)
+
+            # Check if the artefact is already in the requested facts list
+            # If so, remove it and add the explicitly specified artefact
+            # (This makes sure we can manually override the used variant)
+            if artefact_name in requested_artefacts:
+                requested_artefacts.remove(artefact_name)
+
+            if not knockout:
+                requested_artefacts.append(f"{artefact_name}:{variant}")
+
+        # Transform the requested facts into the instructions for the scanner
+
+        artefacts: dict[str, ArtefactScanOptions] = {}
+
+        for artefact in requested_artefacts:
+            options = {}
+            if ":" in artefact:
+                artefact, variant = artefact.split(":", 1)
+                options["variant"] = variant
+            artefacts[artefact] = ArtefactScanOptions(**options)
+
+        for host in hosts:
+            # Run the scan
+            scan_input = ScanInput(
+                hostname=host,
+                artefacts=artefacts,
+            )
+
+            result = scan(scan_input)
+
+            # Handle the results
+            print(result.model_dump_json(indent=self.indent_results))
+
 class ManualScan(BaseModel):
     host: str | None = Field(
         None,
@@ -223,6 +312,7 @@ class CLISettings(Settings, BaseSettings):
     ##
     scan: CliSubCommand[Scan]
     manual_scan: CliSubCommand[ManualScan]
+    bulk_scan: CliSubCommand[BulkManualScan]
     print_config: CliSubCommand[PrintConfig]
     hostname: CliSubCommand[Hostname]
     scan_spec: CliSubCommand[RetrieveScanSpec]
