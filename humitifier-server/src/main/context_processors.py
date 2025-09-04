@@ -107,7 +107,7 @@ def layout_context(request):
             "Now powered by webdisassembly!",
             "",
             "I am Humitifier Virtual Assistant. I am a real person. It is awesome to "
-            "see you again! Is there something specific you're searching for?"
+            "see you again! Is there something specific you're searching for?",
             # @formatter:on
         ]
         tag_line = random.choice(jokes)
