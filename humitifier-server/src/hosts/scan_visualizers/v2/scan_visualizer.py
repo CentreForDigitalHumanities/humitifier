@@ -23,6 +23,7 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         visualizers.HostnameCtlVisualizer,
         visualizers.PuppetAgentVisualizer,
         visualizers.IsWordpressVisualizer,
+        visualizers.SELinuxVisualizer,
         visualizers.PackageListVisualizer,
         visualizers.UsersVisualizer,
         visualizers.GroupsVisualizer,

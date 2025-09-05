@@ -18,10 +18,11 @@ from humitifier_common.artefacts import (
     NetworkInterfaces,
     Package,
     PackageList,
+    SELinux,
     User,
     Users,
 )
-from ..constants import DEB_OS_LIST, RPM_OS_LIST
+from ..constants import DEB_OS_LIST, RPM_OS_LIST, SELINUX_OS_LIST
 from ..executor.linux_files import LinuxFilesExecutor
 from ..utils import os_in_list
 
@@ -372,3 +373,54 @@ class NetworkInterfacesFactCollector(ShellCollector):
             )
 
         return NetworkInterfaces(interfaces)
+
+
+class SELinuxFactCollector(ShellCollector):
+    fact = SELinux
+
+    required_facts = [HostnameCtl]
+
+    STATUS_KEY = "SELinux status"
+    POLICY_KEY = "Loaded policy name"
+    MODE_KEY = "Current mode"
+
+    def collect_from_shell(
+        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    ) -> SELinux | None:
+
+        # We only check if we think this OS supports selinux
+        host_info: HostnameCtl = info.required_facts[HostnameCtl]
+        if not os_in_list(host_info.os, SELINUX_OS_LIST):
+            return None
+
+        sestatus_command = shell_executor.execute(
+            # We need to use a full path, as /usr/sbin isn't always in PATH for some reason
+            "/usr/sbin/sestatus",
+            fail_silent=True,
+        )
+
+        if sestatus_command.return_code != 0:
+            return None
+
+        enabled = False
+        policy_name = None
+        mode = None
+
+        for line in sestatus_command.stdout:
+            key, value = line.strip().split(":")
+            stripped_key = key.strip()
+            stripped_value = value.strip()
+
+            match stripped_key:
+                case self.STATUS_KEY:
+                    enabled = stripped_value.lower() == "enabled"
+                case self.POLICY_KEY:
+                    policy_name = stripped_value
+                case self.MODE_KEY:
+                    mode = stripped_value
+
+        return SELinux(
+            enabled=enabled,
+            policy_name=policy_name,
+            mode=mode,
+        )

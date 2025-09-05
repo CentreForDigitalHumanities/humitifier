@@ -190,3 +190,35 @@ class HarwareAlertGenerator(BaseArtefactAlertGenerator):
                 )
 
         return alerts
+
+
+class SELinuxAlertGenerator(BaseArtefactAlertGenerator):
+    artefact = SELinux
+    verbose_name = "SELinux config"
+
+    def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        if not self.artefact_data:
+            return None
+
+        data: SELinux = self.artefact_data
+        alerts = []
+
+        if not data.enabled:
+            alerts.append(
+                AlertData(
+                    severity=AlertSeverity.CRITICAL,
+                    message="SELinux is disabled",
+                    custom_identifier="disabled-selinux",
+                )
+            )
+
+        if data.mode.lower() != "enforcing":
+            alerts.append(
+                AlertData(
+                    severity=AlertSeverity.WARNING,
+                    message=f"SELinux enforcement mode is set to '{data.mode}'; expected 'enforcing'.",
+                    custom_identifier="wrong-mode",
+                )
+            )
+
+        return alerts
