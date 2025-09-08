@@ -212,7 +212,15 @@ class SELinuxAlertGenerator(BaseArtefactAlertGenerator):
                 )
             )
 
-        if data.mode.lower() != "enforcing":
+        if not data.mode:
+            alerts.append(
+                AlertData(
+                    severity=AlertSeverity.WARNING,
+                    message=f"SELinux enforcement mode not set; expected 'enforcing'.",
+                    custom_identifier="missing-mode",
+                )
+            )
+        elif data.mode.lower() != "enforcing":
             alerts.append(
                 AlertData(
                     severity=AlertSeverity.WARNING,
