@@ -108,6 +108,15 @@ def layout_context(request):
             "",
             "I am Humitifier Virtual Assistant. I am a real person. It is awesome to "
             "see you again! Is there something specific you're searching for?",
+            "Hardware error: DVD-Rambo drive not found",
+            "Powered by hamster wheels and magic smoke",
+            "70% of the time, it works every time",
+            "Everything is a DNS problem until proven otherwise",
+            "Have you tried turning it off and on again?",
+            "Keyboard not found... Press F1 to continue",
+            "This space intentionally left blank",
+            "Your server has performed an illegal operation and will be arrested",
+            "All your server are belong to us",
             # @formatter:on
         ]
         tag_line = random.choice(jokes)
