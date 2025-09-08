@@ -156,3 +156,15 @@ class NetworkInterface(BaseModel):
 @fact(group=GENERIC, metadata=ArtefactMetadata(null_is_valid=True))
 class NetworkInterfaces(list[NetworkInterface]):
     pass
+
+
+##
+## SELinux info
+##
+
+
+@fact(group=GENERIC, metadata=ArtefactMetadata(null_is_valid=True))
+class SELinux(BaseModel):
+    enabled: bool
+    policy_name: str | None
+    mode: str | None

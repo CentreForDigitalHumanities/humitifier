@@ -24,8 +24,8 @@ from . import env
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-HUMITIFIER_VERSION = "4.8.0"
-HUMITIFIER_VERSION_NAME = "I like trains"
+HUMITIFIER_VERSION = "4.9.0"
+HUMITIFIER_VERSION_NAME = "setenforce 0"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/

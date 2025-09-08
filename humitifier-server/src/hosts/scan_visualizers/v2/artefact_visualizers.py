@@ -33,6 +33,7 @@ from humitifier_common.artefacts import (
     PackageList,
     PuppetAgent,
     RebootPolicy,
+    SELinux,
     Uptime,
     Users,
     Webhost,
@@ -476,3 +477,34 @@ class RebootPolicyVisualizer(ArtefactVisualizer):
         context["cron_description"] = self.parse_cron()
 
         return context
+
+
+class SELinuxVisualizer(ItemizedArtefactVisualizer):
+    artefact = SELinux
+    title = "SELinux"
+    attributes = {
+        "enabled": "Enabled",
+        "mode": "Enforcement mode",
+        "policy_name": "Policy name",
+    }
+
+    def get_enabled_display(self, value):
+        if value:
+            return self._get_button_str("Enabled", "green")
+        else:
+            return self._get_button_str("Disabled", "red")
+
+    def get_mode_display(self, value: str):
+        if value == "enforcing":
+            return self._get_button_str("Enforcing", "green")
+        else:
+            return self._get_button_str(value, "orange")
+
+    def _get_button_str(self, value, color):
+        return mark_safe(
+            f"""
+            <div class="px-3 py-1 inline-block mr-auto rounded-sm bg-{color}-500 text-white">
+                {value.capitalize()}
+            </div>
+            """
+        )
