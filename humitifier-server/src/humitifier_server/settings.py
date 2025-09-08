@@ -24,7 +24,7 @@ from . import env
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-HUMITIFIER_VERSION = "4.9.0"
+HUMITIFIER_VERSION = "4.9.1"
 HUMITIFIER_VERSION_NAME = "setenforce 0"
 
 # Quick-start development settings - unsuitable for production
