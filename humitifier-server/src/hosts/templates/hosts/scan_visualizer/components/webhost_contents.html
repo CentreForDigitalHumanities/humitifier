@@ -4,7 +4,7 @@
         class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-1 gap-3 mt-3">
 
         {% if host.hostname_aliases %}
-            <div class="font-semibold">Host aliasses</div>
+            <div class="font-semibold">Host aliases</div>
             <div>{{ host.hostname_aliases|join:", " }}</div>
         {% endif %}
 
