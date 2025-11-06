@@ -230,6 +230,8 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
         if customer:
             hosts = hosts.filter(customer=customer)
 
+        hosts = hosts.filter(archived=False)
+
         servers = get_hardware_for_hosts(hosts)
 
         data = []
