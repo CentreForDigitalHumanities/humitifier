@@ -1,4 +1,3 @@
-import calendar
 from datetime import datetime, date, timezone
 from dateutil.relativedelta import relativedelta
 from decimal import Decimal
@@ -41,6 +40,7 @@ class CostExcelCustomer(BaseModel):
 ##
 ## Data-based generator funcs
 ##
+
 
 # Not used anymore; left here for a simpler version of the calculation
 def create_current_cost_excel(
@@ -317,7 +317,7 @@ def _get_months_between_dates(start: date, end: date) -> list[datetime]:
     return dates
 
 
-def _get_server_info_for_month(host: Host, month: date) -> Server | None:
+def _get_server_info_for_month(host: Host, month: datetime) -> Server | None:
     # First, see if the server was turned off for this month
     if host.offline_periods.filter(
         start_date__lte=month,

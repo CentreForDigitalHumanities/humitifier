@@ -79,13 +79,13 @@ class CostsReportForm(forms.Form):
         label="Start Date",
         widget=forms.DateInput(attrs={"type": "date"}),
         help_text="The first month included in the report. The day value is ignored; "
-        "for example, any date in januari will start the report from januari",
+        "for example, any date in January will start the report from January",
     )
 
     end_date = forms.DateField(
         label="End Date",
         widget=forms.DateInput(attrs={"type": "date"}),
         help_text="The last month included in the report. The day value is ignored; "
-        "for example, any date in september will run the report up to and "
-        "including september.",
+        "for example, any date in September will run the report up to and "
+        "including September.",
     )
