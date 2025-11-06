@@ -3,6 +3,7 @@ from dateutil.relativedelta import relativedelta
 from decimal import Decimal
 from io import BytesIO
 
+from django.db.models import Q
 from openpyxl.styles import Font, NamedStyle, PatternFill
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
@@ -319,10 +320,13 @@ def _get_months_between_dates(start: date, end: date) -> list[datetime]:
 
 def _get_server_info_for_month(host: Host, month: datetime) -> Server | None:
     # First, see if the server was turned off for this month
-    if host.offline_periods.filter(
-        start_date__lte=month,
-        end_date__gte=month,
-    ).exists():
+    if (
+        host.offline_periods.filter(
+            start_date__lte=month,
+        )
+        .filter(Q(end_date__gte=month) | Q(end_date__isnull=True))
+        .exists()
+    ):
         # If so, we don't have any data
         return None
 
