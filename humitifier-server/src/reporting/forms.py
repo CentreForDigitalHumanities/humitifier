@@ -74,3 +74,18 @@ class CostsReportForm(forms.Form):
         required=False,
         widget=MultipleChoiceFilterWidget(attrs={"placeholder": "All customers"}),
     )
+
+    start_date = forms.DateField(
+        label="Start Date",
+        widget=forms.DateInput(attrs={"type": "date"}),
+        help_text="The first month included in the report. The day value is ignored; "
+        "for example, any date in januari will start the report from januari",
+    )
+
+    end_date = forms.DateField(
+        label="End Date",
+        widget=forms.DateInput(attrs={"type": "date"}),
+        help_text="The last month included in the report. The day value is ignored; "
+        "for example, any date in september will run the report up to and "
+        "including september.",
+    )
