@@ -1,9 +1,9 @@
-from datetime import datetime
+from datetime import datetime, date, timezone
+from dateutil.relativedelta import relativedelta
 from decimal import Decimal
-from io import BytesIO, StringIO
-from typing import TypedDict
+from io import BytesIO
 
-from django.db.models import QuerySet
+from django.db.models import Q
 from openpyxl.styles import Font, NamedStyle, PatternFill
 from openpyxl.workbook import Workbook
 from openpyxl.worksheet.worksheet import Worksheet
@@ -13,7 +13,11 @@ from hosts.models import Host
 from humitifier_common.artefacts import Hardware
 from reporting.models import CostsScheme
 from reporting.utils import CostsBreakdown, calculate_from_hardware_artefact
-from reporting.utils.get_server_hardware import get_hardware_for_hosts
+from reporting.utils.get_server_hardware import (
+    Server,
+    get_hardware_fact,
+    get_hardware_for_hosts,
+)
 
 
 ##
@@ -26,6 +30,7 @@ class _Host(BaseModel):
     hardware: Hardware
     cost_breakdown: CostsBreakdown
     scan_date: datetime
+    month: datetime
 
 
 class CostExcelCustomer(BaseModel):
@@ -38,15 +43,14 @@ class CostExcelCustomer(BaseModel):
 ##
 
 
+# Not used anymore; left here for a simpler version of the calculation
 def create_current_cost_excel(
     costs_scheme: CostsScheme, filename: str, customers: list[str] | str | None = None
 ) -> BytesIO:
     customer_info = []
 
     if not customers:
-        customers = (
-            Host.objects.values_list("customer", flat=True).order_by().distinct()
-        )
+        customers = _get_all_customers()
 
     for customer in customers:
         hosts = Host.objects.filter(customer=customer, archived=False)
@@ -66,6 +70,7 @@ def create_current_cost_excel(
                     hardware=server.hardware,
                     cost_breakdown=cost_breakdown,
                     scan_date=server.scan_date,
+                    month=server.scan_date,
                 )
             )
 
@@ -73,6 +78,61 @@ def create_current_cost_excel(
             CostExcelCustomer(
                 name=customer,
                 hosts=hosts,
+            )
+        )
+
+    return generate_excel(filename, customer_info)
+
+
+def create_timeseries_cost_excel(
+    costs_scheme: CostsScheme,
+    filename: str,
+    start_date: date,
+    end_date: date,
+    customers: list[str] | str | None = None,
+):
+    customer_info = []
+
+    months = _get_months_between_dates(start_date, end_date)
+
+    if not customers:
+        customers = _get_all_customers()
+
+    for customer in customers:
+        # Get all billable for customer
+        hosts = Host.objects.filter(customer=customer, billable=True)
+        # Filter out all servers archived before our start date
+        hosts = hosts.exclude(archival_date__lt=start_date)
+        # Filter out all servers created after our end date
+        hosts = hosts.exclude(created_at__gt=end_date)
+
+        entries = []
+        for host in hosts:
+            for month in months:
+                info = _get_server_info_for_month(host, month)
+
+                if not info:
+                    continue
+
+                cost_breakdown = calculate_from_hardware_artefact(
+                    info.hardware,
+                    costs_scheme,
+                )
+
+                entries.append(
+                    _Host(
+                        hostname=info.hostname,
+                        hardware=info.hardware,
+                        cost_breakdown=cost_breakdown,
+                        scan_date=info.scan_date,
+                        month=month,
+                    )
+                )
+
+        customer_info.append(
+            CostExcelCustomer(
+                name=customer,
+                hosts=entries,
             )
         )
 
@@ -90,6 +150,8 @@ def generate_excel(
     wb = Workbook()
     main_sheet = wb.active
 
+    TOTAL_ROWS = "5000"  # Previously this was 999; which was not enough...
+
     if not isinstance(customers, (list, tuple)):
         customers = [customers]
 
@@ -103,7 +165,7 @@ def generate_excel(
         ws.append(
             [
                 "Server",
-                "Reference date",
+                "Billing month",
                 "Num. CPU",
                 "Memory",
                 "Storage",
@@ -137,12 +199,12 @@ def generate_excel(
             total_support_costs += host.cost_breakdown.management
 
             # Excel doesn't know what timezones are
-            date = host.scan_date.replace(tzinfo=None)
+            billing_month = host.month.strftime("%B %Y")
 
             ws.append(
                 [
                     host.hostname,
-                    date,
+                    billing_month,
                     host.cost_breakdown.num_cpu,
                     host.cost_breakdown.memory_size,
                     host.cost_breakdown.total_storage_usage,
@@ -191,9 +253,12 @@ def generate_excel(
 
     for i, customer in enumerate(customers):
         sheet_name = _get_customer_sheet_name(customer.name)
-        total_vm_costs = f"=SUM('{sheet_name}'!F2:F999) + SUM('{sheet_name}'!G2:G999)"
-        total_support_costs = f"=ROUND(SUM('{sheet_name}'!H2:H999),2)"
-        total_costs = f"=ROUND(SUM('{sheet_name}'!I2:I999),2)"
+        total_vm_costs = (
+            f"=SUM('{sheet_name}'!F2:F{TOTAL_ROWS}) + SUM('{sheet_name}'!G2:"
+            f"G{TOTAL_ROWS})"
+        )
+        total_support_costs = f"=ROUND(SUM('{sheet_name}'!H2:H{TOTAL_ROWS}),2)"
+        total_costs = f"=ROUND(SUM('{sheet_name}'!I2:I{TOTAL_ROWS}),2)"
         main_sheet.append(
             [
                 customer.name,
@@ -217,6 +282,75 @@ def generate_excel(
 ##
 ## Helpers
 ##
+
+
+def _get_all_customers():
+    return Host.objects.values_list("customer", flat=True).order_by().distinct()
+
+
+def _get_months_between_dates(start: date, end: date) -> list[datetime]:
+    dates = []
+    current = datetime(
+        year=start.year,
+        month=start.month,
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+        tzinfo=timezone.utc,
+    )
+    end_date = datetime(
+        year=end.year,
+        month=end.month,
+        day=1,
+        hour=0,
+        minute=0,
+        second=0,
+        microsecond=0,
+        tzinfo=timezone.utc,
+    )
+
+    while current <= end_date:
+        dates.append(current)
+        current += relativedelta(months=1)
+
+    return dates
+
+
+def _get_server_info_for_month(host: Host, month: datetime) -> Server | None:
+    # First, see if the server was turned off for this month
+    if (
+        host.offline_periods.filter(
+            start_date__lte=month,
+        )
+        .filter(Q(end_date__gte=month) | Q(end_date__isnull=True))
+        .exists()
+    ):
+        # If so, we don't have any data
+        return None
+
+    # Second, check if this server was created after this month
+    if host.created_at > month:
+        # We can't bill this then :)
+        return None
+
+    # Third, check if this server was archived before this month
+    if host.archival_date and host.archival_date < month:
+        return None
+
+    # Get the latest scan for this month
+    # We do this by ignoring all scans before this month and then get the oldest
+    # scan. This is a bit... weird, but this works around some edge cases with missing
+    # data.
+    scans = host.scans.exclude(created_at__lt=month).order_by("created_at")
+    scans = scans.filter(data__version__gte=2)
+    if not scans.exists():
+        return None
+
+    scan_for_month = scans.first().get_scan_object()
+
+    return get_hardware_fact(scan_for_month)
 
 
 def _get_customer_sheet_name(customer_name: str | None) -> str:

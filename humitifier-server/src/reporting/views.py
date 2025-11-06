@@ -27,7 +27,7 @@ from reporting.forms import (
 from reporting.models import CostsScheme
 from reporting.tables import CostsOverviewTable, CostsSchemeTable
 from reporting.utils import calculate_costs, calculate_from_hardware_artefact
-from reporting.utils.costs_excel_export import create_current_cost_excel
+from reporting.utils.costs_excel_export import create_timeseries_cost_excel
 from reporting.utils.get_server_hardware import get_hardware_for_hosts
 
 
@@ -166,8 +166,12 @@ class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
         costs_scheme = form.cleaned_data["costs_scheme"]
         customers = form.cleaned_data["customers"]
         filename = form.cleaned_data["filename"]
+        start_date = form.cleaned_data["start_date"]
+        end_date = form.cleaned_data["end_date"]
 
-        file_data = create_current_cost_excel(costs_scheme, filename, customers)
+        file_data = create_timeseries_cost_excel(
+            costs_scheme, filename, start_date, end_date, customers
+        )
 
         response = HttpResponse(
             file_data.getvalue(),
@@ -229,6 +233,8 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
         hosts = Host.objects.get_for_user(self.request.user)
         if customer:
             hosts = hosts.filter(customer=customer)
+
+        hosts = hosts.filter(archived=False)
 
         servers = get_hardware_for_hosts(hosts)
 
