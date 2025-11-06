@@ -318,6 +318,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
             {"label": "DC03 is down", "count": rn.randint(1, 15)},
             {"label": "Somehow DNS again", "count": rn.randint(5, 25)},
             {"label": "CentOS", "count": rn.randint(1, 20)},
+            {"label": "Docker cannot write package requirements", "count": rn.randint(1, 20)},
         ]
 
         ducks_per_dc = [
