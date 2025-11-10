@@ -29,6 +29,10 @@ def get_hardware_fact(scan_obj: ScanData) -> Server | None:
     if not scan_obj:
         return None
 
+    # Sometimes we have an empty scan, for some reason
+    if not scan_obj.version:
+        return None
+
     if not scan_obj.version >= 2:
         return None
 
