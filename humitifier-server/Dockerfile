@@ -19,7 +19,7 @@ COPY humitifier-common/* /humitifier-common/
 RUN sed -i 's/develop = true/develop = false/g' pyproject.toml
 RUN poetry lock
 
-RUN poetry install --without dev --with=production -vvv
+RUN poetry install --without dev --with=production
 
 FROM python:3.13-alpine
 
