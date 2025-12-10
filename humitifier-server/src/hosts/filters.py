@@ -166,6 +166,13 @@ class HostFilters(django_filters.FilterSet):
         widget=MultipleChoiceFilterWidget,
     )
 
+    hypervisor = django_filters.MultipleChoiceFilter(
+        label="Hypervisor",
+        field_name="hypervisor",
+        choices=lambda: _get_choices(Host, "hypervisor"),
+        widget=MultipleChoiceFilterWidget,
+    )
+
     alert_severity = HostAlertSeverityFilter(
         empty_label="Alert severity",
     )
