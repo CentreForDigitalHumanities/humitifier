@@ -174,19 +174,19 @@
                     },
                 },
             });
-            let datasource = document.getElementById('datasourceChart');
-            new Chart(datasource, {
+            let hypervisor = document.getElementById('hypervisorChart');
+            new Chart(hypervisor, {
                 type: 'pie',
                 data: {
                     labels: [
-                        {% for ds in datasource_counts %}
-                            '{{ ds.data_source__name|strip_quotes }}',
+                        {% for ds in hypervisor_stats %}
+                            '{{ ds.hypervisor|strip_quotes }}',
                         {% endfor %}
                     ],
                     datasets: [{
-                        label: 'Hosts per data source',
+                        label: 'Hosts per hypervisor',
                         data: [
-                            {% for ds in datasource_counts %}
+                            {% for ds in hypervisor_stats %}
                                 {{ ds.count }},
                             {% endfor %}
                         ],
@@ -201,7 +201,7 @@
                         },
                         title: {
                             display: true,
-                            text: 'Hosts by data source',
+                            text: 'Hosts per hypervisor',
                         }
                     },
                 },
@@ -368,7 +368,7 @@
             <canvas id="customerChart"></canvas>
         </div>
         <div class="section">
-            <canvas id="datasourceChart"></canvas>
+            <canvas id="hypervisorChart"></canvas>
         </div>
         {% if layout.wild_wasteland %}
             {# Easter egg stats; these fill in empty spaces in the stats because _someone_ complained about the empty space #}
