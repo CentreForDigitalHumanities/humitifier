@@ -1,6 +1,5 @@
-from datetime import datetime, date
+from datetime import datetime
 from urllib.parse import urlparse
-import random
 
 from django.contrib.auth.mixins import AccessMixin, LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
@@ -46,6 +45,16 @@ from main.forms import (
     UserProfileForm,
 )
 from main.models import AccessProfile, HomeOptions, User
+from main.stats import (
+    get_alert_count_by_message,
+    get_alert_stats,
+    get_customer_stats,
+    get_easter_stats,
+    get_host_count_by_otap,
+    get_hosts_by_datasource,
+    get_hypervisor_stats,
+    get_os_stats,
+)
 from main.tables import (
     AccessProfilesTable,
     PeriodicTaskTable,
@@ -223,153 +232,17 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
 
         return filtered_qs.distinct()
 
-    def get_alert_stats(self):
-        num_critical = Host.objects.filter(
-            alerts__severity=AlertSeverity.CRITICAL,
-            alerts__acknowledgement=None,
-            archived=False,
-        ).count()
-        num_warning = (
-            Host.objects.filter(
-                alerts__severity=AlertSeverity.WARNING,
-                alerts__acknowledgement=None,
-                archived=False,
-            )
-            .exclude(
-                alerts__severity=AlertSeverity.CRITICAL,
-            )
-            .count()
-        )
-        num_info = (
-            Host.objects.filter(
-                alerts__severity=AlertSeverity.INFO,
-                alerts__acknowledgement=None,
-                archived=False,
-            )
-            .exclude(
-                alerts__severity__in=[AlertSeverity.WARNING, AlertSeverity.CRITICAL],
-            )
-            .count()
-        )
-
-        # Complicated union
-        # The 'basic' case counts all hosts with 0 alerts
-        # The 'advanced' case counts all hosts with no unacknowledged alerts
-        num_fine = (
-            Host.objects.filter(archived=False, alerts__isnull=True)
-            # This annotate is needed for the union, as that adds this column
-            # The value is bogus and ignored
-            .annotate(unacknowledged_alerts=Count("id"))
-            .union(
-                Host.objects.exclude(alerts__isnull=True)
-                .annotate(
-                    unacknowledged_alerts=Count(
-                        "alerts",
-                        filter=Q(alerts__acknowledgement=None),
-                    )
-                )
-                .filter(unacknowledged_alerts=0, archived=False)
-            )
-            .count()
-        )
-
-        return num_critical, num_warning, num_info, num_fine
-
-    def get_alert_count_by_message(self):
-        return (
-            Alert.objects.get_for_user(self.request.user)
-            .filter(acknowledgement=None)
-            .values("short_message")
-            .annotate(count=Count("id"))
-        )
-
-    def get_host_count_by_otap(self):
-        return (
-            Host.objects.get_for_user(self.request.user)
-            .filter(archived=False)
-            .values("otap_stage")
-            .annotate(count=Count("id"))
-        )
-
-    def get_hosts_by_datasource(self):
-        return (
-            Host.objects.get_for_user(self.request.user)
-            .filter(archived=False)
-            .values("data_source__name")
-            .annotate(count=Count("id"))
-        )
-
-    def get_easter_stats(self):
-        # Create a seeded random, with the seed being 'today'
-        # This is for consistent bollocks per day
-        rn = random.Random(date.today().isoformat())
-
-        gremlins = [
-            {"label": "Evil gremlins", "count": rn.randint(0, 100)},
-            {"label": "Neutral gremlins", "count": rn.randint(0, 100)},
-            {"label": "Good gremlins", "count": rn.randint(0, 10)},
-        ]
-
-        top_excuses_for_downtime = [
-            {"label": "It worked on my machine", "count": rn.randint(1, 20)},
-            {"label": "DNS", "count": rn.randint(20, 30)},
-            {"label": "Deployed on a friday", "count": rn.randint(1, 20)},
-            {"label": "Aliens", "count": rn.randint(1, 20)},
-            {"label": "DC03 is down", "count": rn.randint(1, 15)},
-            {"label": "Somehow DNS again", "count": rn.randint(5, 25)},
-            {"label": "CentOS", "count": rn.randint(1, 20)},
-        ]
-
-        ducks_per_dc = [
-            {"label": "ALM", "count": rn.randint(30, 100)},
-            {"label": "UMC", "count": rn.randint(10, 20)},
-            {
-                "label": "D10",
-                "count": 8,
-            },  # This one is legit, nobody has found them yet
-        ]
-
-        coffee_machine_downtime = [
-            {"label": "Monday", "percent": rn.randint(0, 100)},
-            {"label": "Tuesday", "percent": rn.randint(0, 100)},
-            {"label": "Wednesday", "percent": rn.randint(0, 100)},
-            {"label": "Thursday", "percent": rn.randint(0, 100)},
-            {"label": "Friday", "percent": rn.randint(0, 100)},
-        ]
-
-        productivity = [
-            {"label": x["label"], "percent": 100 - x["percent"]}
-            for x in coffee_machine_downtime
-        ]
-
-        return (
-            gremlins,
-            top_excuses_for_downtime,
-            ducks_per_dc,
-            coffee_machine_downtime,
-            productivity,
-        )
-
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["os_stats"] = (
-            Host.objects.get_for_user(self.request.user)
-            .filter(archived=False)
-            .values("os")
-            .annotate(count=Count("os"))
-        )
-        context["customer_stats"] = (
-            Host.objects.get_for_user(self.request.user)
-            .filter(archived=False)
-            .values("customer")
-            .annotate(count=Count("customer"))
-        )
+        context["os_stats"] = get_os_stats(self.request.user)
+        context["hypervisor_stats"] = get_hypervisor_stats(self.request.user)
+        context["customer_stats"] = get_customer_stats(self.request.user)
 
-        num_critical, num_warning, num_info, num_fine = self.get_alert_stats()
-        context["alert_message_counts"] = self.get_alert_count_by_message()
-        context["otap_counts"] = self.get_host_count_by_otap()
-        context["datasource_counts"] = self.get_hosts_by_datasource()
+        num_critical, num_warning, num_info, num_fine = get_alert_stats()
+        context["alert_message_counts"] = get_alert_count_by_message(self.request.user)
+        context["otap_counts"] = get_host_count_by_otap(self.request.user)
+        context["datasource_counts"] = get_hosts_by_datasource(self.request.user)
 
         context["num_critical"] = num_critical
         context["num_warning"] = num_warning
@@ -383,7 +256,7 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
             ducks_per_dc,
             coffee_machine_downtime,
             productivity,
-        ) = self.get_easter_stats()
+        ) = get_easter_stats()
         context["gremlins"] = gremlins
         context["top_excuses_for_downtime"] = top_excuses_for_downtime
         context["ducks_per_dc"] = ducks_per_dc

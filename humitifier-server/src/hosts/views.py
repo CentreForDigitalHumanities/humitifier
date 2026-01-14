@@ -40,6 +40,7 @@ class HostsListView(LoginRequiredMixin, TableMixin, FilteredListView):
     ordering_fields = {
         "fqdn": "Hostname",
         "os": "Operating System",
+        "hypervisor": "Hypervisor",
         "department": "Department",
         "customer": "Customer",
         "contact": "Contact",

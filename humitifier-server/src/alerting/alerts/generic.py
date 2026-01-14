@@ -116,6 +116,7 @@ class OutdatedOSAlertGenerator(BaseArtefactAlertGenerator):
     verbose_name = "Outdated OS"
 
     OUTDATED_OSes = [
+        "Debian GNU/Linux 11 (bullseye)",
         "Debian GNU/Linux 10 (buster)",
         "Debian GNU/Linux 9 (stretch)",
         "CentOS Linux 7 (Core)",

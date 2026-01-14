@@ -50,6 +50,7 @@ class HostsTable(BaseTable):
         columns = [
             "fqdn",
             "os",
+            "hypervisor",
             "last_scan_date",
             "created_at",
             "customer",
@@ -69,6 +70,7 @@ class HostsTable(BaseTable):
         }
         column_breakpoint_overrides = {
             "os": "lg",
+            "hypervisor": "xl",
             "last_scan_date": "xl",
             "created_at": "2xl",
             "customer": "lg",

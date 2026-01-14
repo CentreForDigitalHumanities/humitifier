@@ -273,6 +273,12 @@ class Host(models.Model):
         db_persist=True,
     )
 
+    hypervisor = models.GeneratedField(
+        expression=_json_value("last_scan_cache__facts__generic.HostnameCtl__virtualization"),
+        output_field=models.CharField(max_length=255),
+        db_persist=True,
+    )
+
     ##
     ## Methods
     ##
@@ -412,6 +418,11 @@ class Host(models.Model):
         if not self.os:
             return mark_safe("<span class='italic'>Unknown</span>")
         return strip_quotes(self.os)
+
+    def get_hypervisor_display(self):
+        if not self.hypervisor:
+            return mark_safe("<span class='italic'>Unknown/Bare metal</span>")
+        return strip_quotes(self.hypervisor)
 
     def get_scan_spec_display(self):
         if self.scan_spec_override:
