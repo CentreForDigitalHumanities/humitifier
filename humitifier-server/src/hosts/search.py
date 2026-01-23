@@ -6,6 +6,7 @@ from typing import Any, Iterable, Literal, Mapping
 from django.db.models import QuerySet
 from django.db.models.expressions import RawSQL
 
+from .models import Host
 from humitifier_common.artefacts.registry import registry as artefact_registry
 from pydantic import BaseModel
 
@@ -170,7 +171,7 @@ def _parse_value(value: Any, value_type: str) -> Any:
 
 
 def search_hosts_by_scan_fields(
-    qs: QuerySet,
+    qs: QuerySet[Host],
     criteria: Mapping[str, Any],
 ) -> QuerySet:
     """
@@ -237,4 +238,93 @@ def search_hosts_by_scan_fields(
     return qs
 
 
-__all__ = ["SearchableField", "get_searchable_fields", "search_hosts_by_scan_fields"]
+def _get_cache_from_obj(obj: Any) -> dict | None:
+    """Best-effort to get a last_scan_cache-like dict from an input object.
+
+    Accepts either a Django model instance with attribute `last_scan_cache` or a raw
+    dict that already represents the cache. Returns None when unavailable.
+    """
+    if obj is None:
+        return None
+    if isinstance(obj, dict):
+        # Heuristic: treat as cache dict directly
+        return obj
+    # Django model instance (or any object) with attribute
+    return getattr(obj, "last_scan_cache", None)
+
+
+def _extract_from_cache(cache: dict, descriptor: SearchableField) -> Any:
+    """Extract a field value from a last_scan_cache dict using a SearchableField.
+
+    - For scalar artefacts, returns a single value (or None if not present).
+    - For array artefacts, returns a list of values (possibly empty). None values
+      are filtered out from the resulting list.
+    """
+    if not isinstance(cache, dict):
+        return None
+
+    section_data = cache.get(descriptor.section)
+    if not isinstance(section_data, dict):
+        return None if descriptor.kind == "scalar" else []
+
+    artefact_data = section_data.get(descriptor.artefact_key)
+
+    if descriptor.kind == "scalar":
+        cur = artefact_data
+        for key in descriptor.field_path:
+            if not isinstance(cur, dict):
+                return None
+            cur = cur.get(key)
+        return cur
+
+    # Array kind: artefact_data is expected to be a list of dicts
+    results: list[Any] = []
+    if isinstance(artefact_data, list):
+        field = descriptor.field_path[0]
+        for elem in artefact_data:
+            if isinstance(elem, dict):
+                val = elem.get(field)
+                if val is not None:
+                    results.append(val)
+    return results
+
+
+def get_scan_field_values(
+    objs: Iterable[Host] | QuerySet[Host],
+    field_ids: Iterable[str],
+) -> list[dict[str, Any]]:
+    """Collect field values for multiple objects.
+
+    Returns a list with one dict per object. Each dict contains:
+      - "object": the original object reference
+      - one key per requested field id with its corresponding value(s)
+
+    Example element:
+      {"object": host, "facts.generic.HostnameCtl.os": "Linux", "facts.generic.PackageList[]->name": ["openssl", ...]}
+    """
+    # Prepare field descriptors once
+    all_fields = {f.id: f for f in get_searchable_fields()}
+    requested_ids = list(field_ids)
+    descriptors: dict[str, SearchableField] = {
+        fid: all_fields[fid] for fid in requested_ids if fid in all_fields
+    }
+
+    results: list[dict[str, Any]] = []
+    for obj in objs:
+        row: dict[str, Any] = {"object": obj}
+        cache = _get_cache_from_obj(obj)
+        for fid, desc in descriptors.items():
+            if cache is None:
+                row[fid] = None if desc.kind == "scalar" else []
+            else:
+                row[fid] = _extract_from_cache(cache, desc)
+        results.append(row)
+    return results
+
+
+__all__ = [
+    "SearchableField",
+    "get_searchable_fields",
+    "search_hosts_by_scan_fields",
+    "get_scan_field_values",
+]
