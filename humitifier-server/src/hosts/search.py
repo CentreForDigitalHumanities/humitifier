@@ -68,6 +68,7 @@ def _iter_artefacts() -> Iterable[tuple[ArtefactSection, Any, str]]:
 def _unwrap_optional(ann: Any) -> Any:
     """Return the inner annotation for Optional[X] or Union[X, None]."""
     origin = get_origin(ann)
+
     if origin is None:
         # PEP604 | style
         if type(ann) is UnionType:
@@ -75,10 +76,12 @@ def _unwrap_optional(ann: Any) -> Any:
             if len(args) == 1:
                 return args[0]
         return ann
-    if origin is getattr(__import__("typing"), "Union"):
+
+    if origin is UnionType:
         args = [a for a in get_args(ann) if a is not type(None)]  # noqa: E721
         if len(args) == 1:
             return args[0]
+
     return ann
 
 
