@@ -24,7 +24,8 @@ from .filters import DataSourceFilters, HostFilters
 from .forms import DataSourceForm, HostForm, HostScanSpecForm
 from .models import DataSource, Host
 from .scan_visualizers import get_scan_visualizer
-from .search import get_searchable_fields, search_hosts_by_scan_fields
+from .search import get_searchable_fields, search_hosts_by_scan_fields, \
+    get_scan_field_values
 from .tables import DataSourcesTable, HostsTable
 
 ##
@@ -313,22 +314,38 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         context = super().get_context_data(**kwargs)
 
         searchable_fields = get_searchable_fields()
+        requested_columns = self._parse_requested_columns(searchable_fields)
         context['searchable_fields'] = searchable_fields
-        context['data'] = self._get_data(searchable_fields)
+        context['requested_columns'] = requested_columns
+        context['data'] = self._get_data(searchable_fields,requested_columns)
 
         if self.request.POST:
             context['search_string'] = self.request.POST.get('search-string', '')
 
         return context
 
-    def _get_data(self, searchable_fields):
+    def _get_data(self, searchable_fields, requested_columns):
         qs = Host.objects.get_for_user(self.request.user)
 
         if self.request.POST:
             search_terms = self._parse_search_string(searchable_fields)
             qs = search_hosts_by_scan_fields(qs, search_terms)
 
-        return qs
+        return get_scan_field_values(qs, requested_columns)
+
+    def _parse_requested_columns(self, searchable_fields):
+        if not self.request.POST:
+            return []
+
+        column_string = self.request.POST.get('columns', '')
+
+        if not column_string:
+            return {}
+
+        allowed_fields = [field.id for field in searchable_fields]
+
+        return [field for field in column_string.split(',') if field in allowed_fields]
+
 
     def _parse_search_string(self, searchable_fields):
         if not self.request.POST:

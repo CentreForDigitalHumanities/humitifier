@@ -10,7 +10,7 @@
         <div class="px-7 py-5 flex justify-between">
             <h1 class="text-3xl font-bold">Advanced Search</h1>
         </div>
-        <form method="post" class="px-7 flex flex-col gap-3" x-data="kibanaLikeSearch()" x-init="init()" @keydown.window.escape="closeSuggestions()">
+        <form method="post" class="px-7 flex flex-col gap-3" x-data="kibanaLikeSearch()" x-init="init()" @keydown.window.escape="closeSuggestions(); closeColumnSuggestions()">
             {% csrf_token %}
             <div class="flex align-items-baseline w-full gap-4">
                 <label for="search-string" class="text-nowrap break-keep">Search query:</label>
@@ -24,6 +24,7 @@
                         autocomplete="off"
                         @input="onInput()"
                         @click="onInput()"
+                        @click.outside="closeSuggestions()"
                         @keydown.down.prevent="move(1)"
                         @keydown.up.prevent="move(-1)"
                         @keydown.tab.prevent="onTab()"
@@ -41,6 +42,57 @@
                             </template>
                         </ul>
                     </template>
+                </div>
+            </div>
+
+            <div class="flex align-items-baseline w-full gap-4">
+                <label class="text-nowrap break-keep">Columns:</label>
+                <div class="relative w-full">
+                    <div class="input w-full min-h-[2.5rem] flex items-center flex-wrap gap-2 py-1">
+                        <!-- Selected column bubbles -->
+                        <template x-for="(col, idx) in selectedColumns" :key="col.id">
+                            <span
+                                class="px-2 py-1 cursor-pointer bg-gray-100 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-50 border border-gray-200 dark:border-gray-700 rounded-sm flex items-center gap-1"
+                                @click="removeColumn(idx)"
+                            >
+                                <span x-text="col.label"></span>
+                                <button type="button" class="text-red-500 leading-none" aria-label="Remove">×</button>
+                            </span>
+                        </template>
+                        <!-- Inline input for filtering options -->
+                        <input
+                            x-ref="columnsInput"
+                            class="grow outline-none bg-transparent placeholder-gray-400 min-w-[8ch]"
+                            type="text"
+                            autocomplete="off"
+                            x-model="columnsFilter"
+                            placeholder="Choose columns…"
+                            @input="onColumnsInput()"
+                            @focus="onColumnsInput()"
+                            @click.outside="closeColumnSuggestions()"
+                            @keydown.down.prevent="moveColumn(1)"
+                            @keydown.up.prevent="moveColumn(-1)"
+                            @keydown.enter.prevent="chooseColumn()"
+                            @keydown.tab.prevent="chooseColumn()"
+                            @keydown.backspace="maybeBackspaceRemove()"
+                        />
+                    </div>
+
+                    <!-- Suggestions dropdown -->
+                    <template x-if="colOpen && colSuggestions.length">
+                        <ul class="absolute z-50 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
+                            <template x-for="(s, idx) in colSuggestions" :key="s.id">
+                                <li
+                                    class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
+                                    :class="{ 'bg-base-200': idx === colActiveIndex }"
+                                    @mousedown.prevent="chooseColumn(idx)"
+                                    x-text="s.label"
+                                ></li>
+                            </template>
+                        </ul>
+                    </template>
+                    <!-- Hidden input for submitting selected column ids -->
+                    <input type="hidden" name="columns" :value="selectedColumns.map(c => c.id).join(',')">
                 </div>
             </div>
 
@@ -67,19 +119,31 @@
          <table class="w-full table-auto">
              <thead>
                 <tr class="text-left">
-                    <th class="pl-7 pr-7 py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150">
+                    <th class="pl-7 py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150">
                         Host
                     </th>
+                    {% for column in requested_columns %}
+                        <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150">
+                            {{ column }}
+                        </th>
+                    {% endfor %}
+                    <th class="pr-7 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150"></th>
                 </tr>
             </thead>
             <tbody>
-                {% for host in data %}
+                {% for datum in data %}
                     <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
-                        <td class="pl-7 pr-7 py-5">
-                            <a href="{% url 'hosts:detail' host.fqdn %}" class="underline">
-                                {{ host.fqdn }}
+                        <td class="pl-7 py-5">
+                            <a href="{% url 'hosts:detail' datum.object.fqdn %}" class="underline">
+                                {{ datum.object.fqdn }}
                             </a>
                         </td>
+                        {% for label, value in datum.fields.items %}
+                            <td class="py-5">
+                                {{ value|default:"" }}
+                            </td>
+                        {% endfor %}
+                        <td class="pr-7"></td>
                     </tr>
                 {% endfor %}
             </tbody>
@@ -102,8 +166,15 @@ function kibanaLikeSearch() {
         suggestions: [],
         activeIndex: 0,
         and_separator: ' AND ',
+        // Columns multiselect state
+        selectedColumns: [], // [{id,label}]
+        columnsFilter: '',
+        colOpen: false,
+        colSuggestions: [],
+        colActiveIndex: 0,
         init() {
             this.value = '{{ search_string|safe }}'
+            this.selectedColumns = [{% for column in requested_columns %}{ id: '{{ column|safe }}', label: '{{ column|safe }}',},{% endfor %}]
             this.fields = [
             {% for field in searchable_fields %}
                 { id: '{{ field.id|safe }}', label: '{{ field.label|safe }}',},
@@ -217,6 +288,49 @@ function kibanaLikeSearch() {
                 return `${left} = "${right}"`;
             }).join(this.and_separator);
             this.value = normalized;
+        },
+        // ==== Columns multiselect methods ====
+        onColumnsInput() {
+            const needle = (this.columnsFilter || '').toLowerCase();
+            const selectedIds = new Set(this.selectedColumns.map(c => c.id));
+            let pool = this.fields.filter(f => !selectedIds.has(f.id));
+            if (needle.length) {
+                pool = pool.filter(f => f.label.toLowerCase().includes(needle) || f.id.toLowerCase().includes(needle));
+            }
+            this.colSuggestions = pool.slice(0, 1000);
+            this.colActiveIndex = 0;
+            this.colOpen = this.colSuggestions.length > 0;
+        },
+        moveColumn(delta) {
+            if (!this.colOpen || !this.colSuggestions.length) return;
+            const len = this.colSuggestions.length;
+            this.colActiveIndex = (this.colActiveIndex + delta + len) % len;
+        },
+        chooseColumn(idx) {
+            if (!this.colSuggestions.length) return;
+            const s = this.colSuggestions[idx ?? this.colActiveIndex];
+            if (!s) return;
+            // Prevent duplicates
+            if (this.selectedColumns.some(c => c.id === s.id)) return this.closeColumnSuggestions();
+            this.selectedColumns.push({ id: s.id, label: s.label });
+            this.columnsFilter = '';
+            this.$refs.columnsInput && this.$refs.columnsInput.focus();
+            this.onColumnsInput();
+        },
+        removeColumn(idx) {
+            this.selectedColumns.splice(idx, 1);
+            this.onColumnsInput();
+        },
+        maybeBackspaceRemove() {
+            if ((this.columnsFilter || '').length === 0 && this.selectedColumns.length) {
+                this.selectedColumns.pop();
+                this.onColumnsInput();
+            }
+        },
+        closeColumnSuggestions() {
+            this.colOpen = false;
+            this.colSuggestions = [];
+            this.colActiveIndex = 0;
         }
     }
 }

@@ -517,13 +517,13 @@ def get_scan_field_values(
 
     results: list[dict[str, Any]] = []
     for obj in objs:
-        row: dict[str, Any] = {"object": obj}
+        row: dict[str, Any] = {"object": obj, "fields": {}}
         cache = _get_cache_from_obj(obj)
         for fid, desc in descriptors.items():
             if cache is None:
-                row[fid] = None if desc.kind == "scalar" else []
+                row["fields"][fid] = None if desc.kind == "scalar" else []
             else:
-                row[fid] = _extract_from_cache(cache, desc)
+                row["fields"][fid] = _extract_from_cache(cache, desc)
         results.append(row)
     return results
 
