@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from types import UnionType
+
 from dataclasses import dataclass
 from typing import Any, Iterable, Literal, Mapping
 
@@ -68,7 +70,15 @@ def _field_type_to_value_type(ann: Any) -> str | None:
                 return "integer"
             if ann is bool:
                 return "boolean"
+
+        if type(ann) is UnionType:
+            args = [a for a in getattr(ann, "__args__", ()) if
+                    a is not type(None)]  # noqa: E721
+            if len(args) == 1:
+                return _field_type_to_value_type(args[0])
+
         return None
+
     # Optional[X] appears as Union[X, NoneType]; keep primitive X
     if origin is getattr(__import__("typing"), "Union"):
         args = [a for a in getattr(ann, "__args__", ()) if a is not type(None)]  # noqa: E721
