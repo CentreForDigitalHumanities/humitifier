@@ -3,7 +3,7 @@ from __future__ import annotations
 from types import UnionType
 
 from dataclasses import dataclass
-from typing import Any, Iterable, Literal, Mapping
+from typing import Any, Iterable, Literal, Mapping, get_args, get_origin
 
 from django.db.models import QuerySet
 from django.db.models.expressions import RawSQL
@@ -27,10 +27,17 @@ class SearchableField:
     label: human readable label.
     value_type: one of "string", "integer", "boolean"; used to choose operators.
     section: whether this field is in facts or metrics.
-    kind: "scalar" for plain objects; "array" when the artefact is list[...] and
-          the search targets an element's field.
+    kind: "scalar" for plain objects; "array" when the target lives inside a list
+          at any nesting depth.
     artefact_key: the key inside last_scan_cache[section] (e.g. "generic.HostnameCtl").
-    field_path: the JSON path within the artefact object (for arrays, inside the element).
+    field_path: for kind="scalar": the JSON path within the artefact object to the value.
+               for kind="array": this is not used (kept for backward-compat only).
+    array_path: for kind="array": path tokens from the artefact root to the array.
+                Tokens are field names and the marker "[]" where an array must be expanded.
+                Example: ("hardware", "memory", "[]")
+                Top-level list artefacts use ("[]",)
+    element_field_path: for kind="array": path inside each element to a primitive value.
+                        Empty tuple means the element itself is primitive (e.g., list[str]).
     """
 
     id: str
@@ -40,6 +47,8 @@ class SearchableField:
     kind: Literal["scalar", "array"]
     artefact_key: str
     field_path: tuple[str, ...]
+    array_path: tuple[str, ...] | None = None
+    element_field_path: tuple[str, ...] | None = None
 
 
 PrimitivePydanticTypes = (str, int, bool)
@@ -56,12 +65,30 @@ def _iter_artefacts() -> Iterable[tuple[ArtefactSection, Any, str]]:
         yield "metrics", artefact_cls, key
 
 
+def _unwrap_optional(ann: Any) -> Any:
+    """Return the inner annotation for Optional[X] or Union[X, None]."""
+    origin = get_origin(ann)
+    if origin is None:
+        # PEP604 | style
+        if type(ann) is UnionType:
+            args = [a for a in getattr(ann, "__args__", ()) if a is not type(None)]  # noqa: E721
+            if len(args) == 1:
+                return args[0]
+        return ann
+    if origin is getattr(__import__("typing"), "Union"):
+        args = [a for a in get_args(ann) if a is not type(None)]  # noqa: E721
+        if len(args) == 1:
+            return args[0]
+    return ann
+
+
 def _field_type_to_value_type(ann: Any) -> str | None:
     """Map a pydantic field annotation to a simplified value type string.
 
     Returns one of: "string", "integer", "boolean" or None if not supported.
     """
-    origin = getattr(ann, "__origin__", None)
+    ann = _unwrap_optional(ann)
+    origin = get_origin(ann)
     if origin is None:
         if ann in PrimitivePydanticTypes:
             if ann is str:
@@ -70,20 +97,7 @@ def _field_type_to_value_type(ann: Any) -> str | None:
                 return "integer"
             if ann is bool:
                 return "boolean"
-
-        if type(ann) is UnionType:
-            args = [a for a in getattr(ann, "__args__", ()) if
-                    a is not type(None)]  # noqa: E721
-            if len(args) == 1:
-                return _field_type_to_value_type(args[0])
-
         return None
-
-    # Optional[X] appears as Union[X, NoneType]; keep primitive X
-    if origin is getattr(__import__("typing"), "Union"):
-        args = [a for a in getattr(ann, "__args__", ()) if a is not type(None)]  # noqa: E721
-        if len(args) == 1:
-            return _field_type_to_value_type(args[0])
     return None
 
 
@@ -126,37 +140,143 @@ def get_searchable_fields() -> list[SearchableField]:
     """
     fields: list[SearchableField] = []
 
+    def render_array_id(section: str, artefact_key: str, array_path: tuple[str, ...], element_field_path: tuple[str, ...]) -> str:
+        # Build something like: facts.generic.Hardware.memory[]->size
+        # array_path contains keys and "[]" markers; for id, omit keys then append [] at the right spot.
+        # We'll render keys joined by '.', placing [] at the end.
+        keys_only = [p for p in array_path if p != "[]"]
+        head = f"{section}.{artefact_key}"
+        if keys_only:
+            head += "." + ".".join(keys_only)
+        head += "[]"
+        if element_field_path:
+            head += "->" + ".".join(element_field_path)
+        return head
+
+    def add_scalar(section: str, artefact_key: str, path: tuple[str, ...], value_type: str):
+        field_id = f"{section}.{artefact_key}." + ".".join(path)
+        fields.append(
+            SearchableField(
+                id=field_id,
+                label=field_id,
+                value_type=value_type,  # type: ignore[arg-type]
+                section=section,
+                kind="scalar",
+                artefact_key=artefact_key,
+                field_path=path,
+            )
+        )
+
+    def add_array(section: str, artefact_key: str, array_path: tuple[str, ...], element_field_path: tuple[str, ...], value_type: str):
+        field_id = render_array_id(section, artefact_key, array_path, element_field_path)
+        fields.append(
+            SearchableField(
+                id=field_id,
+                label=field_id,
+                value_type=value_type,  # type: ignore[arg-type]
+                section=section,
+                kind="array",
+                artefact_key=artefact_key,
+                field_path=(),
+                array_path=array_path,
+                element_field_path=element_field_path,
+            )
+        )
+
+    def collect_from_model(section: str, artefact_key: str, model: type[BaseModel], base_path: tuple[str, ...] = ()):
+        for name, field in model.model_fields.items():
+            ann = _unwrap_optional(field.annotation)
+            # primitive scalar
+            vt = _field_type_to_value_type(ann)
+            if vt:
+                add_scalar(section, artefact_key, base_path + (name,), vt)
+                continue
+            origin = get_origin(ann)
+            if isinstance(ann, type) and issubclass(ann, BaseModel):
+                collect_from_model(section, artefact_key, ann, base_path + (name,))
+                continue
+            if origin in (list, tuple):
+                args = get_args(ann)
+                if not args:
+                    continue
+                elem = _unwrap_optional(args[0])
+                # List of BaseModel
+                if isinstance(elem, type) and issubclass(elem, BaseModel):
+                    # Recurse element fields; each becomes an array field
+                    def collect_elem_fields(elem_model: type[BaseModel], elem_base_path: tuple[str, ...] = ()):
+                        for ename, ef in elem_model.model_fields.items():
+                            eann = _unwrap_optional(ef.annotation)
+                            evt = _field_type_to_value_type(eann)
+                            if evt:
+                                add_array(section, artefact_key, base_path + (name, "[]"), elem_base_path + (ename,), evt)
+                                continue
+                            eorigin = get_origin(eann)
+                            if isinstance(eann, type) and issubclass(eann, BaseModel):
+                                collect_elem_fields(eann, elem_base_path + (ename,))
+                                continue
+                            if eorigin in (list, tuple):
+                                eargs = get_args(eann)
+                                if not eargs:
+                                    continue
+                                eelem = _unwrap_optional(eargs[0])
+                                # Nested arrays inside element: support by adding another [] in array_path
+                                if isinstance(eelem, type) and issubclass(eelem, BaseModel):
+                                    # Collect primitive fields inside nested element model
+                                    def collect_nested(nmodel: type[BaseModel], nbase: tuple[str, ...] = ()):
+                                        for nname, nf in nmodel.model_fields.items():
+                                            nann = _unwrap_optional(nf.annotation)
+                                            nvt = _field_type_to_value_type(nann)
+                                            if nvt:
+                                                add_array(section, artefact_key, base_path + (name, "[]", ename, "[]"), nbase + (nname,), nvt)
+                                                continue
+                                    collect_nested(eelem)
+                                else:
+                                    # list of primitives inside element
+                                    evt2 = _field_type_to_value_type(eelem)
+                                    if evt2:
+                                        add_array(section, artefact_key, base_path + (name, "[]", ename, "[]"), (), evt2)
+
+                    collect_elem_fields(elem)
+                else:
+                    # list of primitives directly in model
+                    pvt = _field_type_to_value_type(elem)
+                    if pvt:
+                        add_array(section, artefact_key, base_path + (name, "[]"), (), pvt)
+
     for section, artefact_cls, artefact_key in _iter_artefacts():
         if isinstance(artefact_cls, type) and issubclass(artefact_cls, BaseModel):
-            for name, value_type in _iter_base_model_fields(artefact_cls):
-                field_id = f"{section}.{artefact_key}.{name}"
-                fields.append(
-                    SearchableField(
-                        id=field_id,
-                        label=field_id,
-                        value_type=value_type,  # type: ignore[arg-type]
-                        section=section,
-                        kind="scalar",
-                        artefact_key=artefact_key,
-                        field_path=(name,),
-                    )
-                )
+            collect_from_model(section, artefact_key, artefact_cls)
         elif isinstance(artefact_cls, type) and issubclass(artefact_cls, list):
             element_type = _get_list_element_type(artefact_cls)
             if isinstance(element_type, type) and issubclass(element_type, BaseModel):
-                for name, value_type in _iter_base_model_fields(element_type):
-                    field_id = f"{section}.{artefact_key}[]->{name}"
-                    fields.append(
-                        SearchableField(
-                            id=field_id,
-                            label=field_id,
-                            value_type=value_type,  # type: ignore[arg-type]
-                            section=section,
-                            kind="array",
-                            artefact_key=artefact_key,
-                            field_path=(name,),
-                        )
-                    )
+                # element fields as array path ('[]',)
+                def collect_elem_for_top(elem_model: type[BaseModel], elem_base: tuple[str, ...] = ()):
+                    for name, value_type in _iter_base_model_fields(elem_model):
+                        add_array(section, artefact_key, ("[]",), (name,), value_type)
+                    # Also support nested BaseModels and lists in element
+                    for ename, ef in elem_model.model_fields.items():
+                        eann = _unwrap_optional(ef.annotation)
+                        if isinstance(eann, type) and issubclass(eann, BaseModel):
+                            # Primitive fields deeper
+                            for nname, nvt in _iter_base_model_fields(eann):
+                                add_array(section, artefact_key, ("[]", ename, "[]"), (nname,), nvt)
+                        elif get_origin(eann) in (list, tuple):
+                            eargs = get_args(eann)
+                            if eargs:
+                                eelem = _unwrap_optional(eargs[0])
+                                if isinstance(eelem, type) and issubclass(eelem, BaseModel):
+                                    for nname, nvt in _iter_base_model_fields(eelem):
+                                        add_array(section, artefact_key, ("[]", ename, "[]"), (nname,), nvt)
+                                else:
+                                    pvt = _field_type_to_value_type(eelem)
+                                    if pvt:
+                                        add_array(section, artefact_key, ("[]", ename, "[]"), (), pvt)
+                collect_elem_for_top(element_type)
+            else:
+                # list of primitives directly as artefact
+                pvt = _field_type_to_value_type(element_type)
+                if pvt:
+                    add_array(section, artefact_key, ("[]",), (), pvt)
 
     return fields
 
@@ -222,27 +342,71 @@ def search_hosts_by_scan_fields(
             else:
                 qs = qs.filter(**{lookup: value})
         else:
-            # Array artefact: use jsonb_array_elements with RawSQL
-            # Build SQL path like: last_scan_cache->'facts'->'generic.PackageList'
+            # Array search: support arrays at any depth (including nested arrays)
             section = descriptor.section
             artefact = descriptor.artefact_key
-            field = descriptor.field_path[0]
+            array_path = descriptor.array_path or ("[]",)
+            elem_field_path = descriptor.element_field_path or ()
 
-            base = (
-                "jsonb_array_elements(\"hosts_host\".\"last_scan_cache\"->%s->%s)"
-            )
+            # Build FROM clause(s) by progressively expanding arrays
+            params: list[Any] = [section, artefact]
+            expr = "\"hosts_host\".\"last_scan_cache\"->%s->%s"
+            from_clauses: list[str] = []
+            level = 0
+            for token in array_path:
+                if token == "[]":
+                    alias = f"e{level}"
+                    from_clauses.append(f"jsonb_array_elements({expr}) AS {alias}")
+                    expr = alias
+                    level += 1
+                else:
+                    expr = f"{expr}->%s"
+                    params.append(token)
 
-            # value expression for element field as text
-            # elem->>'field'
-            if descriptor.value_type == "string":
-                where = "elem->>%s ILIKE %s"
-                params = [section, artefact, field, f"%{value}%"]
+            # Ensure at least one array expansion (in case array_path omitted [] by mistake)
+            if not from_clauses:
+                alias = f"e{level}"
+                from_clauses.append(f"jsonb_array_elements({expr}) AS {alias}")
+                expr = alias
+
+            # Navigate inside element if needed
+            text_expr: str
+            if elem_field_path:
+                # Build elem->'a'->'b' and then ->>lastkey for text
+                if len(elem_field_path) == 1:
+                    text_expr = f"{expr}->>%s"
+                    params.append(elem_field_path[0])
+                else:
+                    # Build chain elem->'a'->'b' then ->>'c'
+                    for key in elem_field_path[:-1]:
+                        expr = f"{expr}->%s"
+                        params.append(key)
+                    text_expr = f"{expr}->>%s"
+                    params.append(elem_field_path[-1])
             else:
-                # Compare as text equality; sufficient for int/bool exact matching
-                where = "elem->>%s = %s"
-                params = [section, artefact, field, str(value)]
+                # Element itself is primitive. For strings, Postgres jsonb scalar::text
+                # includes quotes, so we strip them conditionally.
+                # We'll build the expression later depending on value type.
+                text_expr = f"{expr}::text"
 
-            query = f"SELECT 1 FROM {base} AS elem WHERE {where} LIMIT 1"
+            if descriptor.value_type == "string":
+                if not elem_field_path:
+                    # primitive element: strip quotes when it's a JSON string
+                    text_for_compare = (
+                        f"CASE WHEN jsonb_typeof({expr})='string' "
+                        f"THEN trim(both '" + '"' + f"' from {expr}::text) "
+                        f"ELSE {expr}::text END"
+                    )
+                    where = f"{text_for_compare} ILIKE %s"
+                else:
+                    where = f"{text_expr} ILIKE %s"
+                params.append(f"%{value}%")
+            else:
+                where = f"{text_expr} = %s"
+                params.append(str(value))
+
+            from_sql = " CROSS JOIN LATERAL ".join(from_clauses)
+            query = f"SELECT 1 FROM {from_sql} WHERE {where} LIMIT 1"
             qs = qs.annotate(_match=RawSQL(query, params)).filter(_match__isnull=False)
 
     return qs
@@ -287,15 +451,42 @@ def _extract_from_cache(cache: dict, descriptor: SearchableField) -> Any:
             cur = cur.get(key)
         return cur
 
-    # Array kind: artefact_data is expected to be a list of dicts
+    # Array kind: artefact_data contains nested structures; walk array_path
+    def expand(current_nodes: list[Any], token: str) -> list[Any]:
+        out: list[Any] = []
+        if token == "[]":
+            for node in current_nodes:
+                if isinstance(node, list):
+                    out.extend(node)
+        else:
+            for node in current_nodes:
+                if isinstance(node, dict):
+                    out.append(node.get(token))
+        return out
+
+    nodes: list[Any] = [artefact_data]
+    for token in (descriptor.array_path or ("[]",)):
+        nodes = expand(nodes, token)
+        # flatten one level if nested containers like dict returned
+        nodes = [n for n in nodes if n is not None]
+
+    # Now nodes are the array elements
     results: list[Any] = []
-    if isinstance(artefact_data, list):
-        field = descriptor.field_path[0]
-        for elem in artefact_data:
-            if isinstance(elem, dict):
-                val = elem.get(field)
-                if val is not None:
-                    results.append(val)
+    if descriptor.element_field_path:
+        for elem in nodes:
+            cur = elem
+            ok = True
+            for key in descriptor.element_field_path:
+                if not isinstance(cur, dict):
+                    ok = False
+                    break
+                cur = cur.get(key)
+            if ok and cur is not None:
+                results.append(cur)
+    else:
+        for elem in nodes:
+            if elem is not None:
+                results.append(elem)
     return results
 
 
@@ -332,9 +523,27 @@ def get_scan_field_values(
     return results
 
 
+def get_scan_field_value_for_object(obj: Any, field_id: str) -> Any:
+    """Get the value(s) for a single field id from a given object or cache dict.
+
+    - For scalar fields: returns the value or None
+    - For array fields: returns a list of values (possibly empty)
+    Unknown field ids return None.
+    """
+    field_map = {f.id: f for f in get_searchable_fields()}
+    desc = field_map.get(field_id)
+    if desc is None:
+        return None
+    cache = _get_cache_from_obj(obj)
+    if cache is None:
+        return None if desc.kind == "scalar" else []
+    return _extract_from_cache(cache, desc)
+
+
 __all__ = [
     "SearchableField",
     "get_searchable_fields",
     "search_hosts_by_scan_fields",
+    "get_scan_field_value_for_object",
     "get_scan_field_values",
 ]
