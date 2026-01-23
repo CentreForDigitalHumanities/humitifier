@@ -308,6 +308,74 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
     template_name = 'hosts/host_advanced_search.html'
 
     def post(self, *args, **kwargs):
+        # Detect export actions from POST: buttons named export-csv/json/txt
+        post = self.request.POST
+        export_type = None
+        for key in ("export-csv", "export-json", "export-txt"):
+            if key in post:
+                export_type = key.split("-", 1)[1]
+                break
+
+        if not export_type:
+            # Regular search submit
+            return super().get(*args, **kwargs)
+
+        # Build context to get the data to export
+        context = self.get_context_data()
+        data = context.get("data", [])
+        requested_columns = context.get("requested_columns", [])
+
+        # Helper to normalize dict rows for export (CSV/JSON)
+        def iter_rows():
+            for item in data:
+                obj = item.get("object")
+                fields = dict(item.get("fields", {}))
+                fields["FQDN"] = getattr(obj, "fqdn", "")
+                yield fields
+
+        # Build filename timestamp
+        ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+
+        if export_type == "txt":
+            # Only hostnames, one per line
+            lines = []
+            for item in data:
+                obj = item.get("object")
+                fqdn = getattr(obj, "fqdn", "")
+                if fqdn:
+                    lines.append(fqdn)
+            body = "\n".join(lines)
+            resp = HttpResponse(body, content_type="text/plain; charset=utf-8")
+            resp["Content-Disposition"] = f"attachment; filename=humitifier-advanced-export-{ts}.txt"
+            return resp
+
+        if export_type == "json":
+            rows = list(iter_rows())
+            body = json.dumps(rows, indent=2, default=str)
+            resp = HttpResponse(body, content_type="application/json")
+            resp["Content-Disposition"] = f"attachment; filename=humitifier-advanced-export-{ts}.json"
+            return resp
+
+        if export_type == "csv":
+            # Header: FQDN + requested field ids (in chosen order)
+            headers = ["FQDN"] + list(requested_columns)
+            sio = StringIO()
+            writer = csv.DictWriter(sio, fieldnames=headers, extrasaction="ignore")
+            writer.writeheader()
+            for row in iter_rows():
+                # Convert list values to comma-separated strings for CSV
+                normalized = {}
+                for k, v in row.items():
+                    if isinstance(v, list):
+                        normalized[k] = ", ".join(str(x) for x in v)
+                    else:
+                        normalized[k] = v
+                writer.writerow(normalized)
+            resp = HttpResponse(sio.getvalue(), content_type="text/csv; charset=utf-8")
+            resp["Content-Disposition"] = f"attachment; filename=humitifier-advanced-export-{ts}.csv"
+            return resp
+
+        # Fallback to normal rendering
         return super().get(*args, **kwargs)
 
     def get_context_data(self, **kwargs):
