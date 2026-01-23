@@ -24,6 +24,7 @@ from .filters import DataSourceFilters, HostFilters
 from .forms import DataSourceForm, HostForm, HostScanSpecForm
 from .models import DataSource, Host
 from .scan_visualizers import get_scan_visualizer
+from .search import get_searchable_fields, search_hosts_by_scan_fields
 from .tables import DataSourcesTable, HostsTable
 
 ##
@@ -300,6 +301,66 @@ class HostUpdateView(
 
     def get_success_url(self):
         return reverse("hosts:detail", kwargs={"fqdn": self.object.fqdn})
+
+
+class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    template_name = 'hosts/host_advanced_search.html'
+
+    def post(self, *args, **kwargs):
+        return super().get(*args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        searchable_fields = get_searchable_fields()
+        context['searchable_fields'] = searchable_fields
+        context['data'] = self._get_data(searchable_fields)
+
+        if self.request.POST:
+            context['search_string'] = self.request.POST.get('search-string', '')
+
+        return context
+
+    def _get_data(self, searchable_fields):
+        qs = Host.objects.get_for_user(self.request.user)
+
+        if self.request.POST:
+            search_terms = self._parse_search_string(searchable_fields)
+            qs = search_hosts_by_scan_fields(qs, search_terms)
+
+        return qs
+
+    def _parse_search_string(self, searchable_fields):
+        if not self.request.POST:
+            return {}
+        search_string = self.request.POST.get('search-string', '')
+
+        if not search_string:
+            return {}
+
+        allowed_fields = [field.id for field in searchable_fields]
+
+        # Split our terms into individual commands
+        splitted_search_string = search_string.split(' AND ')
+
+        search_params = {}
+
+        for search_item in splitted_search_string:
+            try:
+                field, value = search_item.split(" = ", maxsplit=1)
+            except ValueError:
+                # Ignore bad stuff
+                continue
+
+            # Check if this is a legal field
+            # TODO: decide to log errors or not
+            if field not in allowed_fields:
+                continue
+
+            # Set the field with the value, stripping the quotes that should be there
+            search_params[field] = value[1:-1]
+
+        return search_params
 
 ##
 ## Data source views

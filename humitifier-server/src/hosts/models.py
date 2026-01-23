@@ -428,6 +428,9 @@ class Host(models.Model):
         if self.scan_spec_override:
             return self.scan_spec_override.name
 
+        if not self.data_source:
+            return mark_safe("<span class='italic'>Unknown</span>")
+
         string = self.data_source.default_scan_spec.name
         string += " <span class='italic'>(Default)</span>"
         return mark_safe(s=string)

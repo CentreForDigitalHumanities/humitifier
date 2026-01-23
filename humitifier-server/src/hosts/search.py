@@ -158,10 +158,11 @@ def get_searchable_fields() -> list[SearchableField]:
 
     def add_scalar(section: str, artefact_key: str, path: tuple[str, ...], value_type: str):
         field_id = f"{section}.{artefact_key}." + ".".join(path)
+        label = f"{field_id} ({value_type})"
         fields.append(
             SearchableField(
                 id=field_id,
-                label=field_id,
+                label=label,
                 value_type=value_type,  # type: ignore[arg-type]
                 section=section,
                 kind="scalar",
@@ -172,10 +173,11 @@ def get_searchable_fields() -> list[SearchableField]:
 
     def add_array(section: str, artefact_key: str, array_path: tuple[str, ...], element_field_path: tuple[str, ...], value_type: str):
         field_id = render_array_id(section, artefact_key, array_path, element_field_path)
+        label = f"{field_id} ({value_type})"
         fields.append(
             SearchableField(
                 id=field_id,
-                label=field_id,
+                label=label,
                 value_type=value_type,  # type: ignore[arg-type]
                 section=section,
                 kind="array",

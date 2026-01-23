@@ -1,0 +1,224 @@
+{% extends "base/base_page_template.html" %}
+
+{% load humanize %}
+{% load param_replace %}
+
+{% block page_title %}Advanced search | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg-default transition ease-in-out duration-150">
+        <div class="px-7 py-5 flex justify-between">
+            <h1 class="text-3xl font-bold">Advanced Search</h1>
+        </div>
+        <form method="post" class="px-7 flex flex-col gap-3" x-data="kibanaLikeSearch()" x-init="init()" @keydown.window.escape="closeSuggestions()">
+            {% csrf_token %}
+            <div class="flex align-items-baseline w-full gap-4">
+                <label for="search-string" class="text-nowrap break-keep">Search query:</label>
+                <div class="relative w-full">
+                    <input
+                        class="input w-full"
+                        x-ref="input"
+                        name="search-string"
+                        x-model="value"
+                        placeholder='{FIELD} = "{value}" (AND {FIELD} = "{value}")'
+                        autocomplete="off"
+                        @input="onInput()"
+                        @click="onInput()"
+                        @keydown.down.prevent="move(1)"
+                        @keydown.up.prevent="move(-1)"
+                        @keydown.tab.prevent="onTab()"
+                    />
+
+                    <template x-if="open && suggestions.length">
+                        <ul class="absolute z-50 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
+                            <template x-for="(s, idx) in suggestions" :key="s.id">
+                                <li
+                                    class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
+                                    :class="{ 'bg-base-200': idx === activeIndex }"
+                                    @mousedown.prevent="choose(idx)"
+                                    x-text="s.label"
+                                ></li>
+                            </template>
+                        </ul>
+                    </template>
+                </div>
+            </div>
+
+            <div class="flex gap-2 justify-end w-full">
+                <button class="btn btn-sm btn-outline" type="submit" name="export-csv" @click="normalizeForSubmit()">
+                    Export (CSV)
+                </button>
+                <button class="btn btn-sm btn-outline" type="submit" name="export-json" @click="normalizeForSubmit()">
+                    Export (JSON)
+                </button>
+                <button class="btn btn-sm btn-outline" type="submit" name="export-txt" @click="normalizeForSubmit()">
+                    Export (Host-list)
+                </button>
+                <button class="btn btn-sm light:btn-primary dark:btn-outline" type="submit" name="search" @click="normalizeForSubmit()">
+                    Search
+                </button>
+            </div>
+        </form>
+
+        <div class="px-7 py-3">
+            Results: {{ data.count }}
+        </div>
+
+         <table class="w-full table-auto">
+             <thead>
+                <tr class="text-left">
+                    <th class="pl-7 pr-7 py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150">
+                        Host
+                    </th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for host in data %}
+                    <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+                        <td class="pl-7 pr-7 py-5">
+                            <a href="{% url 'hosts:detail' host.fqdn %}" class="underline">
+                                {{ host.fqdn }}
+                            </a>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+{% endblock %}
+
+{% block footer_scripts %}
+<script>
+// A minimal single-input, Kibana-like query helper.
+// - Autocompletes field labels from searchable_fields.
+// - Inserts: `LABEL = ""` when a suggestion is chosen and places cursor between quotes.
+// - When a complete term is present and Enter is pressed, appends ` AND ` to start the next term.
+// - On submit, normalizes spacing and ensures values are quoted; embedded quotes are escaped.
+function kibanaLikeSearch() {
+    return {
+        fields: [], // [{id, label}]
+        value: '',
+        open: false,
+        suggestions: [],
+        activeIndex: 0,
+        and_separator: ' AND ',
+        init() {
+            this.value = '{{ search_string|safe }}'
+            this.fields = [
+            {% for field in searchable_fields %}
+                { id: '{{ field.id|safe }}', label: '{{ field.label|safe }}',},
+            {% endfor %}
+            ]
+        },
+        getCaret() {
+            const el = this.$refs.input;
+            return el ? el.selectionStart : 0;
+        },
+        setCaret(pos) {
+            const el = this.$refs.input;
+            if (!el) return;
+            requestAnimationFrame(() => {
+                el.setSelectionRange(pos, pos);
+                el.focus();
+            });
+        },
+        currentTokenBounds() {
+            // Token is the segment after the last ' AND '
+            const caret = this.getCaret();
+            const before = this.value.slice(0, caret);
+            const lastAnd = before.lastIndexOf(this.and_separator);
+            const start = lastAnd === -1 ? 0 : lastAnd + this.and_separator.length; // after ' AND '
+            const end = caret;
+            return { start, end };
+        },
+        currentToken() {
+            const { start, end } = this.currentTokenBounds();
+            return this.value.slice(start, end);
+        },
+        onInput() {
+            const token = this.currentToken();
+            const raw = token.trimStart();
+            // Show suggestions only if '=' not yet present in current token
+            if (!raw.includes('=')) {
+                const needle = raw.toLowerCase();
+                if (needle.length === 0) {
+                    this.suggestions = this.fields.slice(0, 9999);
+                } else {
+                    this.suggestions = this.fields.filter(f => f.label.toLowerCase().includes(needle)).slice(0, 9999);
+                }
+                this.activeIndex = 0;
+                this.open = this.suggestions.length > 0;
+            } else {
+                this.closeSuggestions();
+            }
+        },
+        move(delta) {
+            if (!this.open || !this.suggestions.length) return;
+            const len = this.suggestions.length;
+            this.activeIndex = (this.activeIndex + delta + len) % len;
+        },
+        choose(idx) {
+            if (!this.suggestions.length) return;
+            const s = this.suggestions[idx ?? this.activeIndex];
+            const { start, end } = this.currentTokenBounds();
+            const left = this.value.slice(0, start);
+            const right = this.value.slice(end);
+            const insert = `${s.id} = ""`;
+            // Replace token with `Label = ""` and place caret between quotes
+            this.value = left + insert + right;
+            const caretPos = (left + `${s.id} = "`).length;
+            this.setCaret(caretPos);
+            this.closeSuggestions();
+        },
+        onTab() {
+            if (this.open && this.suggestions.length) {
+                this.choose(this.activeIndex);
+                return;
+            }
+            // If current token looks like: Label = "value" then add AND for next term
+            const token = this.currentToken().trim();
+            const complete = /.+\s=\s"[^"]*"?$/.test(token);
+            if (complete) {
+                const { end } = this.currentTokenBounds();
+                const right = this.value.slice(end);
+                // Only add AND if not already followed by AND
+                if (!/^\s+AND\s+/.test(right)) {
+                    // Add any missing quote
+                    const lastCharacter = this.value[this.value.length - 1]
+                    const secondLastCharacter = this.value[this.value.length - 2]
+                    if (lastCharacter !== '"' || secondLastCharacter === " ")
+                        this.value += '"'
+
+                    this.value = this.value + this.and_separator;
+                    this.setCaret(this.value.length);
+                }
+            }
+        },
+        closeSuggestions() {
+            this.open = false;
+            this.suggestions = [];
+            this.activeIndex = 0;
+        },
+        normalizeForSubmit() {
+            // Normalize query ensuring: LABEL = "value" AND LABEL = "value"
+            const parts = this.value.split(/\s+AND\s+/i).map(p => p.trim()).filter(Boolean);
+            const normalized = parts.map(p => {
+                // Try to split at first '='
+                const i = p.indexOf('=');
+                if (i === -1) return p; // leave as is
+                const left = p.slice(0, i).trim();
+                let right = p.slice(i + 1).trim();
+                // Remove surrounding quotes if present
+                if (right.startsWith('"') && right.endsWith('"') && right.length >= 2) {
+                    right = right.slice(1, -1);
+                }
+                // Escape embedded quotes
+                right = right.replaceAll('"', '\\"');
+                return `${left} = "${right}"`;
+            }).join(this.and_separator);
+            this.value = normalized;
+        }
+    }
+}
+</script>
+{% endblock %}
