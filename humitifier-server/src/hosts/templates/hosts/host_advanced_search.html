@@ -35,7 +35,7 @@
                             <template x-for="(s, idx) in suggestions" :key="s.id">
                                 <li
                                     class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
-                                    :class="{ 'bg-base-200': idx === activeIndex }"
+                                    :class="{ 'bg-gray-200': idx === activeIndex }"
                                     @mousedown.prevent="choose(idx)"
                                     x-text="s.label"
                                 ></li>
@@ -84,7 +84,7 @@
                             <template x-for="(s, idx) in colSuggestions" :key="s.id">
                                 <li
                                     class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
-                                    :class="{ 'bg-base-200': idx === colActiveIndex }"
+                                    :class="{ 'bg-gray-200': idx === colActiveIndex }"
                                     @mousedown.prevent="chooseColumn(idx)"
                                     x-text="s.label"
                                 ></li>
