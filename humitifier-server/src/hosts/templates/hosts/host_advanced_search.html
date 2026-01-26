@@ -10,6 +10,9 @@
         <div class="px-7 py-5 flex justify-between">
             <h1 class="text-3xl font-bold">Advanced Search</h1>
         </div>
+        <div class="mx-7 p-3 py-2 mb-5 flex flex-col gap-3 bg-orange-300 dark:bg-orange-600">
+            Advanced Search is an experimental feature; complex queries may result in unexpected results.
+        </div>
         <form method="post" class="px-7 flex flex-col gap-3" x-data="kibanaLikeSearch()" x-init="init()" @keydown.window.escape="closeSuggestions(); closeColumnSuggestions()">
             {% csrf_token %}
             <div class="flex items-center w-full gap-4">
