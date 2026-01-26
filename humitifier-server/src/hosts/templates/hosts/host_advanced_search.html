@@ -96,7 +96,10 @@
                 </div>
             </div>
 
-            <div class="flex gap-2 justify-end w-full">
+            <div class="flex gap-2 justify-end w-full items-stretch">
+                <div class="flex gap-1 items-center mr-4">
+                    <input type="checkbox" name="include-archived" {% if include_archived %}checked{% endif %}> <label for="include-archived">Include archived servers</label>
+                </div>
                 <button class="btn btn-sm btn-outline" type="submit" name="export-csv" @click="normalizeForSubmit()">
                     Export (CSV)
                 </button>

@@ -378,6 +378,12 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         # Fallback to normal rendering
         return super().get(*args, **kwargs)
 
+    def _include_archived(self):
+        if not self.request.POST:
+            return False
+
+        return 'include-archived' in self.request.POST
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
@@ -386,6 +392,7 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         context['searchable_fields'] = searchable_fields
         context['requested_columns'] = requested_columns
         context['data'] = self._get_data(searchable_fields,requested_columns)
+        context['include_archived'] = self._include_archived()
 
         if self.request.POST:
             context['search_string'] = self.request.POST.get('search-string', '')
@@ -394,6 +401,9 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
 
     def _get_data(self, searchable_fields, requested_columns):
         qs = Host.objects.get_for_user(self.request.user)
+
+        if not self._include_archived():
+            qs = qs.exclude(archived=True)
 
         if self.request.POST:
             search_terms = self._parse_search_string(searchable_fields)
