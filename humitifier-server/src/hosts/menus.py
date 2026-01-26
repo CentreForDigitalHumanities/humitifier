@@ -22,7 +22,7 @@ Menu.add_item(
             HumitifierMenuItem(
                 "Advanced Search",
                 reverse("hosts:advanced_search"),
-                icon="icons/list.html",
+                icon="icons/search.html",
                 check=lambda request: request.user.is_superuser,
             ),
             HumitifierMenuItem(
