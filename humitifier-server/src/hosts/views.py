@@ -24,6 +24,8 @@ from .filters import DataSourceFilters, HostFilters
 from .forms import DataSourceForm, HostForm, HostScanSpecForm
 from .models import DataSource, Host
 from .scan_visualizers import get_scan_visualizer
+from .search import get_searchable_fields, search_hosts_by_scan_fields, \
+    get_scan_field_values
 from .tables import DataSourcesTable, HostsTable
 
 ##
@@ -300,6 +302,160 @@ class HostUpdateView(
 
     def get_success_url(self):
         return reverse("hosts:detail", kwargs={"fqdn": self.object.fqdn})
+
+
+class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    template_name = 'hosts/host_advanced_search.html'
+
+    def post(self, *args, **kwargs):
+        # Detect export actions from POST: buttons named export-csv/json/txt
+        post = self.request.POST
+        export_type = None
+        for key in ("export-csv", "export-json", "export-txt"):
+            if key in post:
+                export_type = key.split("-", 1)[1]
+                break
+
+        if not export_type:
+            # Regular search submit
+            return super().get(*args, **kwargs)
+
+        # Build context to get the data to export
+        context = self.get_context_data()
+        data = context.get("data", [])
+        requested_columns = context.get("requested_columns", [])
+
+        # Helper to normalize dict rows for export (CSV/JSON)
+        def iter_rows():
+            for item in data:
+                obj = item.get("object")
+                fields = dict(item.get("fields", {}))
+                fields["FQDN"] = getattr(obj, "fqdn", "")
+                yield fields
+
+        # Build filename timestamp
+        ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
+
+        if export_type == "txt":
+            # Only hostnames, one per line
+            lines = []
+            for item in data:
+                obj = item.get("object")
+                fqdn = getattr(obj, "fqdn", "")
+                if fqdn:
+                    lines.append(fqdn)
+            body = "\n".join(lines)
+            resp = HttpResponse(body, content_type="text/plain; charset=utf-8")
+            resp["Content-Disposition"] = f"attachment; filename=humitifier-advanced-export-{ts}.txt"
+            return resp
+
+        if export_type == "json":
+            rows = list(iter_rows())
+            body = json.dumps(rows, indent=2, default=str)
+            resp = HttpResponse(body, content_type="application/json")
+            resp["Content-Disposition"] = f"attachment; filename=humitifier-advanced-export-{ts}.json"
+            return resp
+
+        if export_type == "csv":
+            # Header: FQDN + requested field ids (in chosen order)
+            headers = ["FQDN"] + list(requested_columns)
+            sio = StringIO()
+            writer = csv.DictWriter(sio, fieldnames=headers, extrasaction="ignore")
+            writer.writeheader()
+            for row in iter_rows():
+                # Convert list values to comma-separated strings for CSV
+                normalized = {}
+                for k, v in row.items():
+                    if isinstance(v, list):
+                        normalized[k] = ", ".join(str(x) for x in v)
+                    else:
+                        normalized[k] = v
+                writer.writerow(normalized)
+            resp = HttpResponse(sio.getvalue(), content_type="text/csv; charset=utf-8")
+            resp["Content-Disposition"] = f"attachment; filename=humitifier-advanced-export-{ts}.csv"
+            return resp
+
+        # Fallback to normal rendering
+        return super().get(*args, **kwargs)
+
+    def _include_archived(self):
+        if not self.request.POST:
+            return False
+
+        return 'include-archived' in self.request.POST
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+
+        searchable_fields = get_searchable_fields()
+        requested_columns = self._parse_requested_columns(searchable_fields)
+        context['searchable_fields'] = searchable_fields
+        context['requested_columns'] = requested_columns
+        context['data'] = self._get_data(searchable_fields,requested_columns)
+        context['include_archived'] = self._include_archived()
+
+        if self.request.POST:
+            context['search_string'] = self.request.POST.get('search-string', '')
+
+        return context
+
+    def _get_data(self, searchable_fields, requested_columns):
+        qs = Host.objects.get_for_user(self.request.user)
+
+        if not self._include_archived():
+            qs = qs.exclude(archived=True)
+
+        if self.request.POST:
+            search_terms = self._parse_search_string(searchable_fields)
+            qs = search_hosts_by_scan_fields(qs, search_terms)
+
+        return get_scan_field_values(qs, requested_columns)
+
+    def _parse_requested_columns(self, searchable_fields):
+        if not self.request.POST:
+            return []
+
+        column_string = self.request.POST.get('columns', '')
+
+        if not column_string:
+            return {}
+
+        allowed_fields = [field.id for field in searchable_fields]
+
+        return [field for field in column_string.split(',') if field in allowed_fields]
+
+
+    def _parse_search_string(self, searchable_fields):
+        if not self.request.POST:
+            return {}
+        search_string = self.request.POST.get('search-string', '')
+
+        if not search_string:
+            return {}
+
+        allowed_fields = [field.id for field in searchable_fields]
+
+        # Split our terms into individual commands
+        splitted_search_string = search_string.split(' AND ')
+
+        search_params = {}
+
+        for search_item in splitted_search_string:
+            try:
+                field, value = search_item.split(" = ", maxsplit=1)
+            except ValueError:
+                # Ignore bad stuff
+                continue
+
+            # Check if this is a legal field
+            # TODO: decide to log errors or not
+            if field not in allowed_fields:
+                continue
+
+            # Set the field with the value, stripping the quotes that should be there
+            search_params[field] = value[1:-1]
+
+        return search_params
 
 ##
 ## Data source views

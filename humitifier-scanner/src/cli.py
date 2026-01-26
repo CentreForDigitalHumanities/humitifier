@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import json
 import sys
 from enum import Enum
 from pprint import pprint
@@ -34,6 +35,12 @@ from humitifier_scanner.utils import get_local_fqdn
 class BulkManualScan(BaseModel):
     hosts_file: str = Field(
         description="File containing a list of hosts to scan, one per line"
+    )
+
+    combine: CliImplicitFlag[bool] = Field(
+        default=False,
+        description="If passed, all scan output will be combined into a single "
+        "JSON list"
     )
 
     artefact: list[str] = Field(
@@ -108,6 +115,8 @@ class BulkManualScan(BaseModel):
                 options["variant"] = variant
             artefacts[artefact] = ArtefactScanOptions(**options)
 
+        combined = []
+
         for host in hosts:
             # Run the scan
             scan_input = ScanInput(
@@ -118,7 +127,14 @@ class BulkManualScan(BaseModel):
             result = scan(scan_input)
 
             # Handle the results
-            print(result.model_dump_json(indent=self.indent_results))
+            if self.combine:
+                combined.append(result.model_dump())
+            else:
+                print(result.model_dump_json(indent=self.indent_results))
+
+        if self.combine:
+            json.dump(combined, sys.stdout, indent=self.indent_results, default=str)
+
 
 class ManualScan(BaseModel):
     host: str | None = Field(

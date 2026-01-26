@@ -9,6 +9,7 @@ from .views import (
     HostExportView,
     HostScanSpecUpdateView, HostUpdateView, HostsListView,
     HostsRawDownloadView,
+    AdvancedSearchView,
 )
 
 app_name = "hosts"
@@ -16,6 +17,7 @@ app_name = "hosts"
 urlpatterns = [
     path("", HostsListView.as_view(), name="list"),
     path("export/", HostExportView.as_view(), name="export"),
+    path("advanced_search/", AdvancedSearchView.as_view(), name="advanced_search"),
     path("host/new/", HostCreateView.as_view(), name="create"),
     path("host/<fqdn>/", HostDetailView.as_view(), name="detail"),
     path("host/<fqdn>/raw/", HostsRawDownloadView.as_view(), name="download_raw"),
