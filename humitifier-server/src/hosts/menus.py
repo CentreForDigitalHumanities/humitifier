@@ -20,6 +20,12 @@ Menu.add_item(
                 check=lambda request: request.user.is_authenticated,
             ),
             HumitifierMenuItem(
+                "Advanced Search",
+                reverse("hosts:advanced_search"),
+                icon="icons/search.html",
+                check=lambda request: request.user.is_superuser,
+            ),
+            HumitifierMenuItem(
                 "Data sources",
                 reverse("hosts:data_sources"),
                 icon="icons/databases.html",
