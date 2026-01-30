@@ -348,7 +348,7 @@ function advancedSearchQuery() {
                 });
             }
 
-            return suggestions.slice(0, 50);
+            return suggestions;
         },
 
         _getOperatorDescription(op) {
@@ -484,7 +484,7 @@ function advancedSearchQuery() {
             if (needle.length) {
                 pool = pool.filter(f => f.label.toLowerCase().includes(needle) || f.id.toLowerCase().includes(needle));
             }
-            this.colSuggestions = pool.slice(0, 100);
+            this.colSuggestions = pool;
             this.colActiveIndex = 0;
             this.colOpen = this.colSuggestions.length > 0;
         },
