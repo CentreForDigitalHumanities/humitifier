@@ -6,12 +6,95 @@
 {% block page_title %}Advanced search | {{ block.super }}{% endblock %}
 
 {% block content %}
-    <div class="h-full--header w-full bg-default transition ease-in-out duration-150">
-        <div class="px-7 py-5 flex justify-between">
+    <div class="h-full--header w-full bg-default transition ease-in-out duration-150" x-data="{ showHelp: false }">
+        <div class="px-7 py-5 flex justify-between items-center">
             <h1 class="text-3xl font-bold">Advanced Search</h1>
+            <button type="button" @click="showHelp = !showHelp" class="btn btn-sm btn-outline">
+                <span x-show="!showHelp">Show Help</span>
+                <span x-show="showHelp">Hide Help</span>
+            </button>
         </div>
+
         <div class="mx-7 p-3 py-2 mb-5 flex flex-col gap-3 bg-orange-300 dark:bg-orange-600">
             Advanced Search is an experimental feature; complex queries may result in unexpected results.
+        </div>
+
+        <div x-show="showHelp" x-transition class="mx-7 p-4 mb-5 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded">
+            <h2 class="text-xl font-semibold mb-3">Query Syntax Help</h2>
+
+            <div class="space-y-4 text-sm">
+                <div>
+                    <h3 class="font-semibold mb-1">Basic Structure</h3>
+                    <p class="mb-2">Queries consist of field comparisons combined with logical operators.</p>
+                    <code class="block bg-white dark:bg-gray-800 p-2 rounded">field_name operator value</code>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Comparison Operators</h3>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><code>=</code> — equals (case-insensitive for strings)</li>
+                        <li><code>&gt;</code> — greater than</li>
+                        <li><code>&gt;=</code> — greater than or equal</li>
+                        <li><code>&lt;</code> — less than</li>
+                        <li><code>&lt;=</code> — less than or equal</li>
+                        <li><code>contains</code> — substring match (case-insensitive)</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Values</h3>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><strong>Strings:</strong> <code>"value"</code> or <code>'value'</code> (use quotes for text)</li>
+                        <li><strong>Numbers:</strong> <code>42</code> or <code>3.14</code> (no quotes)</li>
+                        <li><strong>Booleans:</strong> <code>true</code> or <code>false</code> (no quotes)</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Logical Operators</h3>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><code>AND</code> — both conditions must be true</li>
+                        <li><code>OR</code> — at least one condition must be true</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Grouping with Parentheses</h3>
+                    <p class="mb-2">Use parentheses <code>(</code> and <code>)</code> to control evaluation order.</p>
+                    <code class="block bg-white dark:bg-gray-800 p-2 rounded">(condition1 OR condition2) AND condition3</code>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Examples</h3>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="font-medium">Find Ubuntu hosts:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu"</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find hosts with 4 or more CPUs:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.cpu.count &gt;= 4</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find Ubuntu hosts with 4+ CPUs:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu" AND facts.cpu.count &gt;= 4</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find either Ubuntu or Debian hosts:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu" OR facts.os.name = "Debian"</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find Linux hosts with "web" in hostname:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">(facts.os.name = "Ubuntu" OR facts.os.name = "Debian") AND facts.hostname contains "web"</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 bg-blue-100 dark:bg-blue-800 rounded">
+                    <p class="font-semibold">💡 Tip:</p>
+                    <p>Use the autocomplete suggestions as you type. Press <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">Tab</kbd> or <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">Enter</kbd> to accept suggestions, and <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">↑</kbd> <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">↓</kbd> to navigate.</p>
+                </div>
+            </div>
         </div>
         {% if query_parse_error %}
         <div class="mx-7 p-3 py-2 mb-5 flex flex-col gap-3 bg-red-300 dark:bg-red-600">
@@ -44,7 +127,7 @@
                             <template x-for="(s, idx) in suggestions" :key="s.id">
                                 <li
                                     class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
-                                    :class="{ 'bg-gray-200': idx === activeIndex }"
+                                    :class="{ 'bg-gray-200 dark:bg-gray-700': idx === activeIndex }"
                                     @mousedown.prevent="choose(idx)"
                                     x-text="s.label"
                                 ></li>
@@ -93,7 +176,7 @@
                             <template x-for="(s, idx) in colSuggestions" :key="s.id">
                                 <li
                                     class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
-                                    :class="{ 'bg-gray-200': idx === colActiveIndex }"
+                                    :class="{ 'bg-gray-200 dark:bg-gray-700': idx === colActiveIndex }"
                                     @mousedown.prevent="chooseColumn(idx)"
                                     x-text="s.label"
                                 ></li>
