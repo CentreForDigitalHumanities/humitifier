@@ -107,11 +107,11 @@ def _build_array_field_id(
         element_field_path: Path to field within array elements
 
     Returns:
-        A field ID like "facts.generic.Hardware.memory[]->size"
+        A field ID like "facts.generic.Hardware.memory[].size"
 
     Example:
         >>> _build_array_field_id("facts", "Hardware", ("memory", "[]"), ("size",))
-        "facts.Hardware.memory[]->size"
+        "facts.Hardware.memory[].size"
     """
     # Extract only the field names, excluding "[]" markers
     field_names = [component for component in array_path if component != "[]"]
@@ -128,7 +128,7 @@ def _build_array_field_id(
 
     # Add element field path if present
     if element_field_path:
-        identifier += "->" + ".".join(element_field_path)
+        identifier += "." + ".".join(element_field_path)
 
     return identifier
 
@@ -508,7 +508,7 @@ def get_searchable_fields() -> list[SearchableField]:
 
     Returns:
         A list of SearchableField descriptors, each containing:
-        - id: Unique identifier for the field (e.g., "facts.Hardware.memory[]->size")
+        - id: Unique identifier for the field (e.g., "facts.Hardware.memory[].size")
         - label: Human-readable label with type information
         - value_type: The primitive type (string, integer, or boolean)
         - section: The artefact section (facts or metrics)
@@ -517,8 +517,8 @@ def get_searchable_fields() -> list[SearchableField]:
 
     Example field IDs:
         - "facts.generic.Hardware.hostname" (scalar)
-        - "facts.generic.Hardware.memory[]->size" (array)
-        - "metrics.DiskUsage.partitions[]->mountpoint" (array)
+        - "facts.generic.Hardware.memory[].size" (array)
+        - "metrics.DiskUsage.partitions[].mountpoint" (array)
     """
     fields: list[SearchableField] = []
 

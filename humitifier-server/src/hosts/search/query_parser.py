@@ -93,9 +93,10 @@ def _tokenize(query_string: str) -> list[str]:
             continue
 
         # Handle identifiers and keywords
-        if char.isalnum() or char in ('_', '.'):
+        IDENTIFIER_CHARS = ('_', '.', '[', ']')
+        if char.isalnum() or char in IDENTIFIER_CHARS:
             start = i
-            while i < length and (query_string[i].isalnum() or query_string[i] in ('_', '.')):
+            while i < length and (query_string[i].isalnum() or query_string[i] in IDENTIFIER_CHARS):
                 i += 1
             tokens.append(query_string[start:i])
             continue
