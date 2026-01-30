@@ -1,7 +1,7 @@
 /**
  * Advanced Search Query Helper
  *
- * Provides autocomplete and validation for the ComplexQuery syntax:
+ * Provides comprehensive autocomplete and validation for the ComplexQuery syntax:
  * - Operators: =, >, >=, <, <=, contains
  * - Logical operators: AND, OR
  * - Parentheses for grouping: (expr)
@@ -53,78 +53,325 @@ function advancedSearchQuery() {
         },
 
         /**
-         * Find the current token context at the caret position.
-         * Returns information about what's being typed (field, operator, or value).
+         * Tokenize the query up to the caret position to understand context.
+         * Returns an array of tokens with their types.
          */
-        getCurrentContext() {
+        _tokenizeUpToCaret() {
+            const text = this.value.slice(0, this.getCaret());
+            const tokens = [];
+            let i = 0;
+
+            while (i < text.length) {
+                const char = text[i];
+
+                // Skip whitespace
+                if (/\s/.test(char)) {
+                    i++;
+                    continue;
+                }
+
+                // Handle quoted strings
+                if (char === '"' || char === "'") {
+                    const quote = char;
+                    let str = quote;
+                    i++;
+                    while (i < text.length) {
+                        if (text[i] === '\\' && i + 1 < text.length) {
+                            str += text[i] + text[i + 1];
+                            i += 2;
+                        } else if (text[i] === quote) {
+                            str += text[i];
+                            i++;
+                            break;
+                        } else {
+                            str += text[i];
+                            i++;
+                        }
+                    }
+                    tokens.push({ type: 'string', value: str });
+                    continue;
+                }
+
+                // Handle parentheses
+                if (char === '(') {
+                    tokens.push({ type: 'lparen', value: '(' });
+                    i++;
+                    continue;
+                }
+                if (char === ')') {
+                    tokens.push({ type: 'rparen', value: ')' });
+                    i++;
+                    continue;
+                }
+
+                // Handle operators
+                if (char === '>' || char === '<' || char === '=') {
+                    let op = char;
+                    if (i + 1 < text.length && text[i + 1] === '=') {
+                        op += '=';
+                        i++;
+                    }
+                    tokens.push({ type: 'operator', value: op });
+                    i++;
+                    continue;
+                }
+
+                // Handle identifiers/keywords
+                if (/[a-zA-Z0-9_.]/.test(char)) {
+                    let word = '';
+                    while (i < text.length && /[a-zA-Z0-9_.]/.test(text[i])) {
+                        word += text[i];
+                        i++;
+                    }
+
+                    // Check if it's a logical operator
+                    if (word === 'AND' || word === 'OR') {
+                        tokens.push({ type: 'logical', value: word });
+                    } else if (word === 'contains') {
+                        tokens.push({ type: 'operator', value: word });
+                    } else if (word === 'true' || word === 'false') {
+                        tokens.push({ type: 'boolean', value: word });
+                    } else if (/^\d+(\.\d+)?$/.test(word)) {
+                        tokens.push({ type: 'number', value: word });
+                    } else {
+                        // It's a field identifier
+                        tokens.push({ type: 'field', value: word });
+                    }
+                    continue;
+                }
+
+                // Unknown character, skip it
+                i++;
+            }
+
+            return tokens;
+        },
+
+        /**
+         * Determine what type of suggestions to show based on query context.
+         */
+        _determineContext() {
+            const tokens = this._tokenizeUpToCaret();
+            const trimmedValue = this.value.slice(0, this.getCaret()).trimEnd();
+            const lastChar = trimmedValue[trimmedValue.length - 1];
+
+            // If we just typed a space, we might be starting a new token
+            const justTypedSpace = lastChar === ' ';
+
+            if (tokens.length === 0) {
+                // Empty query - suggest fields or opening paren
+                return { type: 'field_or_paren', partial: '' };
+            }
+
+            const lastToken = tokens[tokens.length - 1];
+
+            // Check if we're in the middle of typing something
+            const currentPartial = this._getCurrentPartialToken();
+
+            // After opening paren, expect field or another paren
+            if (lastToken.type === 'lparen') {
+                return { type: 'field_or_paren', partial: currentPartial };
+            }
+
+            // After a field name, expect an operator
+            if (lastToken.type === 'field') {
+                if (justTypedSpace || currentPartial.length > 0) {
+                    // Check if we're typing an operator
+                    const partialLower = currentPartial.toLowerCase();
+                    if (this.operators.some(op => op.startsWith(partialLower) && op !== partialLower)) {
+                        return { type: 'operator', partial: currentPartial };
+                    }
+                }
+                return { type: 'operator', partial: currentPartial };
+            }
+
+            // After an operator, expect a value (string/number/boolean)
+            if (lastToken.type === 'operator') {
+                return { type: 'value', partial: currentPartial };
+            }
+
+            // After a complete value (string, number, boolean, rparen), expect logical operator
+            if (lastToken.type === 'string' || lastToken.type === 'number' ||
+                lastToken.type === 'boolean' || lastToken.type === 'rparen') {
+
+                // Check if value is complete (string ends with quote, etc.)
+                const isComplete = this._isValueComplete(lastToken);
+
+                if (isComplete) {
+                    return { type: 'logical_or_rparen', partial: currentPartial };
+                } else {
+                    return { type: 'value', partial: currentPartial };
+                }
+            }
+
+            // After a logical operator, expect field or opening paren
+            if (lastToken.type === 'logical') {
+                return { type: 'field_or_paren', partial: currentPartial };
+            }
+
+            // Default to field suggestions
+            return { type: 'field_or_paren', partial: currentPartial };
+        },
+
+        /**
+         * Check if a value token is complete.
+         */
+        _isValueComplete(token) {
+            if (token.type === 'string') {
+                return token.value.endsWith('"') || token.value.endsWith("'");
+            }
+            if (token.type === 'number' || token.type === 'boolean') {
+                return true;
+            }
+            return false;
+        },
+
+        /**
+         * Get the partial token being typed at the cursor.
+         */
+        _getCurrentPartialToken() {
             const caret = this.getCaret();
             const before = this.value.slice(0, caret);
 
-            // Find the start of the current expression (after last AND/OR or opening paren)
-            let exprStart = 0;
-            const andMatch = before.lastIndexOf(' AND ');
-            const orMatch = before.lastIndexOf(' OR ');
-            const parenMatch = before.lastIndexOf('(');
-
-            exprStart = Math.max(andMatch + 5, orMatch + 4, parenMatch + 1, 0);
-
-            const currentExpr = before.slice(exprStart, caret).trim();
-
-            // Determine what we're typing based on the expression
-            // Check if we have an operator
-            const hasOperator = this.operators.some(op => currentExpr.includes(` ${op} `) || currentExpr.includes(op));
-
-            if (!hasOperator) {
-                // We're typing a field name
-                return {
-                    type: 'field',
-                    text: currentExpr,
-                    start: exprStart,
-                    end: caret
-                };
-            }
-
-            // We have an operator, check if we're past it (typing value)
-            for (const op of this.operators) {
-                const opIndex = currentExpr.lastIndexOf(` ${op} `);
-                if (opIndex !== -1) {
-                    const afterOp = currentExpr.slice(opIndex + op.length + 2);
-                    return {
-                        type: 'value',
-                        text: afterOp.trim(),
-                        start: exprStart + opIndex + op.length + 2,
-                        end: caret
-                    };
+            // Find the last space, operator, or paren
+            let start = before.length - 1;
+            while (start >= 0) {
+                const char = before[start];
+                if (/[\s()=<>]/.test(char)) {
+                    start++;
+                    break;
                 }
+                start--;
+            }
+            if (start < 0) start = 0;
+
+            return before.slice(start).trim();
+        },
+
+        /**
+         * Generate suggestions based on context.
+         */
+        _generateSuggestions(context) {
+            const suggestions = [];
+            const partialLower = context.partial.toLowerCase();
+
+            if (context.type === 'field_or_paren') {
+                // Add opening parenthesis suggestion
+                if ('('.startsWith(partialLower) || partialLower === '') {
+                    suggestions.push({
+                        id: '(',
+                        label: '( — open group',
+                        insertValue: '(',
+                        type: 'paren'
+                    });
+                }
+
+                // Add field suggestions
+                this.fields.forEach(field => {
+                    if (partialLower === '' ||
+                        field.id.toLowerCase().includes(partialLower) ||
+                        field.label.toLowerCase().includes(partialLower)) {
+                        suggestions.push({
+                            id: field.id,
+                            label: `${field.label} (${field.id})`,
+                            insertValue: field.id,
+                            type: 'field'
+                        });
+                    }
+                });
+            } else if (context.type === 'operator') {
+                // Suggest operators
+                this.operators.forEach(op => {
+                    if (partialLower === '' || op.toLowerCase().startsWith(partialLower)) {
+                        suggestions.push({
+                            id: op,
+                            label: op === 'contains' ? 'contains — substring match' : `${op} — ${this._getOperatorDescription(op)}`,
+                            insertValue: op,
+                            type: 'operator'
+                        });
+                    }
+                });
+            } else if (context.type === 'value') {
+                // Suggest value templates
+                if (partialLower === '' || '"value"'.startsWith(partialLower)) {
+                    suggestions.push({
+                        id: 'string',
+                        label: '"value" — text value',
+                        insertValue: '""',
+                        type: 'value',
+                        cursorOffset: -1  // Place cursor between quotes
+                    });
+                }
+                if (partialLower === '' || 'true'.startsWith(partialLower)) {
+                    suggestions.push({
+                        id: 'true',
+                        label: 'true — boolean',
+                        insertValue: 'true',
+                        type: 'value'
+                    });
+                }
+                if (partialLower === '' || 'false'.startsWith(partialLower)) {
+                    suggestions.push({
+                        id: 'false',
+                        label: 'false — boolean',
+                        insertValue: 'false',
+                        type: 'value'
+                    });
+                }
+                if (partialLower === '' || /^\d/.test(partialLower)) {
+                    suggestions.push({
+                        id: 'number',
+                        label: '42 — numeric value',
+                        insertValue: '',  // Don't auto-insert numbers
+                        type: 'value'
+                    });
+                }
+            } else if (context.type === 'logical_or_rparen') {
+                // Check if we need a closing paren
+                const openCount = (this.value.match(/\(/g) || []).length;
+                const closeCount = (this.value.match(/\)/g) || []).length;
+
+                if (openCount > closeCount && (')'.startsWith(partialLower) || partialLower === '')) {
+                    suggestions.push({
+                        id: ')',
+                        label: ') — close group',
+                        insertValue: ')',
+                        type: 'paren'
+                    });
+                }
+
+                // Suggest logical operators
+                this.logicalOperators.forEach(op => {
+                    if (partialLower === '' || op.toLowerCase().startsWith(partialLower)) {
+                        suggestions.push({
+                            id: op,
+                            label: `${op} — ${op === 'AND' ? 'both conditions' : 'either condition'}`,
+                            insertValue: op,
+                            type: 'logical'
+                        });
+                    }
+                });
             }
 
-            return {
-                type: 'unknown',
-                text: currentExpr,
-                start: exprStart,
-                end: caret
+            return suggestions.slice(0, 50);
+        },
+
+        _getOperatorDescription(op) {
+            const descriptions = {
+                '=': 'equals',
+                '>': 'greater than',
+                '>=': 'greater or equal',
+                '<': 'less than',
+                '<=': 'less or equal'
             };
+            return descriptions[op] || op;
         },
 
         onInput() {
-            const context = this.getCurrentContext();
-
-            if (context.type === 'field') {
-                // Show field suggestions
-                const needle = context.text.toLowerCase();
-                if (needle.length === 0) {
-                    this.suggestions = this.fields.slice(0, 50);
-                } else {
-                    this.suggestions = this.fields
-                        .filter(f => f.id.toLowerCase().includes(needle) || f.label.toLowerCase().includes(needle))
-                        .slice(0, 50);
-                }
-                this.activeIndex = 0;
-                this.open = this.suggestions.length > 0;
-            } else {
-                // Don't show suggestions for values or when operator is being typed
-                this.closeSuggestions();
-            }
+            const context = this._determineContext();
+            this.suggestions = this._generateSuggestions(context);
+            this.activeIndex = 0;
+            this.open = this.suggestions.length > 0;
         },
 
         move(delta) {
@@ -136,20 +383,51 @@ function advancedSearchQuery() {
         choose(idx) {
             if (!this.suggestions.length) return;
             const s = this.suggestions[idx ?? this.activeIndex];
-            const context = this.getCurrentContext();
 
-            if (context.type === 'field') {
-                // Replace the current field text with the selected field and add operator
-                const left = this.value.slice(0, context.start);
-                const right = this.value.slice(context.end);
-                const insert = `${s.id} = ""`;
+            // Find what we're replacing
+            const caret = this.getCaret();
+            const partial = this._getCurrentPartialToken();
 
-                this.value = left + insert + right;
-                const caretPos = (left + `${s.id} = "`).length;
-                this.setCaret(caretPos);
+            // Calculate replacement range
+            let replaceStart = caret - partial.length;
+            let replaceEnd = caret;
+
+            // Build the new value
+            const left = this.value.slice(0, replaceStart);
+            const right = this.value.slice(replaceEnd);
+
+            let insert = s.insertValue;
+            let spacing = '';
+
+            // Add appropriate spacing based on token type
+            if (s.type === 'field' || s.type === 'operator' || s.type === 'logical') {
+                // Add space after if not already present
+                if (right && !right.startsWith(' ') && s.type === 'logical') {
+                    spacing = ' ';
+                }
+                // Add space before logical operators if not present
+                if (s.type === 'logical' && left && !left.endsWith(' ')) {
+                    insert = ' ' + insert;
+                }
             }
 
+            this.value = left + insert + spacing + right;
+
+            // Position cursor
+            let newCaret = (left + insert).length;
+            if (s.cursorOffset !== undefined) {
+                newCaret += s.cursorOffset;
+            } else if (s.type === 'logical' || s.type === 'operator') {
+                newCaret += spacing.length + 1; // After the space
+            } else if (s.type === 'paren' && s.insertValue === '(') {
+                newCaret; // Stay right after the opening paren
+            }
+
+            this.setCaret(newCaret);
             this.closeSuggestions();
+
+            // Trigger onInput to show next suggestions
+            setTimeout(() => this.onInput(), 10);
         },
 
         onTab() {
@@ -157,45 +435,6 @@ function advancedSearchQuery() {
                 this.choose(this.activeIndex);
                 return;
             }
-
-            // Check if we can add a logical operator
-            const context = this.getCurrentContext();
-            const trimmed = this.value.trim();
-
-            // Simple heuristic: if the query looks complete (has field, operator, and value)
-            // and doesn't already end with AND/OR, add AND
-            if (trimmed && !trimmed.endsWith(' AND') && !trimmed.endsWith(' OR') &&
-                !trimmed.endsWith('(') && this._looksComplete(trimmed)) {
-                this.value = this.value.trim() + ' AND ';
-                this.setCaret(this.value.length);
-            }
-        },
-
-        /**
-         * Check if the query looks syntactically complete enough to add another term.
-         */
-        _looksComplete(text) {
-            // Remove any trailing whitespace
-            text = text.trim();
-
-            // Check if it ends with a quoted string or a value
-            if (text.endsWith('"') || text.endsWith("'")) {
-                return true;
-            }
-
-            // Check if it ends with a number or boolean
-            const tokens = text.split(/\s+/);
-            const lastToken = tokens[tokens.length - 1];
-            if (lastToken && (lastToken.match(/^\d+$/) || lastToken === 'true' || lastToken === 'false')) {
-                return true;
-            }
-
-            // Check if it ends with a closing paren
-            if (text.endsWith(')')) {
-                return true;
-            }
-
-            return false;
         },
 
         closeSuggestions() {
