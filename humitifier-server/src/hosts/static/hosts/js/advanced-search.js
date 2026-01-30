@@ -176,10 +176,30 @@ function advancedSearchQuery() {
 
             // After a field name, expect an operator
             if (lastToken.type === 'field') {
-                if (!this.getFieldIDs().includes(lastToken.value)) {
-                    return { type: 'field_or_paren', partial: currentPartial };
+                const textUpToCaret = this.value.slice(0, this.getCaret());
+                const isValidField = this.getFieldIDs().includes(lastToken.value);
+
+                if (isValidField) {
+                    // Valid field - expect an operator
+                    return { type: 'operator', partial: currentPartial };
                 }
-                return { type: 'operator', partial: currentPartial };
+
+                // Invalid field token - check if it contains a valid field followed by a space
+                // This handles cases like "facts.cpu.count a" where the tokenizer creates "facts.cpu.counta"
+                // but the user actually meant to type after a valid field
+                const fieldIds = this.getFieldIDs();
+                for (const fieldId of fieldIds) {
+                    // Check if the text contains a complete valid field followed by a space
+                    const pattern = new RegExp(fieldId.replace(/\./g, '\\.') + '\\s');
+                    if (pattern.test(textUpToCaret)) {
+                        // We have a complete valid field followed by space
+                        // The user is typing an operator or value
+                        return { type: 'operator', partial: currentPartial };
+                    }
+                }
+
+                // Still typing the field name
+                return { type: 'field_or_paren', partial: currentPartial };
             }
 
             // After an operator, expect a value (string/number/boolean)
