@@ -402,11 +402,11 @@ function advancedSearchQuery() {
             // Add appropriate spacing based on token type
             if (s.type === 'field' || s.type === 'operator' || s.type === 'logical') {
                 // Add space after if not already present
-                if (right && !right.startsWith(' ') && s.type === 'logical') {
+                if ((right && !right.startsWith(' ')) || !right) {
                     spacing = ' ';
                 }
                 // Add space before logical operators if not present
-                if (s.type === 'logical' && left && !left.endsWith(' ')) {
+                if (left && !left.endsWith(' ')) {
                     insert = ' ' + insert;
                 }
             }
@@ -414,7 +414,7 @@ function advancedSearchQuery() {
             this.value = left + insert + spacing + right;
 
             // Position cursor
-            let newCaret = (left + insert).length;
+            let newCaret = (left + spacing + insert).length;
             if (s.cursorOffset !== undefined) {
                 newCaret += s.cursorOffset;
             } else if (s.type === 'logical' || s.type === 'operator') {
