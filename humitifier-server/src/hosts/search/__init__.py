@@ -6,6 +6,7 @@ artefacts and build complex queries to filter hosts based on their scan data.
 
 from .field_discovery import get_searchable_fields
 from .query_builder import search_hosts_by_scan_fields
+from .query_parser import parse_query
 from .types import (
     ComparisonOperator,
     ComplexQuery,
@@ -26,4 +27,5 @@ __all__ = [
     "get_scan_field_values",
     "get_searchable_fields",
     "search_hosts_by_scan_fields",
+    "parse_query",
 ]
