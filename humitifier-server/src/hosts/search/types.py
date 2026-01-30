@@ -6,8 +6,8 @@ from dataclasses import dataclass
 from typing import Any, Literal
 
 
-# Where in last_scan_cache the artefact lives
-ArtefactSection = Literal["facts", "metrics"]
+# Where the field lives: "facts" and "metrics" are in last_scan_cache, "meta" is on the Host model itself
+ArtefactSection = Literal["facts", "metrics", "meta"]
 
 # Comparison operators for search criteria
 ComparisonOperator = Literal["eq", "gt", "gte", "lt", "lte", "contains"]

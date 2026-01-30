@@ -67,6 +67,8 @@ def _build_json_lookup_path(descriptor: SearchableField) -> str:
     """
     Build a Django JSON field lookup path from a SearchableField descriptor.
 
+    Note: This should only be called for facts/metrics sections, not meta.
+
     Args:
         descriptor: The searchable field descriptor containing section, artefact, and field path.
 
@@ -80,6 +82,53 @@ def _build_json_lookup_path(descriptor: SearchableField) -> str:
         *descriptor.field_path,
     ]
     return "__".join(json_path_components)
+
+
+def _apply_meta_filter(
+    queryset: QuerySet[Host],
+    criterion: SearchCriterion,
+    descriptor: SearchableField,
+    parsed_value: Any,
+) -> QuerySet[Host]:
+    """
+    Apply a filter for meta fields (direct Host model fields).
+
+    Args:
+        queryset: The Django QuerySet to filter.
+        criterion: The search criterion containing the operator.
+        descriptor: The searchable field descriptor for a meta field.
+        parsed_value: The value to filter by, already parsed to the correct type.
+
+    Returns:
+        Filtered QuerySet.
+    """
+    # Meta fields are directly on the Host model
+    field_name = descriptor.field_path[0] if descriptor.field_path else None
+    if not field_name:
+        return queryset
+
+    is_string_field = descriptor.value_type == "string"
+
+    if criterion.operator == "eq":
+        lookup_suffix = "__iexact" if is_string_field else ""
+        return queryset.filter(**{f"{field_name}{lookup_suffix}": parsed_value})
+    elif criterion.operator == "contains":
+        if is_string_field:
+            return queryset.filter(**{f"{field_name}__icontains": parsed_value})
+        else:
+            # Contains doesn't make sense for non-strings, treat as exact match
+            return queryset.filter(**{field_name: parsed_value})
+    elif criterion.operator == "gt":
+        return queryset.filter(**{f"{field_name}__gt": parsed_value})
+    elif criterion.operator == "gte":
+        return queryset.filter(**{f"{field_name}__gte": parsed_value})
+    elif criterion.operator == "lt":
+        return queryset.filter(**{f"{field_name}__lt": parsed_value})
+    elif criterion.operator == "lte":
+        return queryset.filter(**{f"{field_name}__lte": parsed_value})
+    else:
+        # Unknown operator, treat as exact match
+        return queryset.filter(**{field_name: parsed_value})
 
 
 def _apply_scalar_filter(
@@ -334,10 +383,10 @@ def _apply_criterion_to_queryset(
     descriptor: SearchableField,
 ) -> QuerySet[Host]:
     """
-    Apply a single search criterion to a QuerySet, supporting both scalar and array fields.
+    Apply a single search criterion to a QuerySet, supporting meta fields, scalar, and array fields.
 
     This function routes to the appropriate filter implementation based on whether
-    the field is a scalar JSON field or an array field.
+    the field is a meta field (direct Host model field), a scalar JSON field, or an array field.
 
     Args:
         queryset: The Django QuerySet to filter.
@@ -349,7 +398,11 @@ def _apply_criterion_to_queryset(
     """
     parsed_value = _parse_value(criterion.value, descriptor.value_type)
 
-    if descriptor.kind == "scalar":
+    # Handle meta fields (direct Host model fields)
+    if descriptor.section == "meta":
+        return _apply_meta_filter(queryset, criterion, descriptor, parsed_value)
+    # Handle scan cache fields
+    elif descriptor.kind == "scalar":
         return _apply_scalar_filter(queryset, criterion, descriptor, parsed_value)
     else:
         return _apply_array_filter(queryset, criterion, descriptor, parsed_value)
@@ -502,7 +555,12 @@ def search_hosts_by_scan_fields(
     criteria: Mapping[str, Any] | ComplexQuery | None = None,
 ) -> QuerySet:
     """
-    Filter a Host queryset by searching values within last_scan_cache JSON fields.
+    Filter a Host queryset by searching values within Host model fields and last_scan_cache JSON fields.
+
+    This function supports searching across three sections:
+    - "meta": Direct Host model fields (e.g., "meta.fqdn", "meta.department")
+    - "facts": Fields from last_scan_cache facts section
+    - "metrics": Fields from last_scan_cache metrics section
 
     Supports three input formats:
 
@@ -510,10 +568,10 @@ def search_hosts_by_scan_fields(
        All criteria are combined using AND semantics.
        - string values: case-insensitive substring match (contains)
        - integer/bool: exact match (eq)
-       Example: {"facts.cpu.count": 4, "facts.os.name": "Ubuntu"}
+       Example: {"facts.cpu.count": 4, "meta.department": "Engineering"}
 
     2. Dict with operators: mapping from SearchableField.id to dict with "operator" and "value".
-       Example: {"facts.cpu.count": {"operator": "gte", "value": 4}}
+       Example: {"facts.cpu.count": {"operator": "gte", "value": 4}, "meta.archived": {"operator": "eq", "value": False}}
 
     3. ComplexQuery object: for advanced AND/OR combinations.
        Example: ComplexQuery(type="or", children=[

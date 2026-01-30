@@ -25,6 +25,53 @@ def _iter_artefacts() -> Iterable[tuple[ArtefactSection, Any, str]]:
         yield "metrics", artefact_cls, key
 
 
+def _get_meta_fields() -> list[SearchableField]:
+    """Get searchable fields from the Host model itself (not from last_scan_cache).
+
+    Returns:
+        List of SearchableField descriptors for Host model fields.
+    """
+    # Import here to avoid circular dependency
+    from ..models import Host
+
+    # Define which fields should be searchable and their types
+    meta_field_definitions = [
+        ("fqdn", "string"),
+        ("archived", "boolean"),
+        ("billable", "boolean"),
+        ("has_tofu_config", "boolean"),
+        ("otap_stage", "string"),
+        ("department", "string"),
+        ("customer", "string"),
+        ("contact", "string"),
+        ("os", "string"),
+        ("hypervisor", "string"),
+    ]
+
+    fields: list[SearchableField] = []
+
+    for field_name, value_type in meta_field_definitions:
+        # Verify field exists on the model
+        if not hasattr(Host, field_name):
+            continue
+
+        field_id = f"meta.{field_name}"
+        label = f"{field_id} ({value_type})"
+
+        field = SearchableField(
+            id=field_id,
+            label=label,
+            value_type=value_type,  # type: ignore[arg-type]
+            section="meta",
+            kind="scalar",
+            artefact_key="",  # Not applicable for meta fields
+            field_path=(field_name,),
+        )
+        fields.append(field)
+
+    return fields
+
+
 def _unwrap_optional(ann: Any) -> Any:
     """Return the inner annotation for Optional[X] or Union[X, None]."""
     origin = get_origin(ann)
@@ -496,11 +543,13 @@ def _collect_top_level_list_fields(
 
 
 def get_searchable_fields() -> list[SearchableField]:
-    """Build and return descriptors for searchable fields in Host.last_scan_cache.
+    """Build and return descriptors for searchable fields in Host model and last_scan_cache.
 
     This function introspects all registered artefacts (facts and metrics) to discover
-    fields that can be used for searching hosts. It handles various structures:
+    fields that can be used for searching hosts. It also includes meta fields from the
+    Host model itself. It handles various structures:
 
+    - Meta fields from the Host model (e.g., fqdn, department, customer)
     - Primitive scalar fields (str, int, bool) in BaseModel artefacts
     - Nested BaseModel fields with dot-notation paths
     - Lists of primitives and BaseModels with array notation
@@ -508,19 +557,24 @@ def get_searchable_fields() -> list[SearchableField]:
 
     Returns:
         A list of SearchableField descriptors, each containing:
-        - id: Unique identifier for the field (e.g., "facts.Hardware.memory[].size")
+        - id: Unique identifier for the field (e.g., "facts.Hardware.memory[].size" or "meta.fqdn")
         - label: Human-readable label with type information
         - value_type: The primitive type (string, integer, or boolean)
-        - section: The artefact section (facts or metrics)
+        - section: The field section (facts, metrics, or meta)
         - kind: Either "scalar" or "array"
         - Relevant path information for field access
 
     Example field IDs:
+        - "meta.fqdn" (Host model field)
+        - "meta.department" (Host model field)
         - "facts.generic.Hardware.hostname" (scalar)
         - "facts.generic.Hardware.memory[].size" (array)
         - "metrics.DiskUsage.partitions[].mountpoint" (array)
     """
     fields: list[SearchableField] = []
+
+    # Add meta fields from Host model
+    fields.extend(_get_meta_fields())
 
     for section, artefact_class, artefact_key in _iter_artefacts():
         # Handle BaseModel artefacts

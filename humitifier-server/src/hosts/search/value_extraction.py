@@ -35,22 +35,16 @@ from typing import Any, Iterable
 
 from django.db.models import QuerySet
 
-from ..models import Host, ScanData
+from ..models import Host
 from .field_discovery import get_searchable_fields
 from .types import SearchableField
 
 
-def _get_scan_data(obj: Any) -> dict | None:
-    """Extract scan data dictionary from a host object, a ScanData object or return
-    dict directly.
-
-    This function provides flexible input handling, accepting either:
-    1. A Host model instance with a last_scan_cache attribute
-    2. A raw dictionary representing the cache directly
-    3. Any other object with a last_scan_cache attribute
+def _get_scan_data(host: Host) -> dict | None:
+    """Extract scan data dictionary from a Host object.
 
     Args:
-        obj: Either a model instance, a cache dictionary, or None.
+        host: A Host model instance.
 
     Returns:
         The cache dictionary if available, otherwise None.
@@ -60,25 +54,11 @@ def _get_scan_data(obj: Any) -> dict | None:
         >>> _get_scan_data(host)
         {"facts": {}}
 
-        >>> cache_dict = {"facts": {}}
-        >>> _get_scan_data(cache_dict)
-        {"facts": {}}
-
-        >>> _get_scan_data(None)
+        >>> host_without_cache = Host(last_scan_cache=None)
+        >>> _get_scan_data(host_without_cache)
         None
     """
-    if obj is None:
-        return None
-
-    if isinstance(obj, ScanData):
-        obj = obj.raw_data
-
-    if isinstance(obj, dict):
-        # Already a cache dictionary - return directly
-        return obj
-
-    # Try to get last_scan_cache attribute from object (e.g., Django model)
-    return getattr(obj, "last_scan_cache", None)
+    return host.last_scan_cache
 
 
 def _get_artefact_data(
@@ -248,12 +228,13 @@ def _extract_from_scan_data(data: dict, descriptor: SearchableField) -> Any:
 
     This is the main entry point for extracting values from cached scan data.
     Handles both scalar fields (single values) and array fields (lists of values).
+    Note: This should only be called for facts/metrics sections, not meta.
 
     Args:
         data: The scan cache dictionary with nested structure.
         descriptor: Metadata describing the field to extract, including:
                    - kind: "scalar" or "array"
-                   - section: Top-level cache section
+                   - section: Top-level cache section (facts or metrics)
                    - artefact_key: Key within the section
                    - field_path: For scalars, path through nested dicts
                    - array_path: For arrays, path to navigate to array elements
@@ -309,7 +290,7 @@ def _extract_field_values_for_host(
     host: Host,
     field_descriptors: dict[str, SearchableField],
 ) -> dict[str, Any]:
-    """Extract all requested field values from a single host's scan cache.
+    """Extract all requested field values from a single host's scan cache and meta fields.
 
     Args:
         host: The host object to extract field values from.
@@ -323,7 +304,15 @@ def _extract_field_values_for_host(
     scan_cache = _get_scan_data(host)
 
     for field_id, field_descriptor in field_descriptors.items():
-        if scan_cache is None:
+        # Handle meta fields directly from Host model
+        if field_descriptor.section == "meta":
+            # Meta fields are directly on the Host model
+            field_name = field_descriptor.field_path[0] if field_descriptor.field_path else None
+            if field_name:
+                host_data["fields"][field_id] = getattr(host, field_name, None)
+            else:
+                host_data["fields"][field_id] = None
+        elif scan_cache is None:
             # No cache available: return appropriate empty value
             default_value = None if field_descriptor.kind == "scalar" else []
             host_data["fields"][field_id] = default_value
@@ -382,17 +371,16 @@ def get_scan_field_values(
 
 
 def get_scan_field_value_for_object(
-    obj: Host | ScanData | dict, field_id: str
+    host: Host, field_id: str
 ) -> Any:
-    """Get the value for a single field from a host object or cache dictionary.
+    """Get the value for a single field from a host object.
 
-    This convenience function extracts a single field value from either a Host
-    model instance or a raw cache dictionary. Useful for one-off field lookups.
+    This convenience function extracts a single field value from a Host
+    model instance. Useful for one-off field lookups.
 
     Args:
-        obj: Either a Host model instance with a last_scan_cache attribute, a ScanData
-             object, or a raw cache dictionary to extract from directly.
-        field_id: The field identifier to extract (e.g., "facts.generic.HostnameCtl.os").
+        host: A Host model instance to extract the field from.
+        field_id: The field identifier to extract (e.g., "facts.generic.HostnameCtl.os" or "meta.fqdn").
 
     Returns:
         - For scalar fields: the extracted value or None if not found
@@ -404,9 +392,8 @@ def get_scan_field_value_for_object(
         >>> get_scan_field_value_for_object(host, "facts.generic.HostnameCtl.os")
         "Linux"
 
-        >>> cache_dict = {"facts": {"generic": {"PackageList": [{"name": "gcc"}]}}}
-        >>> get_scan_field_value_for_object(cache_dict, "facts.generic.PackageList[]->name")
-        ["gcc"]
+        >>> get_scan_field_value_for_object(host, "meta.fqdn")
+        "server01.example.com"
     """
     # Look up field descriptor
     field_map = {field.id: field for field in get_searchable_fields()}
@@ -416,8 +403,15 @@ def get_scan_field_value_for_object(
         # Unknown field ID
         return None
 
+    # Handle meta fields
+    if field_descriptor.section == "meta":
+        field_name = field_descriptor.field_path[0] if field_descriptor.field_path else None
+        if field_name:
+            return getattr(host, field_name, None)
+        return None
+
     # Get data from object
-    scan_data = _get_scan_data(obj)
+    scan_data = _get_scan_data(host)
     if scan_data is None:
         # No data available: return appropriate empty value
         return None if field_descriptor.kind == "scalar" else []
