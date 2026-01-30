@@ -19,6 +19,7 @@ function advancedSearchQuery() {
     return {
         fields: [], // [{id, label}]
         value: '',
+        highlightHtml: '',
         open: false,
         suggestions: [],
         activeIndex: 0,
@@ -36,6 +37,7 @@ function advancedSearchQuery() {
         init() {
             // These values are populated by the Django template
             // this.value and this.fields will be set externally
+            this.updateHighlight();
         },
 
         getCaret() {
@@ -367,6 +369,7 @@ function advancedSearchQuery() {
             this.suggestions = this._generateSuggestions(context);
             this.activeIndex = 0;
             this.open = this.suggestions.length > 0;
+            this.updateHighlight();
         },
 
         move(delta) {
@@ -420,6 +423,7 @@ function advancedSearchQuery() {
 
             this.setCaret(newCaret);
             this.closeSuggestions();
+            this.updateHighlight();
 
             // Trigger onInput to show next suggestions
             setTimeout(() => this.onInput(), 10);
@@ -474,6 +478,130 @@ function advancedSearchQuery() {
             // The new parser handles the query as-is, so we don't need to transform it
             // Just trim whitespace
             this.value = this.value.trim();
+            this.updateHighlight();
+        },
+
+        updateHighlight() {
+            this.highlightHtml = this._renderHighlight(this.value);
+            this.syncHighlightScroll();
+        },
+
+        syncHighlightScroll() {
+            const input = this.$refs.input;
+            const highlight = this.$refs.highlight;
+            if (!input || !highlight) return;
+            highlight.scrollLeft = input.scrollLeft;
+        },
+
+        _escapeHtml(value) {
+            return value
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        },
+
+        _renderHighlight(text) {
+            if (!text) {
+                return '';
+            }
+
+            const tokenClasses = {
+                field: 'text-blue-600 dark:text-blue-300',
+                operator: 'text-orange-600 dark:text-orange-300',
+                logical: 'text-orange-600 dark:text-orange-300',
+                string: 'text-green-600 dark:text-green-300',
+                number: 'text-blue-600 dark:text-blue-300',
+                boolean: 'text-orange-600 dark:text-orange-300',
+                paren: 'text-gray-500 dark:text-gray-400'
+            };
+            let i = 0;
+            let output = '';
+
+            const pushToken = (token, type) => {
+                const escaped = this._escapeHtml(token);
+                const classes = type ? tokenClasses[type] : '';
+                if (!classes) {
+                    output += escaped;
+                    return;
+                }
+                output += `<span class="${classes}">${escaped}</span>`;
+            };
+
+            while (i < text.length) {
+                const char = text[i];
+
+                if (/\s/.test(char)) {
+                    pushToken(char, null);
+                    i++;
+                    continue;
+                }
+
+                if (char === '"' || char === "'") {
+                    const quote = char;
+                    let str = quote;
+                    i++;
+                    while (i < text.length) {
+                        if (text[i] === '\\' && i + 1 < text.length) {
+                            str += text[i] + text[i + 1];
+                            i += 2;
+                        } else if (text[i] === quote) {
+                            str += text[i];
+                            i++;
+                            break;
+                        } else {
+                            str += text[i];
+                            i++;
+                        }
+                    }
+                    pushToken(str, 'string');
+                    continue;
+                }
+
+                if (char === '(' || char === ')') {
+                    pushToken(char, 'paren');
+                    i++;
+                    continue;
+                }
+
+                if (char === '>' || char === '<' || char === '=') {
+                    let op = char;
+                    if (i + 1 < text.length && text[i + 1] === '=') {
+                        op += '=';
+                        i++;
+                    }
+                    pushToken(op, 'operator');
+                    i++;
+                    continue;
+                }
+
+                if (/[a-zA-Z0-9_.]/.test(char)) {
+                    let word = '';
+                    while (i < text.length && /[a-zA-Z0-9_.]/.test(text[i])) {
+                        word += text[i];
+                        i++;
+                    }
+
+                    if (word === 'AND' || word === 'OR') {
+                        pushToken(word, 'logical');
+                    } else if (word === 'contains') {
+                        pushToken(word, 'operator');
+                    } else if (word === 'true' || word === 'false') {
+                        pushToken(word, 'boolean');
+                    } else if (/^\d+(\.\d+)?$/.test(word)) {
+                        pushToken(word, 'number');
+                    } else {
+                        pushToken(word, 'field');
+                    }
+                    continue;
+                }
+
+                pushToken(char, null);
+                i++;
+            }
+
+            return output;
         },
 
         // ==== Columns multiselect methods ====
