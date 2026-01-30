@@ -52,6 +52,10 @@ function advancedSearchQuery() {
             });
         },
 
+        getFieldIDs() {
+            return this.fields.map(field => field.id);
+        },
+
         /**
          * Tokenize the query up to the caret position to understand context.
          * Returns an array of tokens with their types.
@@ -152,11 +156,6 @@ function advancedSearchQuery() {
          */
         _determineContext() {
             const tokens = this._tokenizeUpToCaret();
-            const trimmedValue = this.value.slice(0, this.getCaret()).trimEnd();
-            const lastChar = trimmedValue[trimmedValue.length - 1];
-
-            // If we just typed a space, we might be starting a new token
-            const justTypedSpace = lastChar === ' ';
 
             if (tokens.length === 0) {
                 // Empty query - suggest fields or opening paren
@@ -175,12 +174,8 @@ function advancedSearchQuery() {
 
             // After a field name, expect an operator
             if (lastToken.type === 'field') {
-                if (justTypedSpace || currentPartial.length > 0) {
-                    // Check if we're typing an operator
-                    const partialLower = currentPartial.toLowerCase();
-                    if (this.operators.some(op => op.startsWith(partialLower) && op !== partialLower)) {
-                        return { type: 'operator', partial: currentPartial };
-                    }
+                if (!this.getFieldIDs().includes(lastToken.value)) {
+                    return { type: 'field_or_paren', partial: currentPartial };
                 }
                 return { type: 'operator', partial: currentPartial };
             }
