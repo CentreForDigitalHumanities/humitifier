@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from io import StringIO
 
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
@@ -25,7 +26,7 @@ from .forms import DataSourceForm, HostForm, HostScanSpecForm
 from .models import DataSource, Host
 from .scan_visualizers import get_scan_visualizer
 from .search import get_searchable_fields, search_hosts_by_scan_fields, \
-    get_scan_field_values
+    get_scan_field_values, parse_query
 from .tables import DataSourcesTable, HostsTable
 
 ##
@@ -391,11 +392,15 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         requested_columns = self._parse_requested_columns(searchable_fields)
         context['searchable_fields'] = searchable_fields
         context['requested_columns'] = requested_columns
-        context['data'] = self._get_data(searchable_fields,requested_columns)
+        context['data'] = self._get_data(searchable_fields, requested_columns)
         context['include_archived'] = self._include_archived()
 
         if self.request.POST:
             context['search_string'] = self.request.POST.get('search-string', '')
+
+        # Check for query parse error message
+        if hasattr(self, '_query_parse_error'):
+            context['query_parse_error'] = self._query_parse_error
 
         return context
 
@@ -406,8 +411,9 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
             qs = qs.exclude(archived=True)
 
         if self.request.POST:
-            search_terms = self._parse_search_string(searchable_fields)
-            qs = search_hosts_by_scan_fields(qs, search_terms)
+            search_query = self._parse_search_string()
+            if search_query is not None:
+                qs = search_hosts_by_scan_fields(qs, search_query)
 
         return get_scan_field_values(qs, requested_columns)
 
@@ -425,37 +431,28 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         return [field for field in column_string.split(',') if field in allowed_fields]
 
 
-    def _parse_search_string(self, searchable_fields):
+    def _parse_search_string(self):
+        """Parse the search string using the ComplexQuery parser.
+
+        Returns:
+            ComplexQuery object or None if there's no search string or parsing fails.
+            Sets self._query_parse_error if parsing fails.
+        """
         if not self.request.POST:
-            return {}
-        search_string = self.request.POST.get('search-string', '')
+            return None
+
+        search_string = self.request.POST.get('search-string', '').strip()
 
         if not search_string:
-            return {}
+            return None
 
-        allowed_fields = [field.id for field in searchable_fields]
-
-        # Split our terms into individual commands
-        splitted_search_string = search_string.split(' AND ')
-
-        search_params = {}
-
-        for search_item in splitted_search_string:
-            try:
-                field, value = search_item.split(" = ", maxsplit=1)
-            except ValueError:
-                # Ignore bad stuff
-                continue
-
-            # Check if this is a legal field
-            # TODO: decide to log errors or not
-            if field not in allowed_fields:
-                continue
-
-            # Set the field with the value, stripping the quotes that should be there
-            search_params[field] = value[1:-1]
-
-        return search_params
+        try:
+            # Use the new query parser to create a ComplexQuery object
+            return parse_query(search_string)
+        except ValueError as e:
+            # Store the error message to display to the user
+            self._query_parse_error = str(e)
+            return None
 
 ##
 ## Data source views
