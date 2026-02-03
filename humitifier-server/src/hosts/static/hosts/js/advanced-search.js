@@ -176,7 +176,6 @@ function advancedSearchQuery() {
 
             // After a field name, expect an operator
             if (lastToken.type === 'field') {
-                const textUpToCaret = this.value.slice(0, this.getCaret());
                 const isValidField = this.getFieldIDs().includes(lastToken.value);
 
                 if (isValidField) {
@@ -191,7 +190,7 @@ function advancedSearchQuery() {
                 for (const fieldId of fieldIds) {
                     // Check if the text contains a complete valid field followed by a space
                     const pattern = new RegExp(fieldId.replace(/\./g, '\\.') + '\\s');
-                    if (pattern.test(textUpToCaret)) {
+                    if (pattern.test(lastToken.value)) {
                         // We have a complete valid field followed by space
                         // The user is typing an operator or value
                         return { type: 'operator', partial: currentPartial };
