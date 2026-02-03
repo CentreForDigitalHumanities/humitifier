@@ -10,6 +10,11 @@ from .views import (
     HostScanSpecUpdateView, HostUpdateView, HostsListView,
     HostsRawDownloadView,
     AdvancedSearchView,
+    SavedSearchListView,
+    SavedSearchCreateView,
+    SavedSearchUpdateView,
+    SavedSearchDeleteView,
+    SavedSearchLoadView,
 )
 
 app_name = "hosts"
@@ -18,6 +23,11 @@ urlpatterns = [
     path("", HostsListView.as_view(), name="list"),
     path("export/", HostExportView.as_view(), name="export"),
     path("advanced_search/", AdvancedSearchView.as_view(), name="advanced_search"),
+    path("saved_searches/", SavedSearchListView.as_view(), name="saved_searches"),
+    path("saved_searches/create/", SavedSearchCreateView.as_view(), name="saved_search_create"),
+    path("saved_searches/<int:pk>/edit/", SavedSearchUpdateView.as_view(), name="saved_search_edit"),
+    path("saved_searches/<int:pk>/delete/", SavedSearchDeleteView.as_view(), name="saved_search_delete"),
+    path("saved_searches/<int:pk>/load/", SavedSearchLoadView.as_view(), name="saved_search_load"),
     path("host/new/", HostCreateView.as_view(), name="create"),
     path("host/<fqdn>/", HostDetailView.as_view(), name="detail"),
     path("host/<fqdn>/raw/", HostsRawDownloadView.as_view(), name="download_raw"),

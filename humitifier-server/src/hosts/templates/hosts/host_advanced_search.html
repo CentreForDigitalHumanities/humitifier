@@ -15,10 +15,15 @@
                     Advanced Search
                 {% endif %}
             </h1>
-            <button type="button" @click="showHelp = !showHelp" class="btn btn-sm btn-outline">
-                <span x-show="!showHelp">Show Help</span>
-                <span x-show="showHelp">Hide Help</span>
-            </button>
+            <div class="flex gap-2">
+                <a href="{% url 'hosts:saved_searches' %}" class="btn btn-sm btn-outline">
+                    Saved Searches
+                </a>
+                <button type="button" @click="showHelp = !showHelp" class="btn btn-sm btn-outline">
+                    <span x-show="!showHelp">Show Help</span>
+                    <span x-show="showHelp">Hide Help</span>
+                </button>
+            </div>
         </div>
 
         <div class="mx-7 p-3 py-2 mb-5 flex flex-col gap-3 bg-orange-300 dark:bg-orange-600">
@@ -207,22 +212,29 @@
                 </div>
             </div>
 
-            <div class="flex gap-2 justify-end w-full items-stretch">
-                <div class="flex gap-1 items-center mr-4">
-                    <input type="checkbox" name="include-archived" {% if include_archived %}checked{% endif %}> <label for="include-archived">Include archived servers</label>
+            <div class="flex gap-2 justify-between w-full items-stretch">
+                <div class="flex gap-2 items-center">
+                    <div class="flex gap-1 items-center">
+                        <input type="checkbox" name="include-archived" {% if include_archived %}checked{% endif %}> <label for="include-archived">Include archived servers</label>
+                    </div>
                 </div>
-                <button class="btn btn-sm btn-outline" type="submit" name="export-csv" @click="normalizeForSubmit()">
-                    Export (CSV)
-                </button>
-                <button class="btn btn-sm btn-outline" type="submit" name="export-json" @click="normalizeForSubmit()">
-                    Export (JSON)
-                </button>
-                <button class="btn btn-sm btn-outline" type="submit" name="export-txt" @click="normalizeForSubmit()">
-                    Export (Host-list)
-                </button>
-                <button class="btn btn-sm light:btn-primary dark:btn-outline" type="submit" name="search" @click="normalizeForSubmit()">
-                    Search
-                </button>
+                <div class="flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline" @click="saveCurrentSearch()">
+                        Save Search
+                    </button>
+                    <button class="btn btn-sm btn-outline" type="submit" name="export-csv" @click="normalizeForSubmit()">
+                        Export (CSV)
+                    </button>
+                    <button class="btn btn-sm btn-outline" type="submit" name="export-json" @click="normalizeForSubmit()">
+                        Export (JSON)
+                    </button>
+                    <button class="btn btn-sm btn-outline" type="submit" name="export-txt" @click="normalizeForSubmit()">
+                        Export (Host-list)
+                    </button>
+                    <button class="btn btn-sm light:btn-primary dark:btn-outline" type="submit" name="search" @click="normalizeForSubmit()">
+                        Search
+                    </button>
+                </div>
             </div>
         </form>
 

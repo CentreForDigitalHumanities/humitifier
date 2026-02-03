@@ -670,6 +670,20 @@ function advancedSearchQuery() {
             this.colOpen = false;
             this.colSuggestions = [];
             this.colActiveIndex = 0;
+        },
+
+        saveCurrentSearch() {
+            // Get current values
+            const searchQuery = this.value || '';
+            const columns = this.selectedColumns.map(c => c.id).join(',');
+
+            // Build URL with query parameters
+            const params = new URLSearchParams();
+            params.set('query', searchQuery);
+            params.set('columns', columns);
+
+            // Redirect to save form
+            window.location.href = '/hosts/saved_searches/create/?' + params.toString();
         }
     };
 }

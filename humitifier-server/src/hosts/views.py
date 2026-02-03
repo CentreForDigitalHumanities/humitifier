@@ -7,6 +7,7 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import ObjectDoesNotExist, ValidationError
+from django.db.models import Q
 from django.forms import Form
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.urls import reverse
@@ -21,13 +22,13 @@ from rest_framework.reverse import reverse_lazy
 
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 
-from .filters import DataSourceFilters, HostFilters
-from .forms import DataSourceForm, HostForm, HostScanSpecForm
-from .models import DataSource, Host
+from .filters import DataSourceFilters, HostFilters, SavedSearchFilters
+from .forms import DataSourceForm, HostForm, HostScanSpecForm, SavedSearchForm
+from .models import DataSource, Host, SavedSearch
 from .scan_visualizers import get_scan_visualizer
 from .search import get_searchable_fields, search_hosts_by_scan_fields, \
     get_scan_field_values, parse_query
-from .tables import DataSourcesTable, HostsTable
+from .tables import DataSourcesTable, HostsTable, SavedSearchesTable
 
 ##
 ## Host views
@@ -308,6 +309,22 @@ class HostUpdateView(
 class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
     template_name = 'hosts/host_advanced_search.html'
 
+    def get(self, request, *args, **kwargs):
+        # Check if we're loading a saved search
+        load_id = request.GET.get('load')
+        if load_id:
+            try:
+                saved_search = SavedSearch.objects.filter(
+                    Q(creator=request.user) | Q(is_public=True),
+                    pk=load_id
+                ).first()
+                if saved_search:
+                    self._loaded_search = saved_search
+            except (ValueError, SavedSearch.DoesNotExist):
+                pass
+
+        return super().get(request, *args, **kwargs)
+
     def post(self, *args, **kwargs):
         # Detect export actions from POST: buttons named export-csv/json/txt
         post = self.request.POST
@@ -389,14 +406,28 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         context = super().get_context_data(**kwargs)
 
         searchable_fields = get_searchable_fields()
-        requested_columns = self._parse_requested_columns(searchable_fields)
+        search_string = None
+
+        # Check if we're loading a saved search
+        if hasattr(self, '_loaded_search'):
+            saved_search = self._loaded_search
+            search_string = saved_search.query
+            context['search_string'] = saved_search.query
+            requested_columns = saved_search.get_columns_list()
+            context['loaded_search_id'] = saved_search.pk
+        else:
+            requested_columns = self._parse_requested_columns(searchable_fields)
+            if self.request.POST:
+                search_string = self.request.POST.get('search-string', '')
+                context['search_string'] = search_string
+
         context['searchable_fields'] = searchable_fields
         context['requested_columns'] = requested_columns
-        context['data'] = self._get_data(searchable_fields, requested_columns)
+        context['data'] = self._get_data(
+            search_string,
+            searchable_fields,
+            requested_columns)
         context['include_archived'] = self._include_archived()
-
-        if self.request.POST:
-            context['search_string'] = self.request.POST.get('search-string', '')
 
         # Check for query parse error message
         if hasattr(self, '_query_parse_error'):
@@ -404,14 +435,14 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
 
         return context
 
-    def _get_data(self, searchable_fields, requested_columns):
+    def _get_data(self, search_string, searchable_fields, requested_columns):
         qs = Host.objects.get_for_user(self.request.user)
 
         if not self._include_archived():
             qs = qs.exclude(archived=True)
 
-        if self.request.POST:
-            search_query = self._parse_search_string()
+        if search_string:
+            search_query = self._parse_search_string(search_string)
             if search_query is not None:
                 qs = search_hosts_by_scan_fields(qs, search_query)
 
@@ -431,18 +462,13 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         return [field for field in column_string.split(',') if field in allowed_fields]
 
 
-    def _parse_search_string(self):
+    def _parse_search_string(self, search_string):
         """Parse the search string using the ComplexQuery parser.
 
         Returns:
             ComplexQuery object or None if there's no search string or parsing fails.
             Sets self._query_parse_error if parsing fails.
         """
-        if not self.request.POST:
-            return None
-
-        search_string = self.request.POST.get('search-string', '').strip()
-
         if not search_string:
             return None
 
@@ -485,3 +511,95 @@ class DataSourceEditView(LoginRequiredMixin, SuperuserRequiredMixin,SuccessMessa
     form_class = DataSourceForm
     success_url = reverse_lazy("hosts:data_sources")
     success_message = "Data source edited"
+
+
+##
+## Saved Search views
+##
+
+
+class SavedSearchListView(LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView):
+    model = SavedSearch
+    table_class = SavedSearchesTable
+    template_name = "hosts/saved_search_list.html"
+    paginate_by = 20
+    filterset = SavedSearchFilters
+
+    def get_queryset(self):
+        user = self.request.user
+        # Get user's own searches and public searches
+        return SavedSearch.objects.filter(
+            Q(creator=user) | Q(is_public=True)
+        ).select_related('creator').order_by('-updated_at')
+
+
+class SavedSearchCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView):
+    model = SavedSearch
+    form_class = SavedSearchForm
+    template_name = "hosts/saved_search_form.html"
+    success_url = reverse_lazy("hosts:saved_searches")
+    success_message = "Saved search created successfully"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        # Pre-populate from query parameters if provided
+        if 'query' in self.request.GET:
+            initial['query'] = self.request.GET['query']
+        if 'columns' in self.request.GET:
+            initial['columns'] = self.request.GET['columns']
+        return initial
+
+    def form_valid(self, form):
+        form.instance.creator = self.request.user
+        return super().form_valid(form)
+
+
+class SavedSearchUpdateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView):
+    model = SavedSearch
+    form_class = SavedSearchForm
+    template_name = "hosts/saved_search_form.html"
+    success_url = reverse_lazy("hosts:saved_searches")
+    success_message = "Saved search updated successfully"
+
+    def get_queryset(self):
+        # Users can only edit their own searches or public ones
+        return SavedSearch.objects.filter(
+            Q(creator=self.request.user) | Q(is_public=True)
+        )
+
+
+class SavedSearchDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, View):
+    success_message = "Saved search deleted successfully"
+
+    def post(self, request, pk):
+        saved_search = SavedSearch.objects.filter(
+            Q(creator=request.user) | Q(is_public=True),
+            pk=pk
+        ).first()
+
+        if saved_search:
+            saved_search.delete()
+            messages.success(request, self.success_message)
+
+        return HttpResponseRedirect(reverse("hosts:saved_searches"))
+
+
+class SavedSearchLoadView(LoginRequiredMixin, SuperuserRequiredMixin, View):
+    """Load a saved search and redirect to advanced search with parameters."""
+
+    def get(self, request, pk):
+        saved_search = SavedSearch.objects.filter(
+            Q(creator=request.user) | Q(is_public=True),
+            pk=pk
+        ).first()
+
+        if not saved_search:
+            messages.error(request, "Saved search not found")
+            return HttpResponseRedirect(reverse("hosts:advanced_search"))
+
+        # Redirect to advanced search with the saved parameters
+        # We'll need to modify the advanced search view to accept GET parameters
+        return HttpResponseRedirect(
+            reverse("hosts:advanced_search") +
+            f"?load={saved_search.pk}"
+        )

@@ -1,0 +1,74 @@
+{% extends 'base/base_page_template.html' %}
+
+{% block page_title %}
+    {% if object %}
+        Edit Saved Search | {{ block.super }}
+    {% else %}
+        Save Search | {{ block.super }}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg-default px-7 py-5">
+        {% if object %}
+            <h1 class="text-3xl font-bold">Edit Saved Search</h1>
+        {% else %}
+            <h1 class="text-3xl font-bold">Save Search</h1>
+        {% endif %}
+
+        <form method="post" class="max-w-3xl mt-8">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label for="id_title" class="block text-sm font-medium mb-1">Title</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.title.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label for="id_description" class="block text-sm font-medium mb-1">Description (optional)</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.description.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label for="id_query" class="block text-sm font-medium mb-1">Query</label>
+                {{ form.query }}
+                {% if form.query.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.query.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label for="id_columns" class="block text-sm font-medium mb-1">Columns</label>
+                {{ form.columns }}
+                {% if form.columns.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.columns.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-6 flex items-center gap-2">
+                {{ form.is_public }}
+                <label for="id_is_public" class="text-sm">
+                    Make this search public (visible and editable by all users)
+                </label>
+                {% if form.is_public.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.is_public.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="flex gap-2 mt-6">
+                <a href="{% url 'hosts:saved_searches' %}" class="btn btn-outline">
+                    Cancel
+                </a>
+                <button type="submit" class="btn light:btn-primary dark:btn-outline">
+                    {% if object %}Update{% else %}Save{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

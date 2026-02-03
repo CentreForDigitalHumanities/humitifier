@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 
 from alerting.backend.registry import alert_generator_registry
 from alerting.models import AlertSeverity
-from hosts.models import DataSource, Host
+from hosts.models import DataSource, Host, SavedSearch
 from main.filters import (
     BooleanChoiceFilter,
     FiltersForm,
@@ -241,3 +241,12 @@ class HostFilters(django_filters.FilterSet):
     archived = IncludeArchivedFilter(
         empty_label="Exclude archived servers",
     )
+
+##
+## SavedSearch filters
+##
+
+class SavedSearchFilters(django_filters.FilterSet):
+    class Meta:
+        model = SavedSearch
+        fields = ["is_public"]
