@@ -97,6 +97,17 @@
                 </div>
 
                 <div>
+                    <h3 class="font-semibold mb-1">Filtering Array Fields</h3>
+                    <p class="mb-2">Filter array elements before comparison or aggregation using regex patterns: <code>filter(field[], "pattern")</code></p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><code>filter(field[], "^prefix")</code> — match elements starting with "prefix"</li>
+                        <li><code>filter(field[], "suffix$")</code> — match elements ending with "suffix"</li>
+                        <li><code>filter(field[], "pattern")</code> — match elements containing "pattern"</li>
+                        <li>Can be combined with aggregations: <code>count(filter(field[], "pattern"))</code></li>
+                    </ul>
+                </div>
+
+                <div>
                     <h3 class="font-semibold mb-1">Examples</h3>
                     <div class="space-y-2">
                         <div>
@@ -126,6 +137,10 @@
                         <div>
                             <p class="font-medium">Find hosts with max memory size greater than 8GB:</p>
                             <code class="block bg-white dark:bg-gray-800 p-2 rounded">max(facts.memory[].size) &gt;= 8192</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Count hosts with more than 2 network interfaces:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">count(filter(facts.generic.NetworkInterfaces[].link_type , "ether")) &gt; 2</code>
                         </div>
                     </div>
                 </div>

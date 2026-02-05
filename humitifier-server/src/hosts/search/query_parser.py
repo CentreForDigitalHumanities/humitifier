@@ -20,6 +20,7 @@ def parse_query(query_string: str) -> ComplexQuery:
     - Quoted strings: "value" or 'value'
     - Unquoted values for numbers and booleans: 42, true, false
     - Aggregations for array fields: min(field[]), max(field[]), sum(field[]), concat(field[]), count(field[])
+    - Filters for array fields: filter(field[], "pattern")
 
     Examples:
         - 'facts.cpu.count = 4'
@@ -28,6 +29,8 @@ def parse_query(query_string: str) -> ComplexQuery:
         - 'facts.hostname contains "web"'
         - 'count(facts.packages[].name) > 100'
         - 'max(facts.memory[].size) >= 8192'
+        - 'filter(facts.packages[].name, "^lib") contains "ssl"'
+        - 'count(filter(facts.services[].name, "ssh")) > 0'
 
     Args:
         query_string: The query string to parse.
@@ -80,8 +83,8 @@ def _tokenize(query_string: str) -> list[str]:
             i += 1  # Skip closing quote
             continue
 
-        # Handle brackets and parentheses
-        if char in ('{', '}', '(', ')'):
+        # Handle brackets, parentheses, and commas
+        if char in ('{', '}', '(', ')', ','):
             tokens.append(char)
             i += 1
             continue
@@ -103,8 +106,8 @@ def _tokenize(query_string: str) -> list[str]:
                 i += 1
             token = query_string[start:i]
 
-            # Check for aggregation functions
-            if token.lower() in ('min', 'max', 'sum', 'concat', 'count'):
+            # Check for aggregation functions and filter
+            if token.lower() in ('min', 'max', 'sum', 'concat', 'count', 'filter'):
                 tokens.append(token.lower())
             else:
                 tokens.append(token)
@@ -124,7 +127,8 @@ class _QueryParser:
         or_expr := and_expr (OR and_expr)*
         and_expr := primary (AND primary)*
         primary := "{" or_expr "}" | criterion
-        criterion := [aggregation "("] field_id [")"] operator value
+        criterion := [aggregation "("] [filter_expr] [")"] operator value
+        filter_expr := ["filter" "("] field_id ["," pattern ")"]
         aggregation := "min" | "max" | "sum" | "concat" | "count"
         operator := "=" | ">" | ">=" | "<" | "<=" | "contains"
     """
@@ -198,9 +202,10 @@ class _QueryParser:
         return self._parse_criterion()
 
     def _parse_criterion(self) -> ComplexQuery:
-        """Parse a single criterion (field operator value) or aggregation(field) operator value."""
+        """Parse a single criterion (field operator value) with optional aggregation and filter."""
         # Check if we have an aggregation function
         aggregation = None
+        filter_pattern = None
         first_token = self._current_token()
 
         if first_token and first_token.lower() in ('min', 'max', 'sum', 'concat', 'count'):
@@ -212,17 +217,84 @@ class _QueryParser:
                 raise ValueError(f"Expected '(' after aggregation function '{aggregation}'")
             self._consume_token()  # Consume '('
 
-        field_id = self._consume_token()
+            # Check if next token is 'filter'
+            if self._current_token() == 'filter':
+                self._consume_token()  # Consume 'filter'
 
-        # Validate that the field_id is allowed
-        if field_id not in self.allowed_fields:
-            raise ValueError(f"Invalid field ID: '{field_id}'. Not a searchable field.")
+                # Expect opening parenthesis
+                if self._current_token() != '(':
+                    raise ValueError("Expected '(' after 'filter'")
+                self._consume_token()  # Consume '('
 
-        # If we had an aggregation, expect closing parenthesis
-        if aggregation:
+                # Parse field_id
+                field_id = self._consume_token()
+
+                # Validate that the field_id is allowed
+                if field_id not in self.allowed_fields:
+                    raise ValueError(f"Invalid field ID: '{field_id}'. Not a searchable field.")
+
+                # Expect comma
+                if self._current_token() != ',':
+                    raise ValueError("Expected ',' after field in filter")
+                self._consume_token()  # Consume ','
+
+                # Parse pattern (must be a string)
+                pattern_token = self._consume_token()
+                filter_pattern = self._parse_literal_value(pattern_token)
+
+                # Expect closing parenthesis for filter
+                if self._current_token() != ')':
+                    raise ValueError("Expected ')' after pattern in filter")
+                self._consume_token()  # Consume ')'
+            else:
+                # No filter, just parse field_id
+                field_id = self._consume_token()
+
+                # Validate that the field_id is allowed
+                if field_id not in self.allowed_fields:
+                    raise ValueError(f"Invalid field ID: '{field_id}'. Not a searchable field.")
+
+            # Expect closing parenthesis for aggregation
             if self._current_token() != ')':
-                raise ValueError(f"Expected ')' after field in aggregation")
+                raise ValueError(f"Expected ')' after aggregation content")
             self._consume_token()  # Consume ')'
+
+        elif first_token == 'filter':
+            # Standalone filter without aggregation
+            self._consume_token()  # Consume 'filter'
+
+            # Expect opening parenthesis
+            if self._current_token() != '(':
+                raise ValueError("Expected '(' after 'filter'")
+            self._consume_token()  # Consume '('
+
+            # Parse field_id
+            field_id = self._consume_token()
+
+            # Validate that the field_id is allowed
+            if field_id not in self.allowed_fields:
+                raise ValueError(f"Invalid field ID: '{field_id}'. Not a searchable field.")
+
+            # Expect comma
+            if self._current_token() != ',':
+                raise ValueError("Expected ',' after field in filter")
+            self._consume_token()  # Consume ','
+
+            # Parse pattern (must be a string)
+            pattern_token = self._consume_token()
+            filter_pattern = self._parse_literal_value(pattern_token)
+
+            # Expect closing parenthesis
+            if self._current_token() != ')':
+                raise ValueError("Expected ')' after pattern in filter")
+            self._consume_token()  # Consume ')'
+        else:
+            # No aggregation or filter, just parse field_id
+            field_id = self._consume_token()
+
+            # Validate that the field_id is allowed
+            if field_id not in self.allowed_fields:
+                raise ValueError(f"Invalid field ID: '{field_id}'. Not a searchable field.")
 
         operator_token = self._consume_token()
         operator = self._parse_operator(operator_token)
@@ -235,6 +307,7 @@ class _QueryParser:
             operator=operator,
             value=value,
             aggregation=aggregation,  # type: ignore[arg-type]
+            filter_pattern=filter_pattern,
         )
         return ComplexQuery(type="criterion", criterion=criterion)
 

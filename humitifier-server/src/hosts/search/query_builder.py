@@ -263,6 +263,7 @@ def _build_array_where_clause(
     has_element_field_path: bool,
     parsed_value: Any,
     sql_params: list[Any],
+    element_field_path: tuple[str, ...] | None = None,
 ) -> str:
     """
     Build the WHERE clause for array field searches based on the operator and value type.
@@ -275,11 +276,28 @@ def _build_array_where_clause(
         has_element_field_path: Whether we're accessing a nested field within elements.
         parsed_value: The search value, already parsed to the correct type.
         sql_params: List to append parameter values to for the SQL query.
+        element_field_path: The field path for rebuilding text expression params if needed.
 
     Returns:
         SQL WHERE clause string.
     """
     is_string_field = descriptor.value_type == "string"
+    where_clauses = []
+
+    # Add filter pattern clause if provided
+    if criterion.filter_pattern:
+        sql_params.append(criterion.filter_pattern)
+        where_clauses.append(f"{text_expression} ~ %s")
+
+        # If we're using the filter, we'll use text_expression again in the comparison below
+        # So we need to add its parameters again
+        if element_field_path:
+            # Re-add the field path parameters for the second use of text_expression
+            if len(element_field_path) == 1:
+                sql_params.append(element_field_path[0])
+            else:
+                for field_key in element_field_path:
+                    sql_params.append(field_key)
 
     if is_string_field:
         if not has_element_field_path:
@@ -292,36 +310,38 @@ def _build_array_where_clause(
 
             if criterion.operator == "contains":
                 sql_params.append(f"%{parsed_value}%")
-                return f"{comparison_expression} ILIKE %s"
+                where_clauses.append(f"{comparison_expression} ILIKE %s")
             elif criterion.operator == "eq":
                 sql_params.append(str(parsed_value))
-                return f"LOWER({comparison_expression}) = LOWER(%s)"
+                where_clauses.append(f"LOWER({comparison_expression}) = LOWER(%s)")
             else:
                 sql_params.append(str(parsed_value))
                 sql_operator = _operator_to_sql(criterion.operator)
-                return f"{comparison_expression} {sql_operator} %s"
+                where_clauses.append(f"{comparison_expression} {sql_operator} %s")
         else:
             # For nested fields within elements
             if criterion.operator == "contains":
                 sql_params.append(f"%{parsed_value}%")
-                return f"{text_expression} ILIKE %s"
+                where_clauses.append(f"{text_expression} ILIKE %s")
             elif criterion.operator == "eq":
                 sql_params.append(str(parsed_value))
-                return f"LOWER({text_expression}) = LOWER(%s)"
+                where_clauses.append(f"LOWER({text_expression}) = LOWER(%s)")
             else:
                 sql_params.append(str(parsed_value))
                 sql_operator = _operator_to_sql(criterion.operator)
-                return f"{text_expression} {sql_operator} %s"
+                where_clauses.append(f"{text_expression} {sql_operator} %s")
     else:
         # For integer/boolean fields
         if criterion.operator == "contains":
             # Contains doesn't make sense for non-strings, treat as exact match
             sql_params.append(str(parsed_value))
-            return f"{text_expression} = %s"
+            where_clauses.append(f"{text_expression} = %s")
         else:
             sql_params.append(str(parsed_value))
             sql_operator = _operator_to_sql(criterion.operator)
-            return f"{text_expression} {sql_operator} %s"
+            where_clauses.append(f"{text_expression} {sql_operator} %s")
+
+    return " AND ".join(where_clauses)
 
 
 def _build_aggregation_expression(
@@ -422,7 +442,16 @@ def _apply_array_aggregation_filter(
     # Build the LATERAL join clauses for array expansion
     from_clauses, element_expr, _ = _build_array_expansion_clauses(array_path, sql_params)
 
-    # Build the aggregation expression
+    # Build WHERE clause for filter pattern if provided
+    # We need to build the text expression for the WHERE clause
+    where_clause = None
+    if criterion.filter_pattern:
+        # Build text expression for filtering (this adds params to sql_params)
+        text_expr_for_filter = _build_element_field_expression(element_expr, element_field_path, sql_params)
+        sql_params.append(criterion.filter_pattern)
+        where_clause = f"{text_expr_for_filter} ~ %s"
+
+    # Build the aggregation expression (this also adds params to sql_params)
     agg_expr = _build_aggregation_expression(
         aggregation,
         element_expr,
@@ -447,7 +476,10 @@ def _apply_array_aggregation_filter(
 
     # Construct the complete SQL subquery with GROUP BY and HAVING
     from_sql = " CROSS JOIN LATERAL ".join(from_clauses)
-    subquery = f"SELECT 1 FROM {from_sql} GROUP BY \"hosts_host\".\"id\" HAVING {having_clause} LIMIT 1"
+    if where_clause:
+        subquery = f"SELECT 1 FROM {from_sql} WHERE {where_clause} GROUP BY \"hosts_host\".\"id\" HAVING {having_clause} LIMIT 1"
+    else:
+        subquery = f"SELECT 1 FROM {from_sql} GROUP BY \"hosts_host\".\"id\" HAVING {having_clause} LIMIT 1"
 
     return queryset.annotate(_match=RawSQL(subquery, sql_params)).filter(_match__isnull=False)
 
@@ -493,6 +525,8 @@ def _apply_array_filter(
     text_expr = _build_element_field_expression(element_expr, element_field_path, sql_params)
 
     # Build the WHERE clause based on the operator and value type
+    # Note: where_clause may use text_expr multiple times (for filter AND for comparison)
+    # so we need to track how many times it's used and duplicate the parameters
     where_clause = _build_array_where_clause(
         criterion,
         descriptor,
@@ -501,6 +535,7 @@ def _apply_array_filter(
         bool(element_field_path),
         parsed_value,
         sql_params,
+        element_field_path,  # Pass this so we can rebuild the expression params if needed
     )
 
     # Construct the complete SQL subquery

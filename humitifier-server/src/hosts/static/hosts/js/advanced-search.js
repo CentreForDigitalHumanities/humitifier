@@ -34,6 +34,7 @@ function advancedSearchQuery() {
         operators: ['=', '>', '>=', '<', '<=', 'contains'],
         logicalOperators: ['AND', 'OR'],
         aggregationFunctions: ['min', 'max', 'sum', 'concat', 'count'],
+        filterFunction: 'filter',
 
         init() {
             // These values are populated by the Django template
@@ -109,7 +110,7 @@ function advancedSearchQuery() {
                     continue;
                 }
 
-                // Handle brackets and parentheses
+                // Handle brackets, parentheses, and commas
                 if (char === '{') {
                     tokens.push({ type: 'lbracket', value: '{' });
                     i++;
@@ -127,6 +128,11 @@ function advancedSearchQuery() {
                 }
                 if (char === ')') {
                     tokens.push({ type: 'rparen', value: ')' });
+                    i++;
+                    continue;
+                }
+                if (char === ',') {
+                    tokens.push({ type: 'comma', value: ',' });
                     i++;
                     continue;
                 }
@@ -158,6 +164,8 @@ function advancedSearchQuery() {
                         tokens.push({ type: 'operator', value: word });
                     } else if (word === 'min' || word === 'max' || word === 'sum' || word === 'concat' || word === 'count') {
                         tokens.push({ type: 'aggregation', value: word });
+                    } else if (word === 'filter') {
+                        tokens.push({ type: 'filter', value: word });
                     } else if (word === 'true' || word === 'false') {
                         tokens.push({ type: 'boolean', value: word });
                     } else if (/^\d+(\.\d+)?$/.test(word)) {
@@ -202,16 +210,16 @@ function advancedSearchQuery() {
 
             const lastToken = tokens[tokens.length - 1];
 
-            // Helper: Find the unclosed aggregation if we're inside one
-            const findUnclosedAggregation = () => {
+            // Helper: Find the unclosed aggregation or filter if we're inside one
+            const findUnclosedFunction = () => {
                 let parenDepth = 0;
                 for (let i = tokens.length - 1; i >= 0; i--) {
                     if (tokens[i].type === 'rparen') parenDepth++;
                     else if (tokens[i].type === 'lparen') {
                         if (parenDepth > 0) {
                             parenDepth--;
-                        } else if (i > 0 && tokens[i - 1].type === 'aggregation') {
-                            return tokens[i - 1].value;
+                        } else if (i > 0 && (tokens[i - 1].type === 'aggregation' || tokens[i - 1].type === 'filter')) {
+                            return { type: tokens[i - 1].type, value: tokens[i - 1].value };
                         }
                     }
                 }
@@ -241,10 +249,25 @@ function advancedSearchQuery() {
                 case 'aggregation':
                     return { type: 'expect_lparen', partial: currentPartial };
 
+                case 'filter':
+                    return { type: 'expect_lparen_filter', partial: currentPartial };
+
+                case 'comma':
+                    // Inside filter, expect pattern
+                    const func = findUnclosedFunction();
+                    if (func && func.type === 'filter') {
+                        return { type: 'expect_pattern', partial: currentPartial };
+                    }
+                    return { type: 'start', partial: currentPartial };
+
                 case 'lparen':
-                    const aggFunc = findUnclosedAggregation();
-                    if (aggFunc) {
-                        return { type: 'expect_array_field', partial: currentPartial, aggregationFunction: aggFunc };
+                    const unclosedFunc = findUnclosedFunction();
+                    if (unclosedFunc) {
+                        if (unclosedFunc.type === 'aggregation') {
+                            return { type: 'expect_array_field', partial: currentPartial, aggregationFunction: unclosedFunc.value };
+                        } else if (unclosedFunc.type === 'filter') {
+                            return { type: 'expect_array_field_filter', partial: currentPartial };
+                        }
                     }
                     return { type: 'start', partial: currentPartial };
 
@@ -254,8 +277,11 @@ function advancedSearchQuery() {
                         return { type: 'start', partial: currentPartial };
                     }
 
-                    const unclosedAgg = findUnclosedAggregation();
-                    if (unclosedAgg) {
+                    const unclosedFuncForField = findUnclosedFunction();
+                    if (unclosedFuncForField) {
+                        if (unclosedFuncForField.type === 'filter') {
+                            return { type: 'expect_comma', partial: currentPartial };
+                        }
                         return { type: 'expect_rparen', partial: currentPartial };
                     }
 
@@ -386,7 +412,7 @@ function advancedSearchQuery() {
             const suggestions = [];
             const partialLower = context.partial.toLowerCase();
 
-            // Start context: suggest fields, aggregations, and brackets
+            // Start context: suggest fields, aggregations, filter, and brackets
             if (context.type === 'start') {
                 // Bracket
                 if ('{'.startsWith(partialLower) || partialLower === '') {
@@ -409,6 +435,16 @@ function advancedSearchQuery() {
                         });
                     }
                 });
+
+                // Filter function
+                if (partialLower === '' || 'filter'.startsWith(partialLower)) {
+                    suggestions.push({
+                        id: 'filter',
+                        label: 'filter() — filter array elements',
+                        insertValue: 'filter',
+                        type: 'filter'
+                    });
+                }
 
                 // Fields
                 this.fields.forEach(field => {
@@ -437,6 +473,18 @@ function advancedSearchQuery() {
                 }
             }
 
+            // Expect opening parenthesis after filter
+            else if (context.type === 'expect_lparen_filter') {
+                if ('('.startsWith(partialLower) || partialLower === '') {
+                    suggestions.push({
+                        id: '(',
+                        label: '( — open filter',
+                        insertValue: '(',
+                        type: 'paren'
+                    });
+                }
+            }
+
             // Expect array field inside aggregation
             else if (context.type === 'expect_array_field') {
                 const aggregationFunction = context.aggregationFunction;
@@ -459,6 +507,49 @@ function advancedSearchQuery() {
                         });
                     }
                 });
+            }
+
+            // Expect array field inside filter
+            else if (context.type === 'expect_array_field_filter') {
+                this.fields.forEach(field => {
+                    if (!field.id.includes('[]')) return;
+
+                    if (partialLower === '' ||
+                        field.id.toLowerCase().includes(partialLower) ||
+                        field.label.toLowerCase().includes(partialLower)) {
+                        suggestions.push({
+                            id: field.id,
+                            label: `${field.label}`,
+                            insertValue: field.id,
+                            type: 'field'
+                        });
+                    }
+                });
+            }
+
+            // Expect comma after field in filter
+            else if (context.type === 'expect_comma') {
+                if (','.startsWith(partialLower) || partialLower === '') {
+                    suggestions.push({
+                        id: ',',
+                        label: ', — separator',
+                        insertValue: ',',
+                        type: 'comma'
+                    });
+                }
+            }
+
+            // Expect pattern string after comma in filter
+            else if (context.type === 'expect_pattern') {
+                if (partialLower === '' || '"pattern"'.startsWith(partialLower)) {
+                    suggestions.push({
+                        id: 'pattern',
+                        label: '"pattern" — regex pattern',
+                        insertValue: '""',
+                        type: 'value',
+                        cursorOffset: -1
+                    });
+                }
             }
 
             // Expect closing parenthesis
@@ -692,13 +783,16 @@ function advancedSearchQuery() {
             let spacing = '';
 
             // Add appropriate spacing based on token type
-            if (s.type === 'aggregation') {
-                // Aggregation functions need opening paren
+            if (s.type === 'aggregation' || s.type === 'filter') {
+                // Functions need opening paren
                 insert = insert + '( ';
                 // Add space before if needed
                 if (left && !left.endsWith(' ')) {
                     insert = ' ' + insert;
                 }
+            } else if (s.type === 'comma') {
+                // Comma should have space after
+                spacing = ' ';
             } else if (s.type === 'field' || s.type === 'operator' || s.type === 'logical') {
                 // Add space after if not already present
                 if ((right && !right.startsWith(' ')) || !right) {
@@ -826,7 +920,9 @@ function advancedSearchQuery() {
                 boolean: 'text-red-600 dark:text-red-300',
                 bracket: 'text-orange-500 dark:text-orange-400',
                 aggregation: 'text-yellow-800 dark:text-yellow-300',
-                paren: 'text-yellow-800 dark:text-yellow-300'
+                filter: 'text-purple-800 dark:text-purple-300',
+                paren: 'text-yellow-800 dark:text-yellow-300',
+                comma: 'text-neutral-600 dark:text-neutral-400'
             };
             let i = 0;
             let output = '';
@@ -883,6 +979,12 @@ function advancedSearchQuery() {
                     continue;
                 }
 
+                if (char === ',') {
+                    pushToken(char, 'comma');
+                    i++;
+                    continue;
+                }
+
                 if (char === '>' || char === '<' || char === '=') {
                     let op = char;
                     if (i + 1 < text.length && text[i + 1] === '=') {
@@ -912,6 +1014,8 @@ function advancedSearchQuery() {
                         pushToken(word, 'operator');
                     } else if (word === 'min' || word === 'max' || word === 'sum' || word === 'concat' || word === 'count') {
                         pushToken(word, 'aggregation');
+                    } else if (word === 'filter') {
+                        pushToken(word, 'filter');
                     } else if (word === 'true' || word === 'false') {
                         pushToken(word, 'boolean');
                     } else if (/^\d+(\.\d+)?$/.test(word)) {

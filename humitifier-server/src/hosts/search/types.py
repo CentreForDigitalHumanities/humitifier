@@ -59,11 +59,13 @@ class SearchCriterion:
     operator: comparison operator (eq, gt, gte, lt, lte, contains)
     value: the value to compare against
     aggregation: optional aggregation function for array fields (min, max, sum, concat, count)
+    filter_pattern: optional regex pattern to filter array elements before comparison/aggregation
     """
     field_id: str
     operator: ComparisonOperator
     value: Any
     aggregation: AggregationFunction | None = None
+    filter_pattern: str | None = None
 
 
 @dataclass(frozen=True)
