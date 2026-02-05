@@ -267,15 +267,24 @@ function advancedSearchQuery() {
                     };
 
                 case 'rparen':
-                    // Look for the aggregation this closes
+                    // Look for the aggregation this closes and the field inside it
                     let aggFuncForRparen = null;
+                    let fieldInsideAgg = null;
                     let depth = 1;
                     for (let i = tokens.length - 2; i >= 0; i--) {
-                        if (tokens[i].type === 'rparen') depth++;
-                        else if (tokens[i].type === 'lparen') {
+                        if (tokens[i].type === 'rparen') {
+                            depth++;
+                        } else if (tokens[i].type === 'lparen') {
                             depth--;
                             if (depth === 0 && i > 0 && tokens[i - 1].type === 'aggregation') {
                                 aggFuncForRparen = tokens[i - 1].value;
+                                // Find the field after this lparen
+                                for (let j = i + 1; j < tokens.length; j++) {
+                                    if (tokens[j].type === 'field') {
+                                        fieldInsideAgg = this.fields.find(f => f.id === tokens[j].value);
+                                        break;
+                                    }
+                                }
                                 break;
                             }
                         }
@@ -285,7 +294,7 @@ function advancedSearchQuery() {
                         return {
                             type: 'expect_operator',
                             partial: currentPartial,
-                            fieldType: this._getAggregationResultType(aggFuncForRparen)
+                            fieldType: this._getAggregationResultType(aggFuncForRparen, fieldInsideAgg)
                         };
                     }
                     return { type: 'expect_logical', partial: currentPartial };
@@ -296,7 +305,21 @@ function advancedSearchQuery() {
 
                     if (source) {
                         if (source.type === 'aggregation') {
-                            valueType = this._getAggregationResultType(source.value);
+                            // For aggregations, we need to find the field inside the aggregation
+                            let aggField = null;
+                            for (let i = tokens.length - 2; i >= 0; i--) {
+                                if (tokens[i].type === 'aggregation' && tokens[i].value === source.value) {
+                                    // Found the aggregation, look for field after its lparen
+                                    for (let j = i + 1; j < tokens.length; j++) {
+                                        if (tokens[j].type === 'field') {
+                                            aggField = this.fields.find(f => f.id === tokens[j].value);
+                                            break;
+                                        }
+                                    }
+                                    break;
+                                }
+                            }
+                            valueType = this._getAggregationResultType(source.value, aggField);
                         } else if (source.type === 'field') {
                             valueType = source.field.valueType;
                         }
@@ -567,16 +590,28 @@ function advancedSearchQuery() {
             return descriptions[agg] || agg;
         },
 
-        _getAggregationResultType(aggregationFunction) {
+        _getAggregationResultType(aggregationFunction, field) {
             // Determine the result type of an aggregation function
-            const resultTypes = {
-                'min': 'integer',      // min can work on integers, returns integer
-                'max': 'integer',      // max can work on integers, returns integer
-                'sum': 'integer',      // sum works on integers, returns integer
-                'concat': 'string',    // concat works on strings, returns string
-                'count': 'integer'     // count works on any array, returns integer
-            };
-            return resultTypes[aggregationFunction] || null;
+            // Some aggregations always return a specific type regardless of input
+            if (aggregationFunction === 'count') {
+                return 'integer';  // count always returns integer
+            }
+            if (aggregationFunction === 'sum') {
+                return 'integer';  // sum only works on integers, returns integer
+            }
+            if (aggregationFunction === 'concat') {
+                return 'string';   // concat only works on strings, returns string
+            }
+
+            // min/max return the same type as the field they operate on
+            if (aggregationFunction === 'min' || aggregationFunction === 'max') {
+                if (field && field.valueType) {
+                    return field.valueType;  // Returns the field's type (integer or string)
+                }
+                return 'integer';  // Default to integer if field unknown
+            }
+
+            return null;
         },
 
         _isFieldCompatibleWithAggregation(fieldType, aggregationFunction) {
