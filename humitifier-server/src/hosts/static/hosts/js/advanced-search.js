@@ -818,15 +818,15 @@ function advancedSearchQuery() {
             }
 
             const tokenClasses = {
-                field: 'text-blue-600 dark:text-blue-300',
-                operator: 'text-orange-600 dark:text-orange-300',
-                logical: 'text-orange-600 dark:text-orange-300',
+                field: 'text-neutral-900 dark:text-neutral-50',
+                operator: 'text-orange-600 dark:text-orange-500',
+                logical: 'text-orange-600 dark:text-orange-500',
                 string: 'text-green-600 dark:text-green-300',
                 number: 'text-blue-600 dark:text-blue-300',
-                boolean: 'text-orange-600 dark:text-orange-300',
-                bracket: 'text-gray-500 dark:text-gray-400',
-                aggregation: 'text-purple-600 dark:text-purple-300',
-                paren: 'text-gray-500 dark:text-gray-400'
+                boolean: 'text-red-600 dark:text-red-300',
+                bracket: 'text-orange-500 dark:text-orange-400',
+                aggregation: 'text-yellow-800 dark:text-yellow-300',
+                paren: 'text-yellow-800 dark:text-yellow-300'
             };
             let i = 0;
             let output = '';
