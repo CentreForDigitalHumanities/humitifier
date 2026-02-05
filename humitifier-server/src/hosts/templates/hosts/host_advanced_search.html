@@ -222,15 +222,30 @@
                     <button type="button" class="btn btn-sm btn-outline" @click="saveCurrentSearch()">
                         Save Search
                     </button>
-                    <button class="btn btn-sm btn-outline" type="submit" name="export-csv" @click="normalizeForSubmit()">
-                        Export (CSV)
-                    </button>
-                    <button class="btn btn-sm btn-outline" type="submit" name="export-json" @click="normalizeForSubmit()">
-                        Export (JSON)
-                    </button>
-                    <button class="btn btn-sm btn-outline" type="submit" name="export-txt" @click="normalizeForSubmit()">
-                        Export (Host-list)
-                    </button>
+                    <div class="relative" x-data="{ exportOpen: false }">
+                        <button type="button" class="btn btn-sm btn-outline flex items-center gap-1" @click="exportOpen = !exportOpen" @click.outside="exportOpen = false">
+                            Export
+                            {% with icon_size='size-4' %}
+                                <template x-if="exportOpen">
+                                    {% include 'icons/chevron-up.html' %}
+                                </template>
+                                <template x-if="!exportOpen">
+                                    {% include 'icons/chevron-down.html' %}
+                                </template>
+                            {% endwith %}
+                        </button>
+                        <div x-show="exportOpen" x-transition class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-lg z-50">
+                            <button type="submit" name="export-csv" @click="normalizeForSubmit(); exportOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
+                                CSV
+                            </button>
+                            <button type="submit" name="export-json" @click="normalizeForSubmit(); exportOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
+                                JSON
+                            </button>
+                            <button type="submit" name="export-txt" @click="normalizeForSubmit(); exportOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
+                                Host-list
+                            </button>
+                        </div>
+                    </div>
                     <button class="btn btn-sm light:btn-primary dark:btn-outline" type="submit" name="search" @click="normalizeForSubmit()">
                         Search
                     </button>
