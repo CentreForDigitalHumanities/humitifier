@@ -59,11 +59,10 @@ function advancedSearchQuery() {
         },
 
         /**
-         * Tokenize the query up to the caret position to understand context.
+         * Tokenize arbitrary text.
          * Returns an array of tokens with their types.
          */
-        _tokenizeUpToCaret() {
-            const text = this.value.slice(0, this.getCaret());
+        _tokenizeText(text) {
             const tokens = [];
             let i = 0;
 
@@ -154,6 +153,15 @@ function advancedSearchQuery() {
         },
 
         /**
+         * Tokenize the query up to the caret position to understand context.
+         * Returns an array of tokens with their types.
+         */
+        _tokenizeUpToCaret() {
+            const text = this.value.slice(0, this.getCaret());
+            return this._tokenizeText(text);
+        },
+
+        /**
          * Determine what type of suggestions to show based on query context.
          */
         _determineContext() {
@@ -164,36 +172,28 @@ function advancedSearchQuery() {
                 return { type: 'field_or_bracket', partial: '' };
             }
 
-            const lastToken = tokens[tokens.length - 1];
-
             // Check if we're in the middle of typing something
             const currentPartial = this._getCurrentPartialToken();
 
+            // Look back at the text before the current partial to understand context
+            const beforePartial = this.value.slice(0, this.getCaret() - currentPartial.length);
+            const tokensBeforePartial = this._tokenizeText(beforePartial);
+
+            const lastToken = tokens[tokens.length - 1];
+            const lastCompleteToken = tokensBeforePartial.length > 0 ? tokensBeforePartial[tokensBeforePartial.length - 1] : null;
+
             // After opening bracket, expect field or another bracket
-            if (lastToken.type === 'lbracket') {
+            if (lastCompleteToken && lastCompleteToken.type === 'lbracket') {
                 return { type: 'field_or_bracket', partial: currentPartial };
             }
 
             // After a field name, expect an operator
-            if (lastToken.type === 'field') {
-                const field = this.fields.find(f => f.id === lastToken.value);
+            if (lastCompleteToken && lastCompleteToken.type === 'field') {
+                const field = this.fields.find(f => f.id === lastCompleteToken.value);
 
                 if (field) {
                     // Valid field - expect an operator
                     return { type: 'operator', partial: currentPartial, fieldType: field.valueType };
-                }
-
-                // Invalid field token - check if it contains a valid field followed by a space
-                // This handles cases like "facts.cpu.count a" where the tokenizer creates "facts.cpu.counta"
-                // but the user actually meant to type after a valid field
-                for (const field of this.fields) {
-                    // Check if the text contains a complete valid field followed by a space
-                    const pattern = new RegExp(field.id.replace(/\./g, '\\.') + '\\s');
-                    if (pattern.test(lastToken.value)) {
-                        // We have a complete valid field followed by space
-                        // The user is typing an operator or value
-                        return { type: 'operator', partial: currentPartial, fieldType: field.valueType };
-                    }
                 }
 
                 // Still typing the field name
@@ -201,12 +201,12 @@ function advancedSearchQuery() {
             }
 
             // After an operator, expect a value (string/number/boolean)
-            if (lastToken.type === 'operator') {
+            if (lastCompleteToken && lastCompleteToken.type === 'operator') {
                 // Find the field that came before this operator
                 let fieldType = null;
-                for (let i = tokens.length - 2; i >= 0; i--) {
-                    if (tokens[i].type === 'field') {
-                        const field = this.fields.find(f => f.id === tokens[i].value);
+                for (let i = tokensBeforePartial.length - 2; i >= 0; i--) {
+                    if (tokensBeforePartial[i].type === 'field') {
+                        const field = this.fields.find(f => f.id === tokensBeforePartial[i].value);
                         if (field) {
                             fieldType = field.valueType;
                         }
@@ -217,11 +217,11 @@ function advancedSearchQuery() {
             }
 
             // After a complete value (string, number, boolean, rbracket), expect logical operator
-            if (lastToken.type === 'string' || lastToken.type === 'number' ||
-                lastToken.type === 'boolean' || lastToken.type === 'rbracket') {
+            if (lastCompleteToken && (lastCompleteToken.type === 'string' || lastCompleteToken.type === 'number' ||
+                lastCompleteToken.type === 'boolean' || lastCompleteToken.type === 'rbracket')) {
 
                 // Check if value is complete (string ends with quote, etc.)
-                const isComplete = this._isValueComplete(lastToken);
+                const isComplete = this._isValueComplete(lastCompleteToken);
 
                 if (isComplete) {
                     return { type: 'logical_or_rbracket', partial: currentPartial };
@@ -231,7 +231,7 @@ function advancedSearchQuery() {
             }
 
             // After a logical operator, expect field or opening bracket
-            if (lastToken.type === 'logical') {
+            if (lastCompleteToken && lastCompleteToken.type === 'logical') {
                 return { type: 'field_or_bracket', partial: currentPartial };
             }
 
