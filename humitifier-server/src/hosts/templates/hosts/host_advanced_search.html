@@ -310,7 +310,7 @@ document.addEventListener('alpine:init', () => {
             this.selectedColumns = [{% for column in requested_columns %}{ id: '{{ column|safe }}', label: '{{ column|safe }}' },{% endfor %}];
             this.fields = [
             {% for field in searchable_fields %}
-                { id: '{{ field.id|safe }}', label: '{{ field.label|safe }}' },
+                { id: '{{ field.id|safe }}', label: '{{ field.label|safe }}', valueType: '{{ field.value_type|safe }}' },
             {% endfor %}
             ];
             this.updateHighlight();

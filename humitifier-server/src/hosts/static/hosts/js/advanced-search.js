@@ -17,7 +17,7 @@
 
 function advancedSearchQuery() {
     return {
-        fields: [], // [{id, label}]
+        fields: [], // [{id, label, valueType}]
         value: '',
         highlightHtml: '',
         open: false,
@@ -176,24 +176,23 @@ function advancedSearchQuery() {
 
             // After a field name, expect an operator
             if (lastToken.type === 'field') {
-                const isValidField = this.getFieldIDs().includes(lastToken.value);
+                const field = this.fields.find(f => f.id === lastToken.value);
 
-                if (isValidField) {
+                if (field) {
                     // Valid field - expect an operator
-                    return { type: 'operator', partial: currentPartial };
+                    return { type: 'operator', partial: currentPartial, fieldType: field.valueType };
                 }
 
                 // Invalid field token - check if it contains a valid field followed by a space
                 // This handles cases like "facts.cpu.count a" where the tokenizer creates "facts.cpu.counta"
                 // but the user actually meant to type after a valid field
-                const fieldIds = this.getFieldIDs();
-                for (const fieldId of fieldIds) {
+                for (const field of this.fields) {
                     // Check if the text contains a complete valid field followed by a space
-                    const pattern = new RegExp(fieldId.replace(/\./g, '\\.') + '\\s');
+                    const pattern = new RegExp(field.id.replace(/\./g, '\\.') + '\\s');
                     if (pattern.test(lastToken.value)) {
                         // We have a complete valid field followed by space
                         // The user is typing an operator or value
-                        return { type: 'operator', partial: currentPartial };
+                        return { type: 'operator', partial: currentPartial, fieldType: field.valueType };
                     }
                 }
 
@@ -203,7 +202,18 @@ function advancedSearchQuery() {
 
             // After an operator, expect a value (string/number/boolean)
             if (lastToken.type === 'operator') {
-                return { type: 'value', partial: currentPartial };
+                // Find the field that came before this operator
+                let fieldType = null;
+                for (let i = tokens.length - 2; i >= 0; i--) {
+                    if (tokens[i].type === 'field') {
+                        const field = this.fields.find(f => f.id === tokens[i].value);
+                        if (field) {
+                            fieldType = field.valueType;
+                        }
+                        break;
+                    }
+                }
+                return { type: 'value', partial: currentPartial, fieldType: fieldType };
             }
 
             // After a complete value (string, number, boolean, rbracket), expect logical operator
@@ -296,9 +306,14 @@ function advancedSearchQuery() {
                     }
                 });
             } else if (context.type === 'operator') {
-                // Suggest operators
+                // Suggest operators based on field type
+                const fieldType = context.fieldType;
+
                 this.operators.forEach(op => {
-                    if (partialLower === '' || op.toLowerCase().startsWith(partialLower)) {
+                    // Filter operators based on field type
+                    const isApplicable = this._isOperatorApplicableToFieldType(op, fieldType);
+
+                    if (isApplicable && (partialLower === '' || op.toLowerCase().startsWith(partialLower))) {
                         suggestions.push({
                             id: op,
                             label: op === 'contains' ? 'contains — substring match' : `${op} — ${this._getOperatorDescription(op)}`,
@@ -308,8 +323,11 @@ function advancedSearchQuery() {
                     }
                 });
             } else if (context.type === 'value') {
-                // Suggest value templates
-                if (partialLower === '' || '"value"'.startsWith(partialLower)) {
+                // Suggest value templates based on field type
+                const fieldType = context.fieldType;
+
+                // String values
+                if ((fieldType === 'string' || !fieldType) && (partialLower === '' || '"value"'.startsWith(partialLower))) {
                     suggestions.push({
                         id: 'string',
                         label: '"value" — text value',
@@ -318,7 +336,9 @@ function advancedSearchQuery() {
                         cursorOffset: -1  // Place cursor between quotes
                     });
                 }
-                if (partialLower === '' || 'true'.startsWith(partialLower)) {
+
+                // Boolean values
+                if ((fieldType === 'boolean' || !fieldType) && (partialLower === '' || 'true'.startsWith(partialLower))) {
                     suggestions.push({
                         id: 'true',
                         label: 'true — boolean',
@@ -326,7 +346,7 @@ function advancedSearchQuery() {
                         type: 'value'
                     });
                 }
-                if (partialLower === '' || 'false'.startsWith(partialLower)) {
+                if ((fieldType === 'boolean' || !fieldType) && (partialLower === '' || 'false'.startsWith(partialLower))) {
                     suggestions.push({
                         id: 'false',
                         label: 'false — boolean',
@@ -334,7 +354,9 @@ function advancedSearchQuery() {
                         type: 'value'
                     });
                 }
-                if (partialLower === '' || /^\d/.test(partialLower)) {
+
+                // Integer values
+                if ((fieldType === 'integer' || !fieldType) && (partialLower === '' || /^\d/.test(partialLower))) {
                     suggestions.push({
                         id: 'number',
                         label: '42 — numeric value',
@@ -381,6 +403,33 @@ function advancedSearchQuery() {
                 '<=': 'less or equal'
             };
             return descriptions[op] || op;
+        },
+
+        /**
+         * Determine if an operator is applicable to a given field type.
+         */
+        _isOperatorApplicableToFieldType(operator, fieldType) {
+            // If no field type is known, show all operators
+            if (!fieldType) {
+                return true;
+            }
+
+            // Boolean fields only support equality
+            if (fieldType === 'boolean') {
+                return operator === '=';
+            }
+
+            // String fields support equality and contains
+            if (fieldType === 'string') {
+                return operator === '=' || operator === 'contains';
+            }
+
+            // Integer fields support all comparison operators except contains
+            if (fieldType === 'integer') {
+                return operator !== 'contains';
+            }
+
+            return true;
         },
 
         onInput() {
