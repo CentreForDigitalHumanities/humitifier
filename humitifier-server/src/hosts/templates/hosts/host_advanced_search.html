@@ -79,9 +79,9 @@
                 </div>
 
                 <div>
-                    <h3 class="font-semibold mb-1">Grouping with Parentheses</h3>
-                    <p class="mb-2">Use parentheses <code>(</code> and <code>)</code> to control evaluation order.</p>
-                    <code class="block bg-white dark:bg-gray-800 p-2 rounded">(condition1 OR condition2) AND condition3</code>
+                    <h3 class="font-semibold mb-1">Grouping with Brackets</h3>
+                    <p class="mb-2">Use brackets <code>{</code> and <code>}</code> to control evaluation order.</p>
+                    <code class="block bg-white dark:bg-gray-800 p-2 rounded">{ condition1 OR condition2 } AND condition3</code>
                 </div>
 
                 <div>
@@ -105,7 +105,7 @@
                         </div>
                         <div>
                             <p class="font-medium">Find Linux hosts with "web" in hostname:</p>
-                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">(facts.os.name = "Ubuntu" OR facts.os.name = "Debian") AND facts.hostname contains "web"</code>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">{ facts.os.name = "Ubuntu" OR facts.os.name = "Debian" } AND facts.hostname contains "web"</code>
                         </div>
                     </div>
                 </div>
