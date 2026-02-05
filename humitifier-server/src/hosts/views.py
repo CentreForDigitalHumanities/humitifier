@@ -444,7 +444,12 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         if search_string:
             search_query = self._parse_search_string(search_string)
             if search_query is not None:
-                qs = search_hosts_by_scan_fields(qs, search_query)
+                try:
+                    qs = search_hosts_by_scan_fields(qs, search_query)
+                except ValueError as e:
+                    # Store the error message to display to the user
+                    self._query_parse_error = str(e)
+                    return Host.objects.none()
 
         return get_scan_field_values(qs, requested_columns)
 
