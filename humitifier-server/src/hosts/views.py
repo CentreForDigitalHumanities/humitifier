@@ -554,6 +554,11 @@ class SavedSearchCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessM
             initial['columns'] = self.request.GET['columns']
         return initial
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['searchable_fields'] = get_searchable_fields()
+        return context
+
     def form_valid(self, form):
         form.instance.creator = self.request.user
         return super().form_valid(form)
@@ -565,6 +570,11 @@ class SavedSearchUpdateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessM
     template_name = "hosts/saved_search_form.html"
     success_url = reverse_lazy("hosts:saved_searches")
     success_message = "Saved search updated successfully"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['searchable_fields'] = get_searchable_fields()
+        return context
 
     def get_queryset(self):
         # Users can only edit their own searches or public ones
