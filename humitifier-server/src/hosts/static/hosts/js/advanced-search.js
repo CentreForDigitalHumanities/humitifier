@@ -38,6 +38,17 @@ function advancedSearchQuery() {
             // These values are populated by the Django template
             // this.value and this.fields will be set externally
             this.updateHighlight();
+            this.autoResize();
+        },
+
+        autoResize() {
+            const textarea = this.$refs.input;
+            if (!textarea) return;
+
+            // Reset height to auto to get the correct scrollHeight
+            textarea.style.height = 'auto';
+            // Set height based on scrollHeight
+            textarea.style.height = textarea.scrollHeight + 'px';
         },
 
         getCaret() {
@@ -438,6 +449,7 @@ function advancedSearchQuery() {
             this.activeIndex = 0;
             this.open = this.suggestions.length > 0;
             this.updateHighlight();
+            this.autoResize();
         },
 
         move(delta) {
@@ -500,6 +512,7 @@ function advancedSearchQuery() {
         onTab() {
             if (this.open && this.suggestions.length) {
                 this.choose(this.activeIndex);
+                this.autoResize();
                 return;
             }
         },

@@ -127,15 +127,16 @@
                 <label for="search-string" class="text-nowrap break-keep">Search query:</label>
                 <div class="relative w-full">
                     <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-sm input p-0" aria-hidden="true" x-ref="highlight">
-                        <div class="px-3 py-2 text-sm leading-5 whitespace-pre text-gray-700 dark:text-gray-50" x-html="highlightHtml"></div>
+                        <div class="px-3 py-2 text-sm leading-5 whitespace-pre-wrap break-words text-gray-700 dark:text-gray-50" x-html="highlightHtml"></div>
                     </div>
-                    <input
-                        class="input relative z-10 w-full !bg-transparent !text-transparent caret-gray-700 dark:caret-gray-50"
+                    <textarea
+                        class="input border-none relative z-10 w-full !bg-transparent !text-transparent caret-gray-700 dark:caret-gray-50 resize-none overflow-hidden"
                         x-ref="input"
                         name="search-string"
                         x-model="value"
                         placeholder='field = "value" AND field >= 42 OR (field contains "text")'
                         autocomplete="off"
+                        rows="1"
                         @input="onInput()"
                         @click="onInput()"
                         @click.outside="closeSuggestions()"
@@ -144,7 +145,7 @@
                         @keydown.up.prevent="move(-1)"
                         @keydown.tab.prevent="onTab()"
                         @keydown.enter.prevent="onTab()"
-                    />
+                    ></textarea>
 
                     <template x-if="open && suggestions.length">
                         <ul class="absolute z-50 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
