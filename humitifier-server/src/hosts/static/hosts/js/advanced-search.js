@@ -4,14 +4,14 @@
  * Provides comprehensive autocomplete and validation for the ComplexQuery syntax:
  * - Operators: =, >, >=, <, <=, contains
  * - Logical operators: AND, OR
- * - Parentheses for grouping: (expr)
+ * - Brackets for grouping: {expr}
  * - Quoted strings: "value" or 'value'
  * - Unquoted values for numbers and booleans: 42, true, false
  *
  * Examples:
  *   - facts.cpu.count = 4
  *   - facts.os.name = "Ubuntu" AND facts.cpu.count >= 4
- *   - (facts.os.name = "Ubuntu" OR facts.os.name = "Debian") AND facts.cpu.count > 2
+ *   - {facts.os.name = "Ubuntu" OR facts.os.name = "Debian"} AND facts.cpu.count > 2
  *   - facts.hostname contains "web"
  */
 
@@ -98,14 +98,14 @@ function advancedSearchQuery() {
                     continue;
                 }
 
-                // Handle parentheses
-                if (char === '(') {
-                    tokens.push({ type: 'lparen', value: '(' });
+                // Handle brackets
+                if (char === '{') {
+                    tokens.push({ type: 'lbracket', value: '{' });
                     i++;
                     continue;
                 }
-                if (char === ')') {
-                    tokens.push({ type: 'rparen', value: ')' });
+                if (char === '}') {
+                    tokens.push({ type: 'rbracket', value: '}' });
                     i++;
                     continue;
                 }
@@ -160,8 +160,8 @@ function advancedSearchQuery() {
             const tokens = this._tokenizeUpToCaret();
 
             if (tokens.length === 0) {
-                // Empty query - suggest fields or opening paren
-                return { type: 'field_or_paren', partial: '' };
+                // Empty query - suggest fields or opening bracket
+                return { type: 'field_or_bracket', partial: '' };
             }
 
             const lastToken = tokens[tokens.length - 1];
@@ -169,9 +169,9 @@ function advancedSearchQuery() {
             // Check if we're in the middle of typing something
             const currentPartial = this._getCurrentPartialToken();
 
-            // After opening paren, expect field or another paren
-            if (lastToken.type === 'lparen') {
-                return { type: 'field_or_paren', partial: currentPartial };
+            // After opening bracket, expect field or another bracket
+            if (lastToken.type === 'lbracket') {
+                return { type: 'field_or_bracket', partial: currentPartial };
             }
 
             // After a field name, expect an operator
@@ -198,7 +198,7 @@ function advancedSearchQuery() {
                 }
 
                 // Still typing the field name
-                return { type: 'field_or_paren', partial: currentPartial };
+                return { type: 'field_or_bracket', partial: currentPartial };
             }
 
             // After an operator, expect a value (string/number/boolean)
@@ -206,27 +206,27 @@ function advancedSearchQuery() {
                 return { type: 'value', partial: currentPartial };
             }
 
-            // After a complete value (string, number, boolean, rparen), expect logical operator
+            // After a complete value (string, number, boolean, rbracket), expect logical operator
             if (lastToken.type === 'string' || lastToken.type === 'number' ||
-                lastToken.type === 'boolean' || lastToken.type === 'rparen') {
+                lastToken.type === 'boolean' || lastToken.type === 'rbracket') {
 
                 // Check if value is complete (string ends with quote, etc.)
                 const isComplete = this._isValueComplete(lastToken);
 
                 if (isComplete) {
-                    return { type: 'logical_or_rparen', partial: currentPartial };
+                    return { type: 'logical_or_rbracket', partial: currentPartial };
                 } else {
                     return { type: 'value', partial: currentPartial };
                 }
             }
 
-            // After a logical operator, expect field or opening paren
+            // After a logical operator, expect field or opening bracket
             if (lastToken.type === 'logical') {
-                return { type: 'field_or_paren', partial: currentPartial };
+                return { type: 'field_or_bracket', partial: currentPartial };
             }
 
             // Default to field suggestions
-            return { type: 'field_or_paren', partial: currentPartial };
+            return { type: 'field_or_bracket', partial: currentPartial };
         },
 
         /**
@@ -249,11 +249,11 @@ function advancedSearchQuery() {
             const caret = this.getCaret();
             const before = this.value.slice(0, caret);
 
-            // Find the last space, operator, or paren
+            // Find the last space, operator, or bracket
             let start = before.length - 1;
             while (start >= 0) {
                 const char = before[start];
-                if (/[\s()=<>]/.test(char)) {
+                if (/[\s{}=<>]/.test(char)) {
                     start++;
                     break;
                 }
@@ -271,14 +271,14 @@ function advancedSearchQuery() {
             const suggestions = [];
             const partialLower = context.partial.toLowerCase();
 
-            if (context.type === 'field_or_paren') {
-                // Add opening parenthesis suggestion
-                if ('('.startsWith(partialLower) || partialLower === '') {
+            if (context.type === 'field_or_bracket') {
+                // Add opening bracket suggestion
+                if ('{'.startsWith(partialLower) || partialLower === '') {
                     suggestions.push({
-                        id: '(',
-                        label: '( — open group',
-                        insertValue: '(',
-                        type: 'paren'
+                        id: '{',
+                        label: '{ — open group',
+                        insertValue: '{',
+                        type: 'bracket'
                     });
                 }
 
@@ -342,17 +342,17 @@ function advancedSearchQuery() {
                         type: 'value'
                     });
                 }
-            } else if (context.type === 'logical_or_rparen') {
-                // Check if we need a closing paren
-                const openCount = (this.value.match(/\(/g) || []).length;
-                const closeCount = (this.value.match(/\)/g) || []).length;
+            } else if (context.type === 'logical_or_rbracket') {
+                // Check if we need a closing bracket
+                const openCount = (this.value.match(/\{/g) || []).length;
+                const closeCount = (this.value.match(/\}/g) || []).length;
 
-                if (openCount > closeCount && (')'.startsWith(partialLower) || partialLower === '')) {
+                if (openCount > closeCount && ('}'.startsWith(partialLower) || partialLower === '')) {
                     suggestions.push({
-                        id: ')',
-                        label: ') — close group',
-                        insertValue: ')',
-                        type: 'paren'
+                        id: '}',
+                        label: '} — close group',
+                        insertValue: '}',
+                        type: 'bracket'
                     });
                 }
 
@@ -436,8 +436,8 @@ function advancedSearchQuery() {
                 newCaret += s.cursorOffset;
             } else if (s.type === 'logical' || s.type === 'operator') {
                 newCaret += spacing.length + 1; // After the space
-            } else if (s.type === 'paren' && s.insertValue === '(') {
-                newCaret; // Stay right after the opening paren
+            } else if (s.type === 'bracket' && s.insertValue === '{') {
+                newCaret; // Stay right after the opening bracket
             }
 
             this.setCaret(newCaret);
@@ -471,13 +471,13 @@ function advancedSearchQuery() {
             }
 
             // Basic syntax checks
-            const openParens = (this.value.match(/\(/g) || []).length;
-            const closeParens = (this.value.match(/\)/g) || []).length;
+            const openBrackets = (this.value.match(/\{/g) || []).length;
+            const closeBrackets = (this.value.match(/\}/g) || []).length;
 
-            if (openParens !== closeParens) {
+            if (openBrackets !== closeBrackets) {
                 return {
                     valid: false,
-                    message: 'Mismatched parentheses'
+                    message: 'Mismatched brackets'
                 };
             }
 
@@ -533,7 +533,7 @@ function advancedSearchQuery() {
                 string: 'text-green-600 dark:text-green-300',
                 number: 'text-blue-600 dark:text-blue-300',
                 boolean: 'text-orange-600 dark:text-orange-300',
-                paren: 'text-gray-500 dark:text-gray-400'
+                bracket: 'text-gray-500 dark:text-gray-400'
             };
             let i = 0;
             let output = '';
@@ -578,8 +578,8 @@ function advancedSearchQuery() {
                     continue;
                 }
 
-                if (char === '(' || char === ')') {
-                    pushToken(char, 'paren');
+                if (char === '{' || char === '}') {
+                    pushToken(char, 'bracket');
                     i++;
                     continue;
                 }

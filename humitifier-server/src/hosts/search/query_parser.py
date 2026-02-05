@@ -16,14 +16,14 @@ def parse_query(query_string: str) -> ComplexQuery:
     - Basic: field_id = "value"
     - Operators: =, >, >=, <, <=, contains
     - Logical operators: AND, OR
-    - Parentheses for grouping: (expr)
+    - Brackets for grouping: {expr}
     - Quoted strings: "value" or 'value'
     - Unquoted values for numbers and booleans: 42, true, false
 
     Examples:
         - 'facts.cpu.count = 4'
         - 'facts.os.name = "Ubuntu" AND facts.cpu.count >= 4'
-        - '(facts.os.name = "Ubuntu" OR facts.os.name = "Debian") AND facts.cpu.count > 2'
+        - '{facts.os.name = "Ubuntu" OR facts.os.name = "Debian"} AND facts.cpu.count > 2'
         - 'facts.hostname contains "web"'
 
     Args:
@@ -47,7 +47,7 @@ def _tokenize(query_string: str) -> list[str]:
     """
     Tokenize a query string into a list of tokens.
 
-    Handles quoted strings, operators, parentheses, and identifiers.
+    Handles quoted strings, operators, brackets, and identifiers.
     """
     tokens = []
     i = 0
@@ -77,8 +77,8 @@ def _tokenize(query_string: str) -> list[str]:
             i += 1  # Skip closing quote
             continue
 
-        # Handle parentheses
-        if char in ('(', ')'):
+        # Handle brackets
+        if char in ('{', '}'):
             tokens.append(char)
             i += 1
             continue
@@ -114,7 +114,7 @@ class _QueryParser:
         query := or_expr
         or_expr := and_expr (OR and_expr)*
         and_expr := primary (AND primary)*
-        primary := "(" or_expr ")" | criterion
+        primary := "{" or_expr "}" | criterion
         criterion := field_id operator value
         operator := "=" | ">" | ">=" | "<" | "<=" | "contains"
     """
@@ -174,15 +174,15 @@ class _QueryParser:
         return ComplexQuery(type="and", children=children)
 
     def _parse_primary(self) -> ComplexQuery:
-        """Parse primary expressions (parenthesized expressions or criteria)."""
+        """Parse primary expressions (bracketed expressions or criteria)."""
         token = self._current_token()
 
-        if token == "(":
-            self._consume_token()  # Consume "("
+        if token == "{":
+            self._consume_token()  # Consume "{"
             result = self._parse_or_expr()
-            if self._current_token() != ")":
-                raise ValueError("Expected closing parenthesis")
-            self._consume_token()  # Consume ")"
+            if self._current_token() != "}":
+                raise ValueError("Expected closing bracket")
+            self._consume_token()  # Consume "}"
             return result
 
         return self._parse_criterion()
