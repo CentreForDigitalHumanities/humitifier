@@ -33,6 +33,7 @@ function advancedSearchQuery() {
         // Supported operators in the new syntax
         operators: ['=', '>', '>=', '<', '<=', 'contains'],
         logicalOperators: ['AND', 'OR'],
+        aggregationFunctions: ['min', 'max', 'sum', 'concat', 'count'],
 
         init() {
             // These values are populated by the Django template
@@ -108,7 +109,7 @@ function advancedSearchQuery() {
                     continue;
                 }
 
-                // Handle brackets
+                // Handle brackets and parentheses
                 if (char === '{') {
                     tokens.push({ type: 'lbracket', value: '{' });
                     i++;
@@ -116,6 +117,16 @@ function advancedSearchQuery() {
                 }
                 if (char === '}') {
                     tokens.push({ type: 'rbracket', value: '}' });
+                    i++;
+                    continue;
+                }
+                if (char === '(') {
+                    tokens.push({ type: 'lparen', value: '(' });
+                    i++;
+                    continue;
+                }
+                if (char === ')') {
+                    tokens.push({ type: 'rparen', value: ')' });
                     i++;
                     continue;
                 }
@@ -133,9 +144,9 @@ function advancedSearchQuery() {
                 }
 
                 // Handle identifiers/keywords
-                if (/[a-zA-Z0-9_.]/.test(char)) {
+                if (/[a-zA-Z0-9_.\[]/.test(char)) {
                     let word = '';
-                    while (i < text.length && /[a-zA-Z0-9_.]/.test(text[i])) {
+                    while (i < text.length && /[a-zA-Z0-9_.\[\]]/.test(text[i])) {
                         word += text[i];
                         i++;
                     }
@@ -145,6 +156,8 @@ function advancedSearchQuery() {
                         tokens.push({ type: 'logical', value: word });
                     } else if (word === 'contains') {
                         tokens.push({ type: 'operator', value: word });
+                    } else if (word === 'min' || word === 'max' || word === 'sum' || word === 'concat' || word === 'count') {
+                        tokens.push({ type: 'aggregation', value: word });
                     } else if (word === 'true' || word === 'false') {
                         tokens.push({ type: 'boolean', value: word });
                     } else if (/^\d+(\.\d+)?$/.test(word)) {
@@ -174,80 +187,138 @@ function advancedSearchQuery() {
 
         /**
          * Determine what type of suggestions to show based on query context.
+         *
+         * This function analyzes the tokens before the cursor to determine what should be suggested next.
          */
         _determineContext() {
-            const tokens = this._tokenizeUpToCaret();
-
-            if (tokens.length === 0) {
-                // Empty query - suggest fields or opening bracket
-                return { type: 'field_or_bracket', partial: '' };
-            }
-
-            // Check if we're in the middle of typing something
             const currentPartial = this._getCurrentPartialToken();
-
-            // Look back at the text before the current partial to understand context
             const beforePartial = this.value.slice(0, this.getCaret() - currentPartial.length);
-            const tokensBeforePartial = this._tokenizeText(beforePartial);
+            const tokens = this._tokenizeText(beforePartial);
+
+            // Empty query - start fresh
+            if (tokens.length === 0) {
+                return { type: 'start', partial: currentPartial };
+            }
 
             const lastToken = tokens[tokens.length - 1];
-            const lastCompleteToken = tokensBeforePartial.length > 0 ? tokensBeforePartial[tokensBeforePartial.length - 1] : null;
 
-            // After opening bracket, expect field or another bracket
-            if (lastCompleteToken && lastCompleteToken.type === 'lbracket') {
-                return { type: 'field_or_bracket', partial: currentPartial };
-            }
-
-            // After a field name, expect an operator
-            if (lastCompleteToken && lastCompleteToken.type === 'field') {
-                const field = this.fields.find(f => f.id === lastCompleteToken.value);
-
-                if (field) {
-                    // Valid field - expect an operator
-                    return { type: 'operator', partial: currentPartial, fieldType: field.valueType };
-                }
-
-                // Still typing the field name
-                return { type: 'field_or_bracket', partial: currentPartial };
-            }
-
-            // After an operator, expect a value (string/number/boolean)
-            if (lastCompleteToken && lastCompleteToken.type === 'operator') {
-                // Find the field that came before this operator
-                let fieldType = null;
-                for (let i = tokensBeforePartial.length - 2; i >= 0; i--) {
-                    if (tokensBeforePartial[i].type === 'field') {
-                        const field = this.fields.find(f => f.id === tokensBeforePartial[i].value);
-                        if (field) {
-                            fieldType = field.valueType;
+            // Helper: Find the unclosed aggregation if we're inside one
+            const findUnclosedAggregation = () => {
+                let parenDepth = 0;
+                for (let i = tokens.length - 1; i >= 0; i--) {
+                    if (tokens[i].type === 'rparen') parenDepth++;
+                    else if (tokens[i].type === 'lparen') {
+                        if (parenDepth > 0) {
+                            parenDepth--;
+                        } else if (i > 0 && tokens[i - 1].type === 'aggregation') {
+                            return tokens[i - 1].value;
                         }
-                        break;
                     }
                 }
-                return { type: 'value', partial: currentPartial, fieldType: fieldType };
-            }
+                return null;
+            };
 
-            // After a complete value (string, number, boolean, rbracket), expect logical operator
-            if (lastCompleteToken && (lastCompleteToken.type === 'string' || lastCompleteToken.type === 'number' ||
-                lastCompleteToken.type === 'boolean' || lastCompleteToken.type === 'rbracket')) {
-
-                // Check if value is complete (string ends with quote, etc.)
-                const isComplete = this._isValueComplete(lastCompleteToken);
-
-                if (isComplete) {
-                    return { type: 'logical_or_rbracket', partial: currentPartial };
-                } else {
-                    return { type: 'value', partial: currentPartial };
+            // Helper: Find the field or aggregation before an operator
+            const findFieldOrAggregationBeforeOperator = () => {
+                for (let i = tokens.length - 2; i >= 0; i--) {
+                    if (tokens[i].type === 'aggregation') {
+                        return { type: 'aggregation', value: tokens[i].value };
+                    }
+                    if (tokens[i].type === 'field') {
+                        const field = this.fields.find(f => f.id === tokens[i].value);
+                        return field ? { type: 'field', field: field } : null;
+                    }
                 }
-            }
+                return null;
+            };
 
-            // After a logical operator, expect field or opening bracket
-            if (lastCompleteToken && lastCompleteToken.type === 'logical') {
-                return { type: 'field_or_bracket', partial: currentPartial };
-            }
+            // Determine context based on last token type
+            switch (lastToken.type) {
+                case 'lbracket':
+                case 'logical':
+                    return { type: 'start', partial: currentPartial };
 
-            // Default to field suggestions
-            return { type: 'field_or_bracket', partial: currentPartial };
+                case 'aggregation':
+                    return { type: 'expect_lparen', partial: currentPartial };
+
+                case 'lparen':
+                    const aggFunc = findUnclosedAggregation();
+                    if (aggFunc) {
+                        return { type: 'expect_array_field', partial: currentPartial, aggregationFunction: aggFunc };
+                    }
+                    return { type: 'start', partial: currentPartial };
+
+                case 'field':
+                    const field = this.fields.find(f => f.id === lastToken.value);
+                    if (!field) {
+                        return { type: 'start', partial: currentPartial };
+                    }
+
+                    const unclosedAgg = findUnclosedAggregation();
+                    if (unclosedAgg) {
+                        return { type: 'expect_rparen', partial: currentPartial };
+                    }
+
+                    return {
+                        type: 'expect_operator',
+                        partial: currentPartial,
+                        fieldType: field.valueType,
+                        isArrayField: field.id.includes('[]')
+                    };
+
+                case 'rparen':
+                    // Look for the aggregation this closes
+                    let aggFuncForRparen = null;
+                    let depth = 1;
+                    for (let i = tokens.length - 2; i >= 0; i--) {
+                        if (tokens[i].type === 'rparen') depth++;
+                        else if (tokens[i].type === 'lparen') {
+                            depth--;
+                            if (depth === 0 && i > 0 && tokens[i - 1].type === 'aggregation') {
+                                aggFuncForRparen = tokens[i - 1].value;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (aggFuncForRparen) {
+                        return {
+                            type: 'expect_operator',
+                            partial: currentPartial,
+                            fieldType: this._getAggregationResultType(aggFuncForRparen)
+                        };
+                    }
+                    return { type: 'expect_logical', partial: currentPartial };
+
+                case 'operator':
+                    const source = findFieldOrAggregationBeforeOperator();
+                    let valueType = null;
+
+                    if (source) {
+                        if (source.type === 'aggregation') {
+                            valueType = this._getAggregationResultType(source.value);
+                        } else if (source.type === 'field') {
+                            valueType = source.field.valueType;
+                        }
+                    }
+
+                    return { type: 'expect_value', partial: currentPartial, fieldType: valueType };
+
+                case 'string':
+                case 'number':
+                case 'boolean':
+                    const isComplete = this._isValueComplete(lastToken);
+                    if (isComplete) {
+                        return { type: 'expect_logical', partial: currentPartial };
+                    }
+                    return { type: 'expect_value', partial: currentPartial };
+
+                case 'rbracket':
+                    return { type: 'expect_logical', partial: currentPartial };
+
+                default:
+                    return { type: 'start', partial: currentPartial };
+            }
         },
 
         /**
@@ -270,11 +341,11 @@ function advancedSearchQuery() {
             const caret = this.getCaret();
             const before = this.value.slice(0, caret);
 
-            // Find the last space, operator, or bracket
+            // Find the last space, operator, bracket, or parenthesis
             let start = before.length - 1;
             while (start >= 0) {
                 const char = before[start];
-                if (/[\s{}=<>]/.test(char)) {
+                if (/[\s{}=<>()]/.test(char)) {
                     start++;
                     break;
                 }
@@ -292,8 +363,9 @@ function advancedSearchQuery() {
             const suggestions = [];
             const partialLower = context.partial.toLowerCase();
 
-            if (context.type === 'field_or_bracket') {
-                // Add opening bracket suggestion
+            // Start context: suggest fields, aggregations, and brackets
+            if (context.type === 'start') {
+                // Bracket
                 if ('{'.startsWith(partialLower) || partialLower === '') {
                     suggestions.push({
                         id: '{',
@@ -303,26 +375,89 @@ function advancedSearchQuery() {
                     });
                 }
 
-                // Add field suggestions
+                // Aggregation functions
+                this.aggregationFunctions.forEach(agg => {
+                    if (partialLower === '' || agg.toLowerCase().startsWith(partialLower)) {
+                        suggestions.push({
+                            id: agg,
+                            label: `${agg}() — ${this._getAggregationDescription(agg)}`,
+                            insertValue: agg,
+                            type: 'aggregation'
+                        });
+                    }
+                });
+
+                // Fields
                 this.fields.forEach(field => {
                     if (partialLower === '' ||
                         field.id.toLowerCase().includes(partialLower) ||
                         field.label.toLowerCase().includes(partialLower)) {
                         suggestions.push({
                             id: field.id,
-                            label: `${field.label} (${field.id})`,
+                            label: `${field.label}`,
                             insertValue: field.id,
                             type: 'field'
                         });
                     }
                 });
-            } else if (context.type === 'operator') {
+            }
+
+            // Expect opening parenthesis after aggregation
+            else if (context.type === 'expect_lparen') {
+                if ('('.startsWith(partialLower) || partialLower === '') {
+                    suggestions.push({
+                        id: '(',
+                        label: '( — open aggregation',
+                        insertValue: '(',
+                        type: 'paren'
+                    });
+                }
+            }
+
+            // Expect array field inside aggregation
+            else if (context.type === 'expect_array_field') {
+                const aggregationFunction = context.aggregationFunction;
+
+                this.fields.forEach(field => {
+                    if (!field.id.includes('[]')) return;
+
+                    if (aggregationFunction && !this._isFieldCompatibleWithAggregation(field.valueType, aggregationFunction)) {
+                        return;
+                    }
+
+                    if (partialLower === '' ||
+                        field.id.toLowerCase().includes(partialLower) ||
+                        field.label.toLowerCase().includes(partialLower)) {
+                        suggestions.push({
+                            id: field.id,
+                            label: `${field.label}`,
+                            insertValue: field.id,
+                            type: 'field'
+                        });
+                    }
+                });
+            }
+
+            // Expect closing parenthesis
+            else if (context.type === 'expect_rparen') {
+                if (')'.startsWith(partialLower) || partialLower === '') {
+                    suggestions.push({
+                        id: ')',
+                        label: ') — close aggregation',
+                        insertValue: ')',
+                        type: 'paren'
+                    });
+                }
+            }
+
+            // Expect operator
+            else if (context.type === 'expect_operator') {
                 // Suggest operators based on field type
                 const fieldType = context.fieldType;
+                const isArrayField = context.isArrayField;
 
                 this.operators.forEach(op => {
-                    // Filter operators based on field type
-                    const isApplicable = this._isOperatorApplicableToFieldType(op, fieldType);
+                    const isApplicable = this._isOperatorApplicableToFieldType(op, fieldType, isArrayField);
 
                     if (isApplicable && (partialLower === '' || op.toLowerCase().startsWith(partialLower))) {
                         suggestions.push({
@@ -333,7 +468,10 @@ function advancedSearchQuery() {
                         });
                     }
                 });
-            } else if (context.type === 'value') {
+            }
+
+            // Expect value
+            else if (context.type === 'expect_value') {
                 // Suggest value templates based on field type
                 const fieldType = context.fieldType;
 
@@ -344,11 +482,10 @@ function advancedSearchQuery() {
                         label: '"value" — text value',
                         insertValue: '""',
                         type: 'value',
-                        cursorOffset: -1  // Place cursor between quotes
+                        cursorOffset: -1
                     });
                 }
 
-                // Boolean values
                 if ((fieldType === 'boolean' || !fieldType) && (partialLower === '' || 'true'.startsWith(partialLower))) {
                     suggestions.push({
                         id: 'true',
@@ -357,6 +494,7 @@ function advancedSearchQuery() {
                         type: 'value'
                     });
                 }
+
                 if ((fieldType === 'boolean' || !fieldType) && (partialLower === '' || 'false'.startsWith(partialLower))) {
                     suggestions.push({
                         id: 'false',
@@ -366,16 +504,18 @@ function advancedSearchQuery() {
                     });
                 }
 
-                // Integer values
                 if ((fieldType === 'integer' || !fieldType) && (partialLower === '' || /^\d/.test(partialLower))) {
                     suggestions.push({
                         id: 'number',
                         label: '42 — numeric value',
-                        insertValue: '',  // Don't auto-insert numbers
+                        insertValue: '',
                         type: 'value'
                     });
                 }
-            } else if (context.type === 'logical_or_rbracket') {
+            }
+
+            // Expect logical operator or closing bracket
+            else if (context.type === 'expect_logical') {
                 // Check if we need a closing bracket
                 const openCount = (this.value.match(/\{/g) || []).length;
                 const closeCount = (this.value.match(/\}/g) || []).length;
@@ -416,14 +556,53 @@ function advancedSearchQuery() {
             return descriptions[op] || op;
         },
 
+        _getAggregationDescription(agg) {
+            const descriptions = {
+                'min': 'minimum value',
+                'max': 'maximum value',
+                'sum': 'sum of values',
+                'concat': 'concatenate strings',
+                'count': 'count elements'
+            };
+            return descriptions[agg] || agg;
+        },
+
+        _getAggregationResultType(aggregationFunction) {
+            // Determine the result type of an aggregation function
+            const resultTypes = {
+                'min': 'integer',      // min can work on integers, returns integer
+                'max': 'integer',      // max can work on integers, returns integer
+                'sum': 'integer',      // sum works on integers, returns integer
+                'concat': 'string',    // concat works on strings, returns string
+                'count': 'integer'     // count works on any array, returns integer
+            };
+            return resultTypes[aggregationFunction] || null;
+        },
+
+        _isFieldCompatibleWithAggregation(fieldType, aggregationFunction) {
+            // Check if a field type is compatible with an aggregation function
+            const compatibility = {
+                'min': ['integer', 'string'],  // min works on integers and strings
+                'max': ['integer', 'string'],  // max works on integers and strings
+                'sum': ['integer'],            // sum only works on integers
+                'concat': ['string'],          // concat only works on strings
+                'count': ['integer', 'string', 'boolean']  // count works on any array
+            };
+            const compatibleTypes = compatibility[aggregationFunction];
+            return compatibleTypes ? compatibleTypes.includes(fieldType) : true;
+        },
+
         /**
          * Determine if an operator is applicable to a given field type.
          */
-        _isOperatorApplicableToFieldType(operator, fieldType) {
+        _isOperatorApplicableToFieldType(operator, fieldType, isArrayField) {
             // If no field type is known, show all operators
             if (!fieldType) {
                 return true;
             }
+
+            // Array fields without aggregation support all their type-specific operators
+            // because the backend will check if ANY element matches
 
             // Boolean fields only support equality
             if (fieldType === 'boolean') {
@@ -478,27 +657,42 @@ function advancedSearchQuery() {
             let spacing = '';
 
             // Add appropriate spacing based on token type
-            if (s.type === 'field' || s.type === 'operator' || s.type === 'logical') {
+            if (s.type === 'aggregation') {
+                // Aggregation functions need opening paren
+                insert = insert + '( ';
+                // Add space before if needed
+                if (left && !left.endsWith(' ')) {
+                    insert = ' ' + insert;
+                }
+            } else if (s.type === 'field' || s.type === 'operator' || s.type === 'logical') {
                 // Add space after if not already present
                 if ((right && !right.startsWith(' ')) || !right) {
                     spacing = ' ';
                 }
                 // Add space before logical operators if not present
-                if (left && !left.endsWith(' ')) {
+                if (s.type === 'logical' && left && !left.endsWith(' ')) {
                     insert = ' ' + insert;
                 }
+            } else if (s.type === 'paren' && s.insertValue === ')') {
+                // Closing paren should have space after for operator
+                spacing = ' ';
             }
 
             this.value = left + insert + spacing + right;
 
             // Position cursor
-            let newCaret = (left + spacing + insert).length;
+            let newCaret = (left + insert + spacing).length;
             if (s.cursorOffset !== undefined) {
                 newCaret += s.cursorOffset;
             } else if (s.type === 'logical' || s.type === 'operator') {
-                newCaret += spacing.length + 1; // After the space
+                // After the space
+                newCaret;
             } else if (s.type === 'bracket' && s.insertValue === '{') {
-                newCaret; // Stay right after the opening bracket
+                // Stay right after the opening bracket
+                newCaret;
+            } else if (s.type === 'aggregation') {
+                // Position cursor inside the parentheses
+                newCaret;
             }
 
             this.setCaret(newCaret);
@@ -595,7 +789,9 @@ function advancedSearchQuery() {
                 string: 'text-green-600 dark:text-green-300',
                 number: 'text-blue-600 dark:text-blue-300',
                 boolean: 'text-orange-600 dark:text-orange-300',
-                bracket: 'text-gray-500 dark:text-gray-400'
+                bracket: 'text-gray-500 dark:text-gray-400',
+                aggregation: 'text-purple-600 dark:text-purple-300',
+                paren: 'text-gray-500 dark:text-gray-400'
             };
             let i = 0;
             let output = '';
@@ -646,6 +842,12 @@ function advancedSearchQuery() {
                     continue;
                 }
 
+                if (char === '(' || char === ')') {
+                    pushToken(char, 'paren');
+                    i++;
+                    continue;
+                }
+
                 if (char === '>' || char === '<' || char === '=') {
                     let op = char;
                     if (i + 1 < text.length && text[i + 1] === '=') {
@@ -657,9 +859,14 @@ function advancedSearchQuery() {
                     continue;
                 }
 
-                if (/[a-zA-Z0-9_.]/.test(char)) {
+                if (/[a-zA-Z0-9_.\[]/.test(char)) {
                     let word = '';
-                    while (i < text.length && /[a-zA-Z0-9_.]/.test(text[i])) {
+                    while (i < text.length && /[a-zA-Z0-9_.\[]/.test(text[i])) {
+                        word += text[i];
+                        i++;
+                    }
+                    // Check for closing bracket in array fields
+                    if (i < text.length && text[i] === ']') {
                         word += text[i];
                         i++;
                     }
@@ -668,6 +875,8 @@ function advancedSearchQuery() {
                         pushToken(word, 'logical');
                     } else if (word === 'contains') {
                         pushToken(word, 'operator');
+                    } else if (word === 'min' || word === 'max' || word === 'sum' || word === 'concat' || word === 'count') {
+                        pushToken(word, 'aggregation');
                     } else if (word === 'true' || word === 'false') {
                         pushToken(word, 'boolean');
                     } else if (/^\d+(\.\d+)?$/.test(word)) {

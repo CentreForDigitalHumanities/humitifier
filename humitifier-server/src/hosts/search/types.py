@@ -12,6 +12,9 @@ ArtefactSection = Literal["facts", "metrics", "meta"]
 # Comparison operators for search criteria
 ComparisonOperator = Literal["eq", "gt", "gte", "lt", "lte", "contains"]
 
+# Aggregation functions for array fields
+AggregationFunction = Literal["min", "max", "sum", "concat", "count"]
+
 
 @dataclass(frozen=True)
 class SearchableField:
@@ -55,10 +58,12 @@ class SearchCriterion:
     field_id: the SearchableField.id to search
     operator: comparison operator (eq, gt, gte, lt, lte, contains)
     value: the value to compare against
+    aggregation: optional aggregation function for array fields (min, max, sum, concat, count)
     """
     field_id: str
     operator: ComparisonOperator
     value: Any
+    aggregation: AggregationFunction | None = None
 
 
 @dataclass(frozen=True)

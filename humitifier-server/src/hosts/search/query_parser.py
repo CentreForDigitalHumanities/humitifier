@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .field_discovery import get_searchable_fields
-from .types import ComplexQuery, ComparisonOperator, SearchCriterion
+from .types import AggregationFunction, ComplexQuery, ComparisonOperator, SearchCriterion
 
 
 def parse_query(query_string: str) -> ComplexQuery:
@@ -19,12 +19,15 @@ def parse_query(query_string: str) -> ComplexQuery:
     - Brackets for grouping: {expr}
     - Quoted strings: "value" or 'value'
     - Unquoted values for numbers and booleans: 42, true, false
+    - Aggregations for array fields: min(field[]), max(field[]), sum(field[]), concat(field[]), count(field[])
 
     Examples:
         - 'facts.cpu.count = 4'
         - 'facts.os.name = "Ubuntu" AND facts.cpu.count >= 4'
         - '{facts.os.name = "Ubuntu" OR facts.os.name = "Debian"} AND facts.cpu.count > 2'
         - 'facts.hostname contains "web"'
+        - 'count(facts.packages[].name) > 100'
+        - 'max(facts.memory[].size) >= 8192'
 
     Args:
         query_string: The query string to parse.
@@ -77,8 +80,8 @@ def _tokenize(query_string: str) -> list[str]:
             i += 1  # Skip closing quote
             continue
 
-        # Handle brackets
-        if char in ('{', '}'):
+        # Handle brackets and parentheses
+        if char in ('{', '}', '(', ')'):
             tokens.append(char)
             i += 1
             continue
@@ -98,7 +101,13 @@ def _tokenize(query_string: str) -> list[str]:
             start = i
             while i < length and (query_string[i].isalnum() or query_string[i] in IDENTIFIER_CHARS):
                 i += 1
-            tokens.append(query_string[start:i])
+            token = query_string[start:i]
+
+            # Check for aggregation functions
+            if token.lower() in ('min', 'max', 'sum', 'concat', 'count'):
+                tokens.append(token.lower())
+            else:
+                tokens.append(token)
             continue
 
         raise ValueError(f"Unexpected character '{char}' at position {i}")
@@ -115,7 +124,8 @@ class _QueryParser:
         or_expr := and_expr (OR and_expr)*
         and_expr := primary (AND primary)*
         primary := "{" or_expr "}" | criterion
-        criterion := field_id operator value
+        criterion := [aggregation "("] field_id [")"] operator value
+        aggregation := "min" | "max" | "sum" | "concat" | "count"
         operator := "=" | ">" | ">=" | "<" | "<=" | "contains"
     """
 
@@ -188,12 +198,31 @@ class _QueryParser:
         return self._parse_criterion()
 
     def _parse_criterion(self) -> ComplexQuery:
-        """Parse a single criterion (field operator value)."""
+        """Parse a single criterion (field operator value) or aggregation(field) operator value."""
+        # Check if we have an aggregation function
+        aggregation = None
+        first_token = self._current_token()
+
+        if first_token and first_token.lower() in ('min', 'max', 'sum', 'concat', 'count'):
+            aggregation = first_token.lower()
+            self._consume_token()  # Consume aggregation function
+
+            # Expect opening parenthesis
+            if self._current_token() != '(':
+                raise ValueError(f"Expected '(' after aggregation function '{aggregation}'")
+            self._consume_token()  # Consume '('
+
         field_id = self._consume_token()
 
         # Validate that the field_id is allowed
         if field_id not in self.allowed_fields:
             raise ValueError(f"Invalid field ID: '{field_id}'. Not a searchable field.")
+
+        # If we had an aggregation, expect closing parenthesis
+        if aggregation:
+            if self._current_token() != ')':
+                raise ValueError(f"Expected ')' after field in aggregation")
+            self._consume_token()  # Consume ')'
 
         operator_token = self._consume_token()
         operator = self._parse_operator(operator_token)
@@ -205,6 +234,7 @@ class _QueryParser:
             field_id=field_id,
             operator=operator,
             value=value,
+            aggregation=aggregation,  # type: ignore[arg-type]
         )
         return ComplexQuery(type="criterion", criterion=criterion)
 

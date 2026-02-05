@@ -85,6 +85,18 @@
                 </div>
 
                 <div>
+                    <h3 class="font-semibold mb-1">Aggregations for Array Fields</h3>
+                    <p class="mb-2">Apply aggregation functions to array fields using the syntax: <code>function(field[])</code></p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><code>min(field[])</code> — minimum value (integer fields)</li>
+                        <li><code>max(field[])</code> — maximum value (integer fields)</li>
+                        <li><code>sum(field[])</code> — sum of values (integer fields)</li>
+                        <li><code>concat(field[])</code> — concatenate strings (string fields)</li>
+                        <li><code>count(field[])</code> — count array elements (all array fields)</li>
+                    </ul>
+                </div>
+
+                <div>
                     <h3 class="font-semibold mb-1">Examples</h3>
                     <div class="space-y-2">
                         <div>
@@ -106,6 +118,14 @@
                         <div>
                             <p class="font-medium">Find Linux hosts with "web" in hostname:</p>
                             <code class="block bg-white dark:bg-gray-800 p-2 rounded">{ facts.os.name = "Ubuntu" OR facts.os.name = "Debian" } AND facts.hostname contains "web"</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find hosts with more than 100 packages:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">count(facts.packages[].name) &gt; 100</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find hosts with max memory size greater than 8GB:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">max(facts.memory[].size) &gt;= 8192</code>
                         </div>
                     </div>
                 </div>

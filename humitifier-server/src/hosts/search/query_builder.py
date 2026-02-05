@@ -9,7 +9,7 @@ from django.db.models.expressions import RawSQL
 
 from ..models import Host
 from .field_discovery import get_searchable_fields
-from .types import ComplexQuery, ComparisonOperator, SearchableField, SearchCriterion
+from .types import AggregationFunction, ComplexQuery, ComparisonOperator, SearchableField, SearchCriterion
 
 
 def _parse_value(value: Any, value_type: str) -> Any:
@@ -324,6 +324,134 @@ def _build_array_where_clause(
             return f"{text_expression} {sql_operator} %s"
 
 
+def _build_aggregation_expression(
+    aggregation: AggregationFunction,
+    element_expr: str,
+    element_field_path: tuple[str, ...],
+    sql_params: list[Any],
+    value_type: str,
+) -> str:
+    """
+    Build a SQL aggregation expression for an array field.
+
+    Args:
+        aggregation: The aggregation function to apply (min, max, sum, concat, count)
+        element_expr: The SQL expression representing the current array element
+        element_field_path: Path to navigate within the array element to reach the target field
+        sql_params: List to append parameter values to for the SQL query
+        value_type: The value type of the field (string, integer, boolean)
+
+    Returns:
+        SQL expression that performs the aggregation
+    """
+    # Build expression to access field value
+    if not element_field_path:
+        # Element itself is a primitive value
+        field_value_expr = f"{element_expr}::text"
+    elif len(element_field_path) == 1:
+        sql_params.append(element_field_path[0])
+        field_value_expr = f"{element_expr}->>%s"
+    else:
+        current_expr = element_expr
+        for field_key in element_field_path[:-1]:
+            current_expr = f"{current_expr}->%s"
+            sql_params.append(field_key)
+        sql_params.append(element_field_path[-1])
+        field_value_expr = f"{current_expr}->>%s"
+
+    # Apply aggregation based on function and type
+    if aggregation == "count":
+        return f"COUNT({field_value_expr})"
+    elif aggregation == "min":
+        if value_type == "integer":
+            return f"MIN(({field_value_expr})::numeric)"
+        else:
+            return f"MIN({field_value_expr})"
+    elif aggregation == "max":
+        if value_type == "integer":
+            return f"MAX(({field_value_expr})::numeric)"
+        else:
+            return f"MAX({field_value_expr})"
+    elif aggregation == "sum":
+        if value_type == "integer":
+            return f"SUM(({field_value_expr})::numeric)"
+        else:
+            raise ValueError(f"SUM aggregation only supported for integer fields")
+    elif aggregation == "concat":
+        if value_type == "string":
+            return f"STRING_AGG({field_value_expr}, ', ')"
+        else:
+            raise ValueError(f"CONCAT aggregation only supported for string fields")
+    else:
+        raise ValueError(f"Unknown aggregation function: {aggregation}")
+
+
+def _apply_array_aggregation_filter(
+    queryset: QuerySet[Host],
+    criterion: SearchCriterion,
+    descriptor: SearchableField,
+    parsed_value: Any,
+) -> QuerySet[Host]:
+    """
+    Apply a filter for array fields with aggregation functions using raw SQL.
+
+    This function handles aggregations like min(), max(), sum(), concat(), count()
+    on array fields by constructing a subquery with appropriate aggregation.
+
+    Args:
+        queryset: The Django QuerySet to filter.
+        criterion: The search criterion containing the operator and aggregation.
+        descriptor: The searchable field descriptor for an array field.
+        parsed_value: The value to filter by, already parsed to the correct type.
+
+    Returns:
+        Filtered QuerySet using a RawSQL annotation.
+    """
+    section_name = descriptor.section
+    artefact_name = descriptor.artefact_key
+    array_path = descriptor.array_path or ("[]",)
+    element_field_path = descriptor.element_field_path or ()
+    aggregation = criterion.aggregation
+
+    if not aggregation:
+        raise ValueError("_apply_array_aggregation_filter called without aggregation")
+
+    # Initialize SQL parameters with section and artefact
+    sql_params: list[Any] = [section_name, artefact_name]
+
+    # Build the LATERAL join clauses for array expansion
+    from_clauses, element_expr, _ = _build_array_expansion_clauses(array_path, sql_params)
+
+    # Build the aggregation expression
+    agg_expr = _build_aggregation_expression(
+        aggregation,
+        element_expr,
+        element_field_path,
+        sql_params,
+        descriptor.value_type,
+    )
+
+    # Build the comparison
+    sql_operator = _operator_to_sql(criterion.operator)
+
+    # For string comparisons (concat result), use case-insensitive comparison
+    if aggregation == "concat" and criterion.operator == "eq":
+        sql_params.append(str(parsed_value))
+        having_clause = f"LOWER({agg_expr}) = LOWER(%s)"
+    elif aggregation == "concat" and criterion.operator == "contains":
+        sql_params.append(f"%{parsed_value}%")
+        having_clause = f"{agg_expr} ILIKE %s"
+    else:
+        sql_params.append(str(parsed_value))
+        having_clause = f"{agg_expr} {sql_operator} %s"
+
+    # Construct the complete SQL subquery with GROUP BY and HAVING
+    from_sql = " CROSS JOIN LATERAL ".join(from_clauses)
+    subquery = f"SELECT 1 FROM {from_sql} GROUP BY \"hosts_host\".\"id\" HAVING {having_clause} LIMIT 1"
+
+    return queryset.annotate(_match=RawSQL(subquery, sql_params)).filter(_match__isnull=False)
+
+
 def _apply_array_filter(
     queryset: QuerySet[Host],
     criterion: SearchCriterion,
@@ -335,6 +463,7 @@ def _apply_array_filter(
 
     This function handles searching within JSON arrays, including nested arrays,
     by constructing a subquery with appropriate LATERAL joins and WHERE conditions.
+    If the criterion includes an aggregation, it delegates to _apply_array_aggregation_filter.
 
     Args:
         queryset: The Django QuerySet to filter.
@@ -345,6 +474,10 @@ def _apply_array_filter(
     Returns:
         Filtered QuerySet using a RawSQL annotation.
     """
+    # Check if this is an aggregation query
+    if criterion.aggregation:
+        return _apply_array_aggregation_filter(queryset, criterion, descriptor, parsed_value)
+
     section_name = descriptor.section
     artefact_name = descriptor.artefact_key
     array_path = descriptor.array_path or ("[]",)
@@ -396,6 +529,13 @@ def _apply_criterion_to_queryset(
     Returns:
         Filtered QuerySet with the criterion applied.
     """
+    # Validate aggregation usage
+    if criterion.aggregation and descriptor.kind != "array":
+        raise ValueError(
+            f"Aggregation functions can only be used with array fields. "
+            f"Field '{criterion.field_id}' is a {descriptor.kind} field."
+        )
+
     parsed_value = _parse_value(criterion.value, descriptor.value_type)
 
     # Handle meta fields (direct Host model fields)
