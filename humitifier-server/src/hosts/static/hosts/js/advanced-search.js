@@ -40,7 +40,7 @@ function advancedSearchQuery() {
             // These values are populated by the Django template
             // this.value and this.fields will be set externally
             this.updateHighlight();
-            this.autoResize();
+            this.$nextTick(() => this.autoResize());
         },
 
         autoResize() {
