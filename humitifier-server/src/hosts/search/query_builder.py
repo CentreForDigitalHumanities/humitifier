@@ -177,7 +177,7 @@ def _apply_scalar_filter(
 def _build_array_expansion_clauses(
     array_path: tuple[str, ...],
     initial_params: list[Any],
-) -> tuple[list[str], str, int]:
+) -> tuple[list[str], str, int, str | None, list[Any]]:
     """
     Build SQL FROM clauses for expanding JSONB arrays at multiple levels.
 
@@ -189,20 +189,31 @@ def _build_array_expansion_clauses(
         initial_params: List to append parameter values to for the SQL query.
 
     Returns:
-        Tuple of (from_clauses, final_expression, nesting_level):
+        Tuple of (from_clauses, final_expression, nesting_level, type_check_clause, type_check_params):
         - from_clauses: List of SQL FROM clause strings for LATERAL joins.
         - final_expression: The SQL expression after all expansions.
         - nesting_level: The depth of array nesting.
+        - type_check_clause: Optional WHERE clause to ensure the first expression is an array.
+        - type_check_params: Parameters needed for the type_check_clause.
     """
     base_expression = "\"hosts_host\".\"last_scan_cache\"->%s->%s"
     current_expression = base_expression
     from_clauses: list[str] = []
     nesting_level = 0
+    type_check_clause = None
+    type_check_params: list[Any] = []
+    first_array_expression = None
+    params_before_first_array: list[Any] = []
 
     for path_token in array_path:
         if path_token == "[]":
             # Expand the current expression as a JSONB array
             element_alias = f"e{nesting_level}"
+            # Track the first array expression for type checking
+            if first_array_expression is None:
+                first_array_expression = current_expression
+                # Save the parameters accumulated so far for the type check
+                params_before_first_array = initial_params.copy()
             from_clauses.append(f"jsonb_array_elements({current_expression}) AS {element_alias}")
             current_expression = element_alias
             nesting_level += 1
@@ -214,10 +225,17 @@ def _build_array_expansion_clauses(
     # Ensure at least one array expansion exists
     if not from_clauses:
         element_alias = f"e{nesting_level}"
+        first_array_expression = current_expression
+        params_before_first_array = initial_params.copy()
         from_clauses.append(f"jsonb_array_elements({current_expression}) AS {element_alias}")
         current_expression = element_alias
 
-    return from_clauses, current_expression, nesting_level
+    # Add type check for the first array expression to prevent scalar errors
+    if first_array_expression:
+        type_check_clause = f"jsonb_typeof({first_array_expression}) = 'array'"
+        type_check_params = params_before_first_array
+
+    return from_clauses, current_expression, nesting_level, type_check_clause, type_check_params
 
 
 def _build_element_field_expression(
@@ -440,23 +458,32 @@ def _apply_array_aggregation_filter(
     sql_params: list[Any] = [section_name, artefact_name]
 
     # Build the LATERAL join clauses for array expansion
-    from_clauses, element_expr, _ = _build_array_expansion_clauses(array_path, sql_params)
+    from_clauses, element_expr, _, type_check, type_check_params = _build_array_expansion_clauses(array_path, sql_params)
 
-    # Build WHERE clause for filter pattern if provided
-    # We need to build the text expression for the WHERE clause
-    where_clause = None
+    # Prepare list to collect WHERE clause params in order
+    where_params: list[Any] = []
+    where_clauses = []
+
+    # Add type check to prevent scalar errors
+    if type_check:
+        where_clauses.append(type_check)
+        where_params.extend(type_check_params)
+
     if criterion.filter_pattern:
-        # Build text expression for filtering (this adds params to sql_params)
-        text_expr_for_filter = _build_element_field_expression(element_expr, element_field_path, sql_params)
-        sql_params.append(criterion.filter_pattern)
-        where_clause = f"{text_expr_for_filter} ~ %s"
+        # Build text expression for filtering (this adds params to a temp list)
+        temp_params: list[Any] = []
+        text_expr_for_filter = _build_element_field_expression(element_expr, element_field_path, temp_params)
+        where_clauses.append(f"{text_expr_for_filter} ~ %s")
+        where_params.extend(temp_params)
+        where_params.append(criterion.filter_pattern)
 
-    # Build the aggregation expression (this also adds params to sql_params)
+    # Build the aggregation expression (this also adds params to a temp list)
+    agg_params: list[Any] = []
     agg_expr = _build_aggregation_expression(
         aggregation,
         element_expr,
         element_field_path,
-        sql_params,
+        agg_params,
         descriptor.value_type,
     )
 
@@ -465,23 +492,26 @@ def _apply_array_aggregation_filter(
 
     # For string comparisons (concat result), use case-insensitive comparison
     if aggregation == "concat" and criterion.operator == "eq":
-        sql_params.append(str(parsed_value))
         having_clause = f"LOWER({agg_expr}) = LOWER(%s)"
+        having_params = agg_params + [str(parsed_value)]
     elif aggregation == "concat" and criterion.operator == "contains":
-        sql_params.append(f"%{parsed_value}%")
         having_clause = f"{agg_expr} ILIKE %s"
+        having_params = agg_params + [f"%{parsed_value}%"]
     else:
-        sql_params.append(str(parsed_value))
         having_clause = f"{agg_expr} {sql_operator} %s"
+        having_params = agg_params + [str(parsed_value)]
 
     # Construct the complete SQL subquery with GROUP BY and HAVING
+    # Final param order: FROM params, WHERE params, HAVING params
+    final_params = sql_params + where_params + having_params
     from_sql = " CROSS JOIN LATERAL ".join(from_clauses)
-    if where_clause:
-        subquery = f"SELECT 1 FROM {from_sql} WHERE {where_clause} GROUP BY \"hosts_host\".\"id\" HAVING {having_clause} LIMIT 1"
+    if where_clauses:
+        where_sql = " AND ".join(where_clauses)
+        subquery = f"SELECT 1 FROM {from_sql} WHERE {where_sql} GROUP BY \"hosts_host\".\"id\" HAVING {having_clause} LIMIT 1"
     else:
         subquery = f"SELECT 1 FROM {from_sql} GROUP BY \"hosts_host\".\"id\" HAVING {having_clause} LIMIT 1"
 
-    return queryset.annotate(_match=RawSQL(subquery, sql_params)).filter(_match__isnull=False)
+    return queryset.annotate(_match=RawSQL(subquery, final_params)).filter(_match__isnull=False)
 
 
 def _apply_array_filter(
@@ -519,10 +549,18 @@ def _apply_array_filter(
     sql_params: list[Any] = [section_name, artefact_name]
 
     # Build the LATERAL join clauses for array expansion
-    from_clauses, element_expr, _ = _build_array_expansion_clauses(array_path, sql_params)
+    from_clauses, element_expr, _, type_check, type_check_params = _build_array_expansion_clauses(array_path, sql_params)
+
+    # Prepare list to collect WHERE clause params in order
+    where_params: list[Any] = []
+
+    # Add type check params first if needed
+    if type_check:
+        where_params.extend(type_check_params)
 
     # Build expression to access the target field within array elements
-    text_expr = _build_element_field_expression(element_expr, element_field_path, sql_params)
+    # Pass where_params so text_expr params get added directly
+    text_expr = _build_element_field_expression(element_expr, element_field_path, where_params)
 
     # Build the WHERE clause based on the operator and value type
     # Note: where_clause may use text_expr multiple times (for filter AND for comparison)
@@ -534,15 +572,22 @@ def _apply_array_filter(
         element_expr,
         bool(element_field_path),
         parsed_value,
-        sql_params,
+        where_params,
         element_field_path,  # Pass this so we can rebuild the expression params if needed
     )
+
+    # Combine params: FROM params, WHERE params (which includes type check + text expr + where clause params)
+    final_params = sql_params + where_params
+
+    # Add type check to prevent scalar errors
+    if type_check:
+        where_clause = f"{type_check} AND ({where_clause})"
 
     # Construct the complete SQL subquery
     from_sql = " CROSS JOIN LATERAL ".join(from_clauses)
     subquery = f"SELECT 1 FROM {from_sql} WHERE {where_clause} LIMIT 1"
 
-    return queryset.annotate(_match=RawSQL(subquery, sql_params)).filter(_match__isnull=False)
+    return queryset.annotate(_match=RawSQL(subquery, final_params)).filter(_match__isnull=False)
 
 
 def _apply_criterion_to_queryset(
