@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Mapping
+from typing import Any
 
 from django.db.models import Q, QuerySet
 from django.db.models.expressions import RawSQL
@@ -772,7 +772,7 @@ def _apply_complex_query_to_queryset(
 
 def search_hosts_by_scan_fields(
     queryset: QuerySet[Host],
-    criteria: Mapping[str, Any] | ComplexQuery | None = None,
+    criteria: ComplexQuery | None = None,
 ) -> QuerySet:
     """
     Filter a Host queryset by searching values within Host model fields and last_scan_cache JSON fields.
@@ -782,63 +782,23 @@ def search_hosts_by_scan_fields(
     - "facts": Fields from last_scan_cache facts section
     - "metrics": Fields from last_scan_cache metrics section
 
-    Supports three input formats:
-
-    1. Simple dict (backward compatible): mapping from SearchableField.id to value.
-       All criteria are combined using AND semantics.
-       - string values: case-insensitive substring match (contains)
-       - integer/bool: exact match (eq)
-       Example: {"facts.cpu.count": 4, "meta.department": "Engineering"}
-
-    2. Dict with operators: mapping from SearchableField.id to dict with "operator" and "value".
-       Example: {"facts.cpu.count": {"operator": "gte", "value": 4}, "meta.archived": {"operator": "eq", "value": False}}
-
-    3. ComplexQuery object: for advanced AND/OR combinations.
-       Example: ComplexQuery(type="or", children=[
-           ComplexQuery(type="criterion", criterion=SearchCriterion(...)),
-           ComplexQuery(type="and", children=[...])
-       ])
-
     Args:
         queryset: The initial Host QuerySet to filter.
-        criteria: The search criteria (dict or ComplexQuery), or None for no filtering.
+        criteria: The search criteria as a ComplexQuery object, or None for no filtering.
+                  Use parse_query() to convert a query string into a ComplexQuery.
 
     Returns:
         Filtered QuerySet of Host objects matching the criteria.
+
+    Example:
+        from hosts.search import parse_query, search_hosts_by_scan_fields
+        query = parse_query("facts.generic.HostnameCtl.os contains 'Ubuntu'")
+        results = search_hosts_by_scan_fields(Host.objects.all(), query)
     """
-    if criteria is None or (isinstance(criteria, dict) and not criteria):
+    if criteria is None:
         return queryset
 
     # Build a mapping from field ID to descriptor for efficient lookup
     fields_by_id = {field.id: field for field in get_searchable_fields()}
 
-    # Handle ComplexQuery directly (format 3)
-    if isinstance(criteria, ComplexQuery):
-        return _apply_complex_query_to_queryset(queryset, criteria, fields_by_id)
-
-    # Handle dict-based criteria (formats 1 and 2)
-    for field_id, raw_value in criteria.items():
-        field_descriptor = fields_by_id.get(field_id)
-        if field_descriptor is None:
-            # Unknown field ID; skip silently to allow partial matches
-            continue
-
-        # Determine operator and value based on input format
-        if isinstance(raw_value, dict) and "operator" in raw_value and "value" in raw_value:
-            # Format 2: Explicit operator specification
-            search_operator = raw_value["operator"]
-            search_value = raw_value["value"]
-        else:
-            # Format 1: Simple value with default operator
-            search_value = raw_value
-            search_operator = "contains" if field_descriptor.value_type == "string" else "eq"
-
-        # Create a SearchCriterion and apply it to the queryset
-        criterion = SearchCriterion(
-            field_id=field_id,
-            operator=search_operator,  # type: ignore[arg-type]
-            value=search_value,
-        )
-        queryset = _apply_criterion_to_queryset(queryset, criterion, field_descriptor)
-
-    return queryset
+    return _apply_complex_query_to_queryset(queryset, criteria, fields_by_id)
