@@ -179,7 +179,7 @@
                         @keydown.down.prevent="move(1)"
                         @keydown.up.prevent="move(-1)"
                         @keydown.tab.prevent="onTab()"
-                        @keydown.enter.prevent="onTab()"
+                        @keydown.enter="if (!$event.shiftKey) { $event.preventDefault(); onTab(); }"
                     ></textarea>
 
                     <template x-if="open && suggestions.length">
@@ -342,7 +342,7 @@ document.addEventListener('alpine:init', () => {
         instance.init = function() {
             originalInstanceInit.call(this);
             // Inject Django template values
-            this.value = '{{ search_string|safe }}';
+            this.value = '{{ search_string|escapejs }}';
             this.selectedColumns = [{% for column in requested_columns %}{ id: '{{ column|safe }}', label: '{{ column|safe }}' },{% endfor %}];
             this.fields = [
             {% for field in searchable_fields %}
@@ -350,6 +350,7 @@ document.addEventListener('alpine:init', () => {
             {% endfor %}
             ];
             this.updateHighlight();
+            this.autoResize();
         };
         return instance;
     };

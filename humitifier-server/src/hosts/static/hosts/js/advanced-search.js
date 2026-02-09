@@ -82,8 +82,8 @@ function advancedSearchQuery() {
             while (i < text.length) {
                 const char = text[i];
 
-                // Skip whitespace
-                if (/\s/.test(char)) {
+                // Skip whitespace including newlines
+                if (/\s/.test(char) || char === '\n' || char === '\r') {
                     i++;
                     continue;
                 }
@@ -394,7 +394,7 @@ function advancedSearchQuery() {
             let start = before.length - 1;
             while (start >= 0) {
                 const char = before[start];
-                if (/[\s{}=<>()]/.test(char)) {
+                if (/[\s{}=<>()]/.test(char) || char === '\n' || char === '\r') {
                     start++;
                     break;
                 }
@@ -940,7 +940,7 @@ function advancedSearchQuery() {
             while (i < text.length) {
                 const char = text[i];
 
-                if (/\s/.test(char)) {
+                if (/\s/.test(char) || char === '\n' || char === '\r') {
                     pushToken(char, null);
                     i++;
                     continue;

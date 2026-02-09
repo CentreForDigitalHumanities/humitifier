@@ -166,7 +166,7 @@ document.addEventListener('alpine:init', () => {
         instance.init = function() {
             originalInstanceInit.call(this);
             // Inject Django template values
-            this.value = '{{ form.query.value|default:""|safe }}';
+            this.value = '{{ form.query.value|default:""|escapejs }}';
 
             // Parse columns from the form value or URL parameters
             const urlParams = new URLSearchParams(window.location.search);
@@ -192,6 +192,7 @@ document.addEventListener('alpine:init', () => {
             }
 
             this.updateHighlight();
+            this.autoResize();
         };
         return instance;
     };
