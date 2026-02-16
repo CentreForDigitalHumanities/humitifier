@@ -1,0 +1,20 @@
+{% extends "base/base_page_template.html" %}
+
+{% load humanize %}
+
+{% block page_title %}Saved Searches | {{ block.super }}{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg-default transition ease-in-out duration-150">
+        <div class="px-7 py-5 flex justify-between">
+            <h1 class="text-3xl font-bold">Saved Searches</h1>
+            <div class="flex gap-3 text-sm">
+                <a class="btn btn-outline" href="{% url 'hosts:advanced_search' %}">
+                    Back to Search
+                </a>
+            </div>
+        </div>
+
+        {{ table.render }}
+    </div>
+{% endblock %}

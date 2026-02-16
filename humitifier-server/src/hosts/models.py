@@ -565,3 +565,35 @@ class Scan(models.Model):
 
     def __repr__(self):
         return f"<Scan: {self.host}: {self.created_at}>"
+
+
+class SavedSearch(models.Model):
+    """Saved advanced search queries for reuse."""
+
+    class Meta:
+        ordering = ["-created_at"]
+
+    title = models.CharField(max_length=255)
+    description = models.TextField(blank=True, default="")
+    query = models.TextField()
+    columns = models.TextField(help_text="Comma-separated list of column field IDs")
+    is_public = models.BooleanField(
+        default=False,
+        help_text="Public searches are visible and editable by all users"
+    )
+    creator = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="saved_searches"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.title
+
+    def get_columns_list(self):
+        """Return columns as a list."""
+        if not self.columns:
+            return []
+        return [col.strip() for col in self.columns.split(",") if col.strip()]

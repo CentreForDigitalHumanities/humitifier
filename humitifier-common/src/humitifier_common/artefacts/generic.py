@@ -38,7 +38,7 @@ class Hardware(BaseModel):
     block_devices: list[BlockDevice]
     pci_devices: list[str]
     usb_devices: list[str]
-
+    total_memory_gb: int = 0
 
 ##
 ## Storage

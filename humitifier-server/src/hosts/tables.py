@@ -1,6 +1,6 @@
 from django.urls import reverse
 
-from hosts.models import Host, DataSource
+from hosts.models import Host, DataSource, SavedSearch
 from main.easy_tables import (
     BaseTable,
     ButtonColumn,
@@ -81,4 +81,66 @@ class HostsTable(BaseTable):
     status = TemplatedColumn(
         "Status",
         template_name="hosts/host_list_parts/host_status.html",
+    )
+
+
+class SavedSearchesTable(BaseTable):
+    class Meta:
+        model = SavedSearch
+        columns = [
+            "title",
+            "description",
+            "creator",
+            "visibility",
+            "updated_at",
+            "actions",
+        ]
+        column_type_overrides = {
+            "title": LinkColumn(
+                url=lambda obj: reverse("hosts:saved_search_load", args=[obj.pk]),
+                text=lambda obj: obj.title,
+            ),
+            "updated_at": DateTimeColumn,
+        }
+        column_breakpoint_overrides = {
+            "description": "lg",
+            "visibility": "md",
+            "updated_at": "xl",
+        }
+        no_data_message = "No saved searches yet. Create one from the advanced search page."
+
+    description = ModelValueColumn(
+        "Description",
+        value_attr="description",
+        empty_value="—",
+    )
+
+    visibility = TemplatedColumn(
+        "Visibility",
+        template_name="hosts/saved_search_list_parts/visibility.html",
+    )
+
+    actions = CompoundColumn(
+        "Actions",
+        columns=[
+            ButtonColumn(
+                text="Load",
+                button_class="btn btn-sm btn-outline mr-2",
+                url=lambda obj: reverse("hosts:saved_search_load", args=[obj.pk]),
+            ),
+            ButtonColumn(
+                text="Edit",
+                button_class="btn btn-sm btn-outline mr-2",
+                url=lambda obj: reverse("hosts:saved_search_edit", args=[obj.pk]),
+                condition=lambda obj, request: obj.creator == request.user or obj.is_public,
+            ),
+            ButtonColumn(
+                text="Delete",
+                button_class="btn btn-sm btn-outline text-red-600 dark:text-red-400",
+                url=lambda obj: reverse("hosts:saved_search_delete", args=[obj.pk]),
+                is_form_submit=True,
+                confirm_message="Are you sure you want to delete this saved search?",
+                condition=lambda obj, request: obj.creator == request.user or obj.is_public,
+            ),
+        ],
     )
