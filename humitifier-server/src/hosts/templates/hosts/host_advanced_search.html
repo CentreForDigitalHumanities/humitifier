@@ -6,39 +6,188 @@
 {% block page_title %}Advanced search | {{ block.super }}{% endblock %}
 
 {% block content %}
-    <div class="h-full--header w-full bg-default transition ease-in-out duration-150">
-        <div class="px-7 py-5 flex justify-between">
-            <h1 class="text-3xl font-bold">Advanced Search</h1>
+    <div class="h-full--header w-full bg-default transition ease-in-out duration-150" x-data="{ showHelp: false }">
+        <div class="px-7 py-5 flex justify-between items-center">
+            <h1 class="text-3xl font-bold">
+                {% if layout.wild_wasteland %}
+                    Vibe Search
+                {% else %}
+                    Advanced Search
+                {% endif %}
+            </h1>
+            <div class="flex gap-2">
+                <a href="{% url 'hosts:saved_searches' %}" class="btn btn-sm btn-outline">
+                    Saved Searches
+                </a>
+                <button type="button" @click="showHelp = !showHelp" class="btn btn-sm btn-outline">
+                    <span x-show="!showHelp">Show Help</span>
+                    <span x-show="showHelp">Hide Help</span>
+                </button>
+            </div>
         </div>
+
         <div class="mx-7 p-3 py-2 mb-5 flex flex-col gap-3 bg-orange-300 dark:bg-orange-600">
-            Advanced Search is an experimental feature; complex queries may result in unexpected results.
+            {% if layout.wild_wasteland %}
+                Here be dragons! Vibe search was vibe coded and may generate near-lovecraftian-horror SQL queries. It also has a 10% chance of causing your computer to spontaneously combust.<br/>
+                ...<br/>
+                Okay that last part was a joke; but really, complex queries may cause errors, unexpected results and/or sudden computer combustion.
+            {% else %}
+                Advanced Search is an experimental feature; complex queries may result in unexpected results.
+            {% endif %}
         </div>
-        <form method="post" class="px-7 flex flex-col gap-3" x-data="kibanaLikeSearch()" x-init="init()" @keydown.window.escape="closeSuggestions(); closeColumnSuggestions()">
+
+        <div x-show="showHelp" x-transition class="mx-7 p-4 mb-5 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded">
+            <h2 class="text-xl font-semibold mb-3">Query Syntax Help</h2>
+
+            <div class="space-y-4 text-sm">
+                <div>
+                    <h3 class="font-semibold mb-1">Basic Structure</h3>
+                    <p class="mb-2">Queries consist of field comparisons combined with logical operators.</p>
+                    <code class="block bg-white dark:bg-gray-800 p-2 rounded">field_name operator value</code>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Comparison Operators</h3>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><code>=</code> — equals (case-insensitive for strings)</li>
+                        <li><code>&gt;</code> — greater than</li>
+                        <li><code>&gt;=</code> — greater than or equal</li>
+                        <li><code>&lt;</code> — less than</li>
+                        <li><code>&lt;=</code> — less than or equal</li>
+                        <li><code>contains</code> — substring match (case-insensitive)</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Values</h3>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><strong>Strings:</strong> <code>"value"</code> or <code>'value'</code> (use quotes for text)</li>
+                        <li><strong>Numbers:</strong> <code>42</code> or <code>3.14</code> (no quotes)</li>
+                        <li><strong>Booleans:</strong> <code>true</code> or <code>false</code> (no quotes)</li>
+                        {% if layout.wild_wasteland %}
+                            <li><strong>Capes:</strong> no capes!</li>
+                        {% endif %}
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Logical Operators</h3>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><code>AND</code> — both conditions must be true</li>
+                        <li><code>OR</code> — at least one condition must be true</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Grouping with Brackets</h3>
+                    <p class="mb-2">Use brackets <code>{</code> and <code>}</code> to control evaluation order.</p>
+                    <code class="block bg-white dark:bg-gray-800 p-2 rounded">{ condition1 OR condition2 } AND condition3</code>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Aggregations for Array Fields</h3>
+                    <p class="mb-2">Apply aggregation functions to array fields using the syntax: <code>function(field[])</code></p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><code>min(field[])</code> — minimum value (integer fields)</li>
+                        <li><code>max(field[])</code> — maximum value (integer fields)</li>
+                        <li><code>sum(field[])</code> — sum of values (integer fields)</li>
+                        <li><code>concat(field[])</code> — concatenate strings (string fields)</li>
+                        <li><code>count(field[])</code> — count array elements (all array fields)</li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Filtering Array Fields</h3>
+                    <p class="mb-2">Filter array elements before comparison or aggregation using regex patterns: <code>filter(field[], "pattern")</code></p>
+                    <ul class="list-disc list-inside space-y-1 ml-2">
+                        <li><code>filter(field[], "^prefix")</code> — match elements starting with "prefix"</li>
+                        <li><code>filter(field[], "suffix$")</code> — match elements ending with "suffix"</li>
+                        <li><code>filter(field[], "pattern")</code> — match elements containing "pattern"</li>
+                        <li>Can be combined with aggregations: <code>count(filter(field[], "pattern"))</code></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mb-1">Examples</h3>
+                    <div class="space-y-2">
+                        <div>
+                            <p class="font-medium">Find Ubuntu hosts:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu"</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find hosts with 4 or more CPUs:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.cpu.count &gt;= 4</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find Ubuntu hosts with 4+ CPUs:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu" AND facts.cpu.count &gt;= 4</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find either Ubuntu or Debian hosts:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu" OR facts.os.name = "Debian"</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find Linux hosts with "web" in hostname:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">{ facts.os.name = "Ubuntu" OR facts.os.name = "Debian" } AND facts.hostname contains "web"</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find hosts with more than 100 packages:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">count(facts.packages[].name) &gt; 100</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Find hosts with max memory size greater than 8GB:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">max(facts.memory[].size) &gt;= 8192</code>
+                        </div>
+                        <div>
+                            <p class="font-medium">Count hosts with more than 2 network interfaces:</p>
+                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">count(filter(facts.generic.NetworkInterfaces[].link_type , "ether")) &gt; 2</code>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-4 p-3 bg-blue-100 dark:bg-blue-800 rounded">
+                    <p class="font-semibold">💡 Tip:</p>
+                    <p>Use the autocomplete suggestions as you type. Press <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">Tab</kbd> or <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">Enter</kbd> to accept suggestions, and <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">↑</kbd> <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">↓</kbd> to navigate.</p>
+                </div>
+            </div>
+        </div>
+        {% if query_parse_error %}
+        <div class="mx-7 p-3 py-2 mb-5 flex flex-col gap-3 bg-red-300 dark:bg-red-600">
+            <strong>Query Parse Error:</strong> {{ query_parse_error }}
+        </div>
+        {% endif %}
+        <form method="post" class="px-7 flex flex-col gap-3" x-data="window.advancedSearchQueryWithData ? window.advancedSearchQueryWithData() : advancedSearchQuery()" x-init="init()" @keydown.window.escape="closeSuggestions(); closeColumnSuggestions()">
             {% csrf_token %}
             <div class="flex items-center w-full gap-4">
                 <label for="search-string" class="text-nowrap break-keep">Search query:</label>
                 <div class="relative w-full">
-                    <input
-                        class="input w-full"
+                    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-sm input p-0 font-semibold" aria-hidden="true" x-ref="highlight">
+                        <div class="px-3 py-2 text-sm leading-5 whitespace-pre-wrap break-words text-gray-700 dark:text-gray-50" x-html="highlightHtml"></div>
+                    </div>
+                    <textarea
+                        class="input border-none relative z-10 w-full !bg-transparent !text-transparent caret-gray-700 dark:caret-gray-50 resize-none overflow-hidden font-semibold"
                         x-ref="input"
                         name="search-string"
                         x-model="value"
-                        placeholder='{FIELD} = "{value}" (AND {FIELD} = "{value}")'
+                        placeholder='field = "value" AND field >= 42 OR (field contains "text")'
                         autocomplete="off"
+                        rows="1"
                         @input="onInput()"
                         @click="onInput()"
                         @click.outside="closeSuggestions()"
+                        @scroll="syncHighlightScroll()"
                         @keydown.down.prevent="move(1)"
                         @keydown.up.prevent="move(-1)"
                         @keydown.tab.prevent="onTab()"
-                    />
+                        @keydown.enter="if (!$event.shiftKey) { $event.preventDefault(); onTab(); }"
+                    ></textarea>
 
                     <template x-if="open && suggestions.length">
                         <ul class="absolute z-50 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
                             <template x-for="(s, idx) in suggestions" :key="s.id">
                                 <li
                                     class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
-                                    :class="{ 'bg-gray-200': idx === activeIndex }"
+                                    :class="{ 'bg-gray-200 dark:bg-gray-700': idx === activeIndex }"
                                     @mousedown.prevent="choose(idx)"
                                     x-text="s.label"
                                 ></li>
@@ -87,7 +236,7 @@
                             <template x-for="(s, idx) in colSuggestions" :key="s.id">
                                 <li
                                     class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
-                                    :class="{ 'bg-gray-200': idx === colActiveIndex }"
+                                    :class="{ 'bg-gray-200 dark:bg-gray-700': idx === colActiveIndex }"
                                     @mousedown.prevent="chooseColumn(idx)"
                                     x-text="s.label"
                                 ></li>
@@ -99,22 +248,44 @@
                 </div>
             </div>
 
-            <div class="flex gap-2 justify-end w-full items-stretch">
-                <div class="flex gap-1 items-center mr-4">
-                    <input type="checkbox" name="include-archived" {% if include_archived %}checked{% endif %}> <label for="include-archived">Include archived servers</label>
+            <div class="flex gap-2 justify-between w-full items-stretch">
+                <div class="flex gap-2 items-center">
+                    <div class="flex gap-1 items-center">
+                        <input type="checkbox" name="include-archived" {% if include_archived %}checked{% endif %}> <label for="include-archived">Include archived servers</label>
+                    </div>
                 </div>
-                <button class="btn btn-sm btn-outline" type="submit" name="export-csv" @click="normalizeForSubmit()">
-                    Export (CSV)
-                </button>
-                <button class="btn btn-sm btn-outline" type="submit" name="export-json" @click="normalizeForSubmit()">
-                    Export (JSON)
-                </button>
-                <button class="btn btn-sm btn-outline" type="submit" name="export-txt" @click="normalizeForSubmit()">
-                    Export (Host-list)
-                </button>
-                <button class="btn btn-sm light:btn-primary dark:btn-outline" type="submit" name="search" @click="normalizeForSubmit()">
-                    Search
-                </button>
+                <div class="flex gap-2">
+                    <button type="button" class="btn btn-sm btn-outline" @click="saveCurrentSearch()">
+                        Save Search
+                    </button>
+                    <div class="relative" x-data="{ exportOpen: false }">
+                        <button type="button" class="btn btn-sm btn-outline flex items-center gap-1" @click="exportOpen = !exportOpen" @click.outside="exportOpen = false">
+                            Export
+                            {% with icon_size='size-4' %}
+                                <template x-if="exportOpen">
+                                    {% include 'icons/chevron-up.html' %}
+                                </template>
+                                <template x-if="!exportOpen">
+                                    {% include 'icons/chevron-down.html' %}
+                                </template>
+                            {% endwith %}
+                        </button>
+                        <div x-show="exportOpen" x-transition class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-lg z-50">
+                            <button type="submit" name="export-csv" @click="normalizeForSubmit(); exportOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
+                                CSV
+                            </button>
+                            <button type="submit" name="export-json" @click="normalizeForSubmit(); exportOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
+                                JSON
+                            </button>
+                            <button type="submit" name="export-txt" @click="normalizeForSubmit(); exportOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
+                                Host-list
+                            </button>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm light:btn-primary dark:btn-outline" type="submit" name="search" @click="normalizeForSubmit()">
+                        Search
+                    </button>
+                </div>
             </div>
         </form>
 
@@ -158,187 +329,31 @@
 {% endblock %}
 
 {% block footer_scripts %}
+{% load static %}
+<script src="{% static 'hosts/js/advanced-search.js' %}"></script>
 <script>
-// A minimal single-input, Kibana-like query helper.
-// - Autocompletes field labels from searchable_fields.
-// - Inserts: `LABEL = ""` when a suggestion is chosen and places cursor between quotes.
-// - When a complete term is present and Enter is pressed, appends ` AND ` to start the next term.
-// - On submit, normalizes spacing and ensures values are quoted; embedded quotes are escaped.
-function kibanaLikeSearch() {
-    return {
-        fields: [], // [{id, label}]
-        value: '',
-        open: false,
-        suggestions: [],
-        activeIndex: 0,
-        and_separator: ' AND ',
-        // Columns multiselect state
-        selectedColumns: [], // [{id,label}]
-        columnsFilter: '',
-        colOpen: false,
-        colSuggestions: [],
-        colActiveIndex: 0,
-        init() {
-            this.value = '{{ search_string|safe }}'
-            this.selectedColumns = [{% for column in requested_columns %}{ id: '{{ column|safe }}', label: '{{ column|safe }}',},{% endfor %}]
+// Initialize the advanced search with Django template data
+document.addEventListener('alpine:init', () => {
+    // Override the init method to inject Django data
+    const originalInit = advancedSearchQuery().init;
+    window.advancedSearchQueryWithData = function() {
+        const instance = advancedSearchQuery();
+        const originalInstanceInit = instance.init;
+        instance.init = function() {
+            originalInstanceInit.call(this);
+            // Inject Django template values
+            this.value = '{{ search_string|escapejs }}';
+            this.selectedColumns = [{% for column in requested_columns %}{ id: '{{ column|safe }}', label: '{{ column|safe }}' },{% endfor %}];
             this.fields = [
             {% for field in searchable_fields %}
-                { id: '{{ field.id|safe }}', label: '{{ field.label|safe }}',},
+                { id: '{{ field.id|safe }}', label: '{{ field.label|safe }}', valueType: '{{ field.value_type|safe }}' },
             {% endfor %}
-            ]
-        },
-        getCaret() {
-            const el = this.$refs.input;
-            return el ? el.selectionStart : 0;
-        },
-        setCaret(pos) {
-            const el = this.$refs.input;
-            if (!el) return;
-            requestAnimationFrame(() => {
-                el.setSelectionRange(pos, pos);
-                el.focus();
-            });
-        },
-        currentTokenBounds() {
-            // Token is the segment after the last ' AND '
-            const caret = this.getCaret();
-            const before = this.value.slice(0, caret);
-            const lastAnd = before.lastIndexOf(this.and_separator);
-            const start = lastAnd === -1 ? 0 : lastAnd + this.and_separator.length; // after ' AND '
-            const end = caret;
-            return { start, end };
-        },
-        currentToken() {
-            const { start, end } = this.currentTokenBounds();
-            return this.value.slice(start, end);
-        },
-        onInput() {
-            const token = this.currentToken();
-            const raw = token.trimStart();
-            // Show suggestions only if '=' not yet present in current token
-            if (!raw.includes('=')) {
-                const needle = raw.toLowerCase();
-                if (needle.length === 0) {
-                    this.suggestions = this.fields.slice(0, 9999);
-                } else {
-                    this.suggestions = this.fields.filter(f => f.label.toLowerCase().includes(needle)).slice(0, 9999);
-                }
-                this.activeIndex = 0;
-                this.open = this.suggestions.length > 0;
-            } else {
-                this.closeSuggestions();
-            }
-        },
-        move(delta) {
-            if (!this.open || !this.suggestions.length) return;
-            const len = this.suggestions.length;
-            this.activeIndex = (this.activeIndex + delta + len) % len;
-        },
-        choose(idx) {
-            if (!this.suggestions.length) return;
-            const s = this.suggestions[idx ?? this.activeIndex];
-            const { start, end } = this.currentTokenBounds();
-            const left = this.value.slice(0, start);
-            const right = this.value.slice(end);
-            const insert = `${s.id} = ""`;
-            // Replace token with `Label = ""` and place caret between quotes
-            this.value = left + insert + right;
-            const caretPos = (left + `${s.id} = "`).length;
-            this.setCaret(caretPos);
-            this.closeSuggestions();
-        },
-        onTab() {
-            if (this.open && this.suggestions.length) {
-                this.choose(this.activeIndex);
-                return;
-            }
-            // If current token looks like: Label = "value" then add AND for next term
-            const token = this.currentToken().trim();
-            const complete = /.+\s=\s"[^"]*"?$/.test(token);
-            if (complete) {
-                const { end } = this.currentTokenBounds();
-                const right = this.value.slice(end);
-                // Only add AND if not already followed by AND
-                if (!/^\s+AND\s+/.test(right)) {
-                    // Add any missing quote
-                    const lastCharacter = this.value[this.value.length - 1]
-                    const secondLastCharacter = this.value[this.value.length - 2]
-                    if (lastCharacter !== '"' || secondLastCharacter === " ")
-                        this.value += '"'
-
-                    this.value = this.value + this.and_separator;
-                    this.setCaret(this.value.length);
-                }
-            }
-        },
-        closeSuggestions() {
-            this.open = false;
-            this.suggestions = [];
-            this.activeIndex = 0;
-        },
-        normalizeForSubmit() {
-            // Normalize query ensuring: LABEL = "value" AND LABEL = "value"
-            const parts = this.value.split(/\s+AND\s+/i).map(p => p.trim()).filter(Boolean);
-            const normalized = parts.map(p => {
-                // Try to split at first '='
-                const i = p.indexOf('=');
-                if (i === -1) return p; // leave as is
-                const left = p.slice(0, i).trim();
-                let right = p.slice(i + 1).trim();
-                // Remove surrounding quotes if present
-                if (right.startsWith('"') && right.endsWith('"') && right.length >= 2) {
-                    right = right.slice(1, -1);
-                }
-                // Escape embedded quotes
-                right = right.replaceAll('"', '\\"');
-                return `${left} = "${right}"`;
-            }).join(this.and_separator);
-            this.value = normalized;
-        },
-        // ==== Columns multiselect methods ====
-        onColumnsInput() {
-            const needle = (this.columnsFilter || '').toLowerCase();
-            const selectedIds = new Set(this.selectedColumns.map(c => c.id));
-            let pool = this.fields.filter(f => !selectedIds.has(f.id));
-            if (needle.length) {
-                pool = pool.filter(f => f.label.toLowerCase().includes(needle) || f.id.toLowerCase().includes(needle));
-            }
-            this.colSuggestions = pool.slice(0, 1000);
-            this.colActiveIndex = 0;
-            this.colOpen = this.colSuggestions.length > 0;
-        },
-        moveColumn(delta) {
-            if (!this.colOpen || !this.colSuggestions.length) return;
-            const len = this.colSuggestions.length;
-            this.colActiveIndex = (this.colActiveIndex + delta + len) % len;
-        },
-        chooseColumn(idx) {
-            if (!this.colSuggestions.length) return;
-            const s = this.colSuggestions[idx ?? this.colActiveIndex];
-            if (!s) return;
-            // Prevent duplicates
-            if (this.selectedColumns.some(c => c.id === s.id)) return this.closeColumnSuggestions();
-            this.selectedColumns.push({ id: s.id, label: s.label });
-            this.columnsFilter = '';
-            this.$refs.columnsInput && this.$refs.columnsInput.focus();
-            this.onColumnsInput();
-        },
-        removeColumn(idx) {
-            this.selectedColumns.splice(idx, 1);
-            this.onColumnsInput();
-        },
-        maybeBackspaceRemove() {
-            if ((this.columnsFilter || '').length === 0 && this.selectedColumns.length) {
-                this.selectedColumns.pop();
-                this.onColumnsInput();
-            }
-        },
-        closeColumnSuggestions() {
-            this.colOpen = false;
-            this.colSuggestions = [];
-            this.colActiveIndex = 0;
-        }
-    }
-}
+            ];
+            this.updateHighlight();
+            this.autoResize();
+        };
+        return instance;
+    };
+});
 </script>
 {% endblock %}

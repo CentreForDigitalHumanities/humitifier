@@ -71,6 +71,8 @@ class HardwareFactCollector(ShellCollector):
             memory = []
             self.add_error(f"Could not determine memory size: {e}", fatal=False)
 
+        total_memory_gb = sum([range.size for range in memory]) / 1024 / 1024 // 1024
+
         block_devices_cmd = shell_executor.execute("lsblk -o KNAME,TYPE,SIZE,MODEL")
         block_devices = []
         try:
@@ -98,6 +100,7 @@ class HardwareFactCollector(ShellCollector):
             block_devices=block_devices,
             pci_devices=pci_devices.stdout,
             usb_devices=usb_devices.stdout,
+            total_memory_gb=total_memory_gb,
         )
 
 

@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import DataSource, DataSourceType, Host
+from .models import DataSource, DataSourceType, Host, SavedSearch
 
 
 class DataSourceForm(forms.ModelForm):
@@ -65,5 +65,22 @@ class HostForm(forms.ModelForm):
         self.fields["data_source"].queryset = DataSource.objects.filter(
             source_type=DataSourceType.MANUAL
         )  # Example condition
+
+
+class SavedSearchForm(forms.ModelForm):
+    class Meta:
+        model = SavedSearch
+        fields = (
+            "title",
+            "description",
+            "query",
+            "columns",
+            "is_public",
+        )
+        widgets = {
+            "query": forms.Textarea(attrs={"rows": 3}),
+            "description": forms.Textarea(attrs={"rows": 2}),
+            "columns": forms.TextInput()
+        }
 
 

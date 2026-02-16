@@ -20,7 +20,9 @@ Menu.add_item(
                 check=lambda request: request.user.is_authenticated,
             ),
             HumitifierMenuItem(
-                "Advanced Search",
+                lambda request: (
+                    "Vibe Search" if request.user.wild_wasteland_mode else "Advanced Search"
+                ),
                 reverse("hosts:advanced_search"),
                 icon="icons/search.html",
                 check=lambda request: request.user.is_superuser,

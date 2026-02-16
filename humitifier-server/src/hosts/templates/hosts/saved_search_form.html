@@ -1,0 +1,201 @@
+{% extends 'base/base_page_template.html' %}
+
+{% block page_title %}
+    {% if object %}
+        Edit Saved Search | {{ block.super }}
+    {% else %}
+        Save Search | {{ block.super }}
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div class="h-full--header w-full bg-default px-7 py-5">
+        {% if object %}
+            <h1 class="text-3xl font-bold">Edit Saved Search</h1>
+        {% else %}
+            <h1 class="text-3xl font-bold">Save Search</h1>
+        {% endif %}
+
+        <form method="post" class="max-w-3xl mt-8" x-data="window.savedSearchFormWithData ? window.savedSearchFormWithData() : advancedSearchQuery()" x-init="init()" @keydown.window.escape="closeSuggestions(); closeColumnSuggestions()">
+            {% csrf_token %}
+
+            <div class="mb-4">
+                <label for="id_title" class="block text-sm font-medium mb-1">Title</label>
+                {{ form.title }}
+                {% if form.title.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.title.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label for="id_description" class="block text-sm font-medium mb-1">Description (optional)</label>
+                {{ form.description }}
+                {% if form.description.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.description.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label for="id_query" class="block text-sm font-medium mb-1">Query</label>
+                <div class="relative w-full">
+                    <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-sm input p-0 font-semibold" aria-hidden="true" x-ref="highlight">
+                        <div class="px-3 py-2 text-sm leading-5 whitespace-pre-wrap break-words text-gray-700 dark:text-gray-50" x-html="highlightHtml"></div>
+                    </div>
+                    <textarea
+                        class="input border-none relative z-10 w-full !bg-transparent !text-transparent caret-gray-700 dark:caret-gray-50 resize-none overflow-hidden font-semibold"
+                        x-ref="input"
+                        name="query"
+                        id="id_query"
+                        x-model="value"
+                        placeholder='field = "value" AND field >= 42 OR (field contains "text")'
+                        autocomplete="off"
+                        rows="3"
+                        @input="onInput()"
+                        @click="onInput()"
+                        @click.outside="closeSuggestions()"
+                        @scroll="syncHighlightScroll()"
+                        @keydown.down.prevent="move(1)"
+                        @keydown.up.prevent="move(-1)"
+                        @keydown.tab.prevent="onTab()"
+                        @keydown.enter.prevent="onTab()"
+                    ></textarea>
+
+                    <template x-if="open && suggestions.length">
+                        <ul class="absolute z-50 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
+                            <template x-for="(s, idx) in suggestions" :key="s.id">
+                                <li
+                                    class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
+                                    :class="{ 'bg-gray-200 dark:bg-gray-700': idx === activeIndex }"
+                                    @mousedown.prevent="choose(idx)"
+                                    x-text="s.label"
+                                ></li>
+                            </template>
+                        </ul>
+                    </template>
+                </div>
+                {% if form.query.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.query.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label for="id_columns" class="block text-sm font-medium mb-1">Columns</label>
+                <div class="relative w-full">
+                    <div class="input w-full min-h-[2.5rem] flex items-center flex-wrap gap-2 py-1">
+                        <!-- Selected column bubbles -->
+                        <template x-for="(col, idx) in selectedColumns" :key="col.id">
+                            <span
+                                class="px-2 py-1 cursor-pointer bg-gray-100 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-50 border border-gray-200 dark:border-gray-700 rounded-sm flex items-center gap-1"
+                                @click="removeColumn(idx)"
+                            >
+                                <span x-text="col.label"></span>
+                                <button type="button" class="text-red-500 leading-none" aria-label="Remove">×</button>
+                            </span>
+                        </template>
+                        <!-- Inline input for filtering options -->
+                        <input
+                            x-ref="columnsInput"
+                            class="grow outline-none bg-transparent placeholder-gray-400 min-w-[8ch]"
+                            type="text"
+                            autocomplete="off"
+                            x-model="columnsFilter"
+                            placeholder="Choose columns…"
+                            @input="onColumnsInput()"
+                            @focus="onColumnsInput()"
+                            @click.outside="closeColumnSuggestions()"
+                            @keydown.down.prevent="moveColumn(1)"
+                            @keydown.up.prevent="moveColumn(-1)"
+                            @keydown.enter.prevent="chooseColumn()"
+                            @keydown.tab.prevent="chooseColumn()"
+                            @keydown.backspace="maybeBackspaceRemove()"
+                        />
+                    </div>
+
+                    <!-- Suggestions dropdown -->
+                    <template x-if="colOpen && colSuggestions.length">
+                        <ul class="absolute z-50 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
+                            <template x-for="(s, idx) in colSuggestions" :key="s.id">
+                                <li
+                                    class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
+                                    :class="{ 'bg-gray-200 dark:bg-gray-700': idx === colActiveIndex }"
+                                    @mousedown.prevent="chooseColumn(idx)"
+                                    x-text="s.label"
+                                ></li>
+                            </template>
+                        </ul>
+                    </template>
+                    <!-- Hidden input for submitting selected column ids -->
+                    <input type="hidden" name="columns" id="id_columns" :value="selectedColumns.map(c => c.id).join(',')">
+                </div>
+                {% if form.columns.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.columns.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-6 flex items-center gap-2">
+                {{ form.is_public }}
+                <label for="id_is_public" class="text-sm">
+                    Make this search public (visible and editable by all users)
+                </label>
+                {% if form.is_public.errors %}
+                    <div class="text-red-600 text-sm mt-1">{{ form.is_public.errors }}</div>
+                {% endif %}
+            </div>
+
+            <div class="flex gap-2 mt-6">
+                <a href="{% url 'hosts:saved_searches' %}" class="btn btn-outline">
+                    Cancel
+                </a>
+                <button type="submit" class="btn light:btn-primary dark:btn-outline" @click="normalizeForSubmit()">
+                    {% if object %}Update{% else %}Save{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}
+
+{% block footer_scripts %}
+{% load static %}
+<script src="{% static 'hosts/js/advanced-search.js' %}"></script>
+<script>
+// Initialize the saved search form with Django template data
+document.addEventListener('alpine:init', () => {
+    window.savedSearchFormWithData = function() {
+        const instance = advancedSearchQuery();
+        const originalInstanceInit = instance.init;
+        instance.init = function() {
+            originalInstanceInit.call(this);
+            // Inject Django template values
+            this.value = '{{ form.query.value|default:""|escapejs }}';
+
+            // Parse columns from the form value or URL parameters
+            const urlParams = new URLSearchParams(window.location.search);
+            const columnsParam = urlParams.get('columns') || '{{ form.columns.value|default:""|safe }}';
+            const columnIds = columnsParam ? columnsParam.split(',').filter(c => c.trim()) : [];
+
+            this.fields = [
+            {% for field in searchable_fields %}
+                { id: '{{ field.id|safe }}', label: '{{ field.label|safe }}', valueType: '{{ field.value_type|safe }}' },
+            {% endfor %}
+            ];
+
+            // Map column IDs to their labels
+            this.selectedColumns = columnIds.map(id => {
+                const field = this.fields.find(f => f.id === id);
+                return field ? { id: id, label: field.label } : { id: id, label: id };
+            });
+
+            // Pre-populate query from URL parameters if provided
+            const queryParam = urlParams.get('query');
+            if (queryParam) {
+                this.value = queryParam;
+            }
+
+            this.updateHighlight();
+            this.autoResize();
+        };
+        return instance;
+    };
+});
+</script>
+{% endblock %}
