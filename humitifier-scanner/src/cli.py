@@ -1,5 +1,7 @@
 #!/usr/bin/env python3
 import json
+import time
+
 import sys
 from enum import Enum
 from pprint import pprint
@@ -40,7 +42,12 @@ class BulkManualScan(BaseModel):
     combine: CliImplicitFlag[bool] = Field(
         default=False,
         description="If passed, all scan output will be combined into a single "
-        "JSON list"
+        "JSON list",
+    )
+
+    progress: CliImplicitFlag[bool] = Field(
+        default=False,
+        description="Print status updates during scans",
     )
 
     artefact: list[str] = Field(
@@ -61,6 +68,9 @@ class BulkManualScan(BaseModel):
         description="Indentation level for the printed results",
     )
 
+    output_file: Optional[str] = Field(
+        default=None, description="Output file for combined results"
+    )
 
     def cli_cmd(self):
 
@@ -69,6 +79,9 @@ class BulkManualScan(BaseModel):
 
         with open(self.hosts_file, "r") as f:
             hosts = f.read().splitlines()
+
+        if self.output_file and not self.combine:
+            raise ValueError("--output_file can only be used with --combine")
 
         # Collect all requested artefacts
 
@@ -118,6 +131,10 @@ class BulkManualScan(BaseModel):
         combined = []
 
         for host in hosts:
+            current_time = time.time()
+            if self.progress:
+                print(f"Scanning {host}...")
+
             # Run the scan
             scan_input = ScanInput(
                 hostname=host,
@@ -132,8 +149,15 @@ class BulkManualScan(BaseModel):
             else:
                 print(result.model_dump_json(indent=self.indent_results))
 
+            if self.progress:
+                print(f"Done in {time.time() - current_time:.2f}s")
+
         if self.combine:
-            json.dump(combined, sys.stdout, indent=self.indent_results, default=str)
+            if self.output_file:
+                with open(self.output_file, "w") as f:
+                    json.dump(combined, f, indent=self.indent_results, default=str)
+            else:
+                json.dump(combined, sys.stdout, indent=self.indent_results, default=str)
 
 
 class ManualScan(BaseModel):
