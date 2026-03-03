@@ -39,12 +39,6 @@ class BulkManualScan(BaseModel):
         description="File containing a list of hosts to scan, one per line"
     )
 
-    combine: CliImplicitFlag[bool] = Field(
-        default=False,
-        description="If passed, all scan output will be combined into a single "
-        "JSON list",
-    )
-
     progress: CliImplicitFlag[bool] = Field(
         default=False,
         description="Print status updates during scans",
@@ -80,8 +74,8 @@ class BulkManualScan(BaseModel):
         with open(self.hosts_file, "r") as f:
             hosts = f.read().splitlines()
 
-        if self.output_file and not self.combine:
-            raise ValueError("--output_file can only be used with --combine")
+        if self.progress and not self.output_file:
+            raise ValueError("--progress can only be used with --output_file")
 
         # Collect all requested artefacts
 
@@ -144,20 +138,15 @@ class BulkManualScan(BaseModel):
             result = scan(scan_input)
 
             # Handle the results
-            if self.combine:
-                combined.append(result.model_dump())
-            else:
-                print(result.model_dump_json(indent=self.indent_results))
-
+            combined.append(result.model_dump())
             if self.progress:
                 print(f"Done in {time.time() - current_time:.2f}s")
 
-        if self.combine:
-            if self.output_file:
-                with open(self.output_file, "w") as f:
-                    json.dump(combined, f, indent=self.indent_results, default=str)
-            else:
-                json.dump(combined, sys.stdout, indent=self.indent_results, default=str)
+        if self.output_file:
+            with open(self.output_file, "w") as f:
+                json.dump(combined, f, indent=self.indent_results, default=str)
+        else:
+            json.dump(combined, sys.stdout, indent=self.indent_results, default=str)
 
 
 class ManualScan(BaseModel):
