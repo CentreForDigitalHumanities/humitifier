@@ -30,5 +30,10 @@ class _CollectorRegistry:
     def available_implementations(self):
         return [f"{fact}:{variant}" for fact, variant in self._registry.keys()]
 
+    def get_variants_for_artefact(self, artefact: str):
+        for fact, variant in self._registry.keys():
+            if fact == artefact:
+                yield variant
+
 
 registry = _CollectorRegistry()

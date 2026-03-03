@@ -166,6 +166,11 @@ def write_results(
 
 
 class BulkManualScan(BaseModel):
+    """Run a manual scan on multiple hosts using a hosts file.
+    Data is not reported back to the server; this command is meant for retrieving
+    data over multiple servers for 'quick local scans'; see also the `cli` artefacts.
+    """
+
     hosts_file: str = Field(
         description="File containing a list of hosts to scan, one per line"
     )
