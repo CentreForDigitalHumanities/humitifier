@@ -15,14 +15,15 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+from humitifier_common.artefacts import registry as artefact_registry
 from humitifier_scanner.api import HumitifierAPIClient
 from humitifier_scanner.config import (
     Settings,
     _CONFIG_LOCATIONS,
     _SECRETS_DIR,
 )
+from humitifier_scanner.collectors.backend import registry as collector_registry
 from humitifier_scanner.scanner import scan
-from humitifier_common.scan_data import ScanInput
 from humitifier_scanner.logger import logger
 from humitifier_scanner.utils import get_local_fqdn
 from humitifier_scanner.cli_commands import ManualScan, BulkManualScan
@@ -32,6 +33,11 @@ from humitifier_scanner.cli_commands import ManualScan, BulkManualScan
 ## CLI commands
 ##
 class Scan(BaseModel):
+    """Main scan command; retrieves scan spec from API and runs scan according to
+    that specification. Will also upload results back to the API.
+    Use manual_scan or bulk_scan if you want to retrieve info locally/without
+    the server API."""
+
     host: str | None = Field(
         None,
         description="Hostname to scan; defaults to the local host",
@@ -82,12 +88,16 @@ class PrintConfig(BaseModel):
 
 
 class Hostname(BaseModel):
+    """Print the hostname Humitifier Scanner thinks is the name of the local host."""
 
     def cli_cmd(self):
         print(get_local_fqdn())
 
 
 class RetrieveScanSpec(BaseModel):
+    """Retrieve and print the scan spec that the scan command will use from the
+    server."""
+
     host: str | None = Field(
         None,
         description="Hostname to scan; defaults to the local host",
@@ -108,6 +118,40 @@ class RetrieveScanSpec(BaseModel):
             sys.exit(1)
 
         print(scan_spec.model_dump_json(indent=4))
+
+
+class PrintArtefacts(BaseModel):
+    """Print the artefacts that are supported by Humitifier Scanner. If multiple
+    collectors are available for an artefact, they will be listed in parentheses."""
+
+    group: Optional[str] = Field(
+        None,
+        description="Artefact group to print; if not specified, all artefacts will be printed",
+    )
+
+    def cli_cmd(self):
+        if self.group:
+            artefacts = artefact_registry.get_all_in_group(self.group)
+        else:
+            artefacts = artefact_registry.all_available
+
+        print("Available artefacts:")
+        for artefact in artefacts:
+            variants = list(collector_registry.get_variants_for_artefact(artefact))
+            print(
+                f"  - {artefact} ({', '.join(variants)})"
+                if variants
+                else f"  - {artefact}"
+            )
+
+
+class PrintArtefactGroups(BaseModel):
+    """Print the artefact groups that are supported by Humitifier Scanner."""
+
+    def cli_cmd(self):
+        print("Available artefact groups:")
+        for group in artefact_registry.available_groups:
+            print(f"  - {group}")
 
 
 ##
@@ -141,6 +185,8 @@ class CLISettings(Settings, BaseSettings):
     print_config: CliSubCommand[PrintConfig]
     hostname: CliSubCommand[Hostname]
     scan_spec: CliSubCommand[RetrieveScanSpec]
+    print_artefacts: CliSubCommand[PrintArtefacts]
+    print_artefact_groups: CliSubCommand[PrintArtefactGroups]
 
     def cli_cmd(self) -> None:
         if self.debug:
