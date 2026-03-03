@@ -32,6 +32,7 @@ optional = true
 [tool.poetry.group.standalone.dependencies]
 requests = "^2.32.5"
 requests-oauthlib = "^2.0.0"
+rich = "^14.3.3"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

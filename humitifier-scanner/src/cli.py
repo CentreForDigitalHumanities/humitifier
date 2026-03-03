@@ -7,6 +7,8 @@ from enum import Enum
 from pprint import pprint
 from typing import Optional
 import logging
+from io import StringIO
+from contextlib import redirect_stdout, redirect_stderr
 
 import toml
 from pydantic import BaseModel, Field
@@ -17,6 +19,12 @@ from pydantic_settings import (
     CliSubCommand,
     SettingsConfigDict,
 )
+from rich.console import Console
+from rich.progress import Progress, BarColumn, TextColumn, TimeRemainingColumn
+from rich.live import Live
+from rich.panel import Panel
+from rich.layout import Layout
+from rich.text import Text
 
 from humitifier_scanner.api import HumitifierAPIClient
 from humitifier_scanner.config import (
@@ -41,7 +49,7 @@ class BulkManualScan(BaseModel):
 
     progress: CliImplicitFlag[bool] = Field(
         default=False,
-        description="Print status updates during scans",
+        description="Show progress bar and scan output during scans",
     )
 
     artefact: list[str] = Field(
@@ -66,6 +74,10 @@ class BulkManualScan(BaseModel):
         default=None, description="Output file for combined results"
     )
 
+    debug_output_file: Optional[str] = Field(
+        default=None, description="Optional file to pipe scan output for debugging"
+    )
+
     def cli_cmd(self):
 
         if not self.hosts_file:
@@ -73,9 +85,6 @@ class BulkManualScan(BaseModel):
 
         with open(self.hosts_file, "r") as f:
             hosts = f.read().splitlines()
-
-        if self.progress and not self.output_file:
-            raise ValueError("--progress can only be used with --output_file")
 
         # Collect all requested artefacts
 
@@ -124,23 +133,87 @@ class BulkManualScan(BaseModel):
 
         combined = []
 
-        for host in hosts:
-            current_time = time.time()
-            if self.progress:
-                print(f"Scanning {host}...")
+        if self.progress:
+            # Use rich progress display
+            console = Console()
+            debug_log = []
 
-            # Run the scan
-            scan_input = ScanInput(
-                hostname=host,
-                artefacts=artefacts,
-            )
+            with Progress(
+                TextColumn("[progress.description]{task.description}"),
+                BarColumn(),
+                TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                TextColumn("({task.completed}/{task.total})"),
+                TimeRemainingColumn(),
+                console=console,
+            ) as progress:
 
-            result = scan(scan_input)
+                task_id = progress.add_task("[cyan]Scanning hosts...", total=len(hosts))
 
-            # Handle the results
-            combined.append(result.model_dump())
-            if self.progress:
-                print(f"Done in {time.time() - current_time:.2f}s")
+                for idx, host in enumerate(hosts):
+                    current_time = time.time()
+
+                    # Create layout for the current scan
+                    layout = Layout()
+                    layout.split_column(
+                        Layout(name="progress", size=3),
+                        Layout(name="current", size=3),
+                        Layout(name="output")
+                    )
+
+                    # Capture stdout/stderr during scan
+                    output_capture = StringIO()
+
+                    with redirect_stdout(output_capture), redirect_stderr(output_capture):
+                        # Run the scan
+                        scan_input = ScanInput(
+                            hostname=host,
+                            artefacts=artefacts,
+                        )
+
+                        result = scan(scan_input)
+
+                    # Get captured output
+                    captured_output = output_capture.getvalue()
+                    if captured_output:
+                        debug_log.append(f"\n=== {host} ===\n{captured_output}")
+
+                    # Handle the results
+                    combined.append(result.model_dump())
+                    elapsed = time.time() - current_time
+
+                    # Update progress
+                    progress.update(
+                        task_id,
+                        advance=1,
+                        description=f"[cyan]Scanning hosts... [green]{host}[/green] completed in {elapsed:.2f}s"
+                    )
+
+                    # Show output in console
+                    if captured_output:
+                        console.print(Panel(
+                            Text(captured_output, overflow="fold"),
+                            title=f"Output from {host}",
+                            border_style="green"
+                        ))
+
+            # Write debug output if requested
+            if self.debug_output_file and debug_log:
+                with open(self.debug_output_file, "w") as f:
+                    f.write("".join(debug_log))
+                console.print(f"\n[green]Debug output written to {self.debug_output_file}[/green]")
+        else:
+            # Simple non-progress mode
+            for host in hosts:
+                # Run the scan
+                scan_input = ScanInput(
+                    hostname=host,
+                    artefacts=artefacts,
+                )
+
+                result = scan(scan_input)
+
+                # Handle the results
+                combined.append(result.model_dump())
 
         if self.output_file:
             with open(self.output_file, "w") as f:
