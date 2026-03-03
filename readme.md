@@ -90,9 +90,8 @@ you can run a combined worker-scheduler:
 `pythom -m celery -A humitifier_server worker -Q default -l INFO --beat --scheduler django_celery_beat.schedulers:DatabaseScheduler`
 
 
-## Agent configuration
+## Scanner configuration
 The app configuration is written in `toml`. (Or env vars, if you want)
-In it you specify ssh configuration, inventory/database values, and task interval values.
 An example config:
 
 ```toml
@@ -113,13 +112,25 @@ rabbit_mq_url = "amqp://<user>:<pass>@localhost//"
 ```
 Place this file in `humitifier-scanner/.local/config.toml`
 
+### Standalone scanner setup
+
+The scanner project can be used in standalone mode, without any other component.
+You will still need to install poetry for dependecy management
+
+To setup:
+1. Clone this repo
+2. Open a terminal in the `humitifier-scanner` directory
+3. Run ``poetry install --with standalone`` to install the dependencies
+4. Create a config file (see above, you don't need the celery section)
+5. Run ``poery run src/cli.py --help`` for usage (hint: you probably want ``poery run src/cli.py manual_scan --help``)
+
 ### Development Setup
 
 To run the project locally you must use `poetry` to install the dependencies.
 This will create a virtual environment and install the dependencies in it.
 
 ```bash
-poetry install
+poetry install --with dev
 ```
 
 Either run the scanner manually using `cli.py` (`./cli.py -h` for usage).
