@@ -47,7 +47,6 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
     title = "GenDoc metadata"
     attributes = {
         "update_policy": "Update policy",
-        "webdav": "Webdav share",
         "fileservers": "Fileservers",
     }
 
