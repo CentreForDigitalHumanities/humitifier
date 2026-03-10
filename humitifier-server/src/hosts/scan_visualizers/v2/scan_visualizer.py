@@ -27,6 +27,7 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         visualizers.PackageListVisualizer,
         visualizers.UsersVisualizer,
         visualizers.GroupsVisualizer,
+        visualizers.SystemdUnitsVisualizer,
     ]
 
     static_data = {
