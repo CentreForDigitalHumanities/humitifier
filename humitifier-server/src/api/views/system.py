@@ -254,6 +254,7 @@ class DatastoreSyncView(APIView):
             host.has_tofu_config = new_data.get("has_tofu_config", host.has_tofu_config)
             host.otap_stage = new_data.get("otap_stage", host.otap_stage)
             host.billable = new_data.get("billable", host.billable)
+            host.asset_tag = new_data.get("asset_tag", host.asset_tag)
 
             # If this host is unclaimed, we set the data_source attr to claim it
             if host.data_source is None:

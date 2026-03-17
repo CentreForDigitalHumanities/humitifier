@@ -108,6 +108,8 @@ class DataSourceSyncHostSerializer(serializers.Serializer):
 
     offline = serializers.BooleanField(default=False)
 
+    asset_tag = serializers.CharField(default=None, allow_null=True, allow_blank=True)
+
 
 class DataSourceSyncSerializer(serializers.Serializer):
 
