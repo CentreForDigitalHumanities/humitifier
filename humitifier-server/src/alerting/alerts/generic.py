@@ -231,3 +231,25 @@ class SELinuxAlertGenerator(BaseArtefactAlertGenerator):
             )
 
         return alerts
+
+
+class SystemdAlertGenerator(BaseArtefactAlertGenerator):
+    artefact = Systemd
+    verbose_name = "Systemd state"
+
+    def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        if not self.artefact_data:
+            return None
+
+        data: Systemd = self.artefact_data
+        alerts = []
+
+        for unit in data.units:
+            if unit.active == "failed":
+                alerts.append(AlertData(
+                    severity=AlertSeverity.WARNING,
+                    message=f"Systemd: {unit.unit} is in a failed state",
+                    custom_identifier=f"failed-unit-{unit.unit}",
+                ))
+
+        return alerts

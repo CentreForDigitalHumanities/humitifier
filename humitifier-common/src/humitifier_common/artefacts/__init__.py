@@ -1,3 +1,4 @@
+from .cli import *
 from .generic import *
 from .server import *
 from .special import *

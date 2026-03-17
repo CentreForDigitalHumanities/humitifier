@@ -168,3 +168,18 @@ class SELinux(BaseModel):
     enabled: bool
     policy_name: str | None
     mode: str | None
+
+##
+## SystemD info
+##
+
+class SystemdUnit(BaseModel):
+    unit: str
+    load: str
+    description: str | None
+    active: str
+    sub: str
+
+@fact(group=GENERIC, metadata=ArtefactMetadata(null_is_valid=True))
+class Systemd(BaseModel):
+    units: list[SystemdUnit]

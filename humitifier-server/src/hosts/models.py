@@ -260,6 +260,12 @@ class Host(models.Model):
         blank=True,
     )
 
+    asset_tag = models.CharField(
+        max_length=255,
+        null=True,
+        blank=True,
+    )
+
     ##
     ## Generated fields
     ## These fields are derived from the last scan cache, and are generated
@@ -434,6 +440,16 @@ class Host(models.Model):
         string = self.data_source.default_scan_spec.name
         string += " <span class='italic'>(Default)</span>"
         return mark_safe(s=string)
+
+    def get_asset_tag_display(self):
+        if not self.asset_tag:
+            return mark_safe("<span class='italic'>Not set</span>")
+
+        return self.asset_tag
+
+    ##
+    ## Methods
+    ##
 
     @property
     def archived_string(self):

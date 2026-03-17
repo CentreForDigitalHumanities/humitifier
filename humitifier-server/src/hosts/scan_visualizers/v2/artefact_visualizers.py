@@ -39,6 +39,7 @@ from humitifier_common.artefacts import (
     Webhost,
     Webserver,
     ZFS,
+    Systemd,
 )
 
 
@@ -47,7 +48,6 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
     title = "GenDoc metadata"
     attributes = {
         "update_policy": "Update policy",
-        "webdav": "Webdav share",
         "fileservers": "Fileservers",
     }
 
@@ -508,3 +508,28 @@ class SELinuxVisualizer(ItemizedArtefactVisualizer):
             </div>
             """
         )
+
+
+class SystemdUnitsVisualizer(SearchableCardsVisualizer):
+    artefact = Systemd
+    title = "Systemd Units"
+
+    def get_items(self) -> list[Card]:
+        items = []
+
+        for unit in self.artefact_data.units:
+            items.append(
+                Card(
+                    title=unit.unit,
+                    aside=unit.active,
+                    content_items={
+                        "Description": unit.description,
+                        "Sub state": unit.sub,
+                        "Loaded": unit.load,
+                    },
+                    search_value=f"{unit.unit} {unit.description} {unit.active}",
+                )
+            )
+
+        return items
+

@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import json
 import sys
 from enum import Enum
 from pprint import pprint
@@ -16,213 +15,29 @@ from pydantic_settings import (
     SettingsConfigDict,
 )
 
+from humitifier_common.artefacts import registry as artefact_registry
 from humitifier_scanner.api import HumitifierAPIClient
 from humitifier_scanner.config import (
     Settings,
     _CONFIG_LOCATIONS,
     _SECRETS_DIR,
 )
+from humitifier_scanner.collectors.backend import registry as collector_registry
 from humitifier_scanner.scanner import scan
-from humitifier_common.scan_data import ArtefactScanOptions, ScanInput
-from humitifier_common.artefacts import registry as artefact_registry
 from humitifier_scanner.logger import logger
 from humitifier_scanner.utils import get_local_fqdn
+from humitifier_scanner.cli_commands import ManualScan, BulkManualScan
 
 
 ##
 ## CLI commands
 ##
-class BulkManualScan(BaseModel):
-    hosts_file: str = Field(
-        description="File containing a list of hosts to scan, one per line"
-    )
-
-    combine: CliImplicitFlag[bool] = Field(
-        default=False,
-        description="If passed, all scan output will be combined into a single "
-        "JSON list"
-    )
-
-    artefact: list[str] = Field(
-        default_factory=list,
-        description="Fact to scan; multiple can be specified by repeating the "
-        "option. If used in combination with the 'fact_group' "
-        "option, add an '!' prefix to explicitly disable one fact in a group.",
-    )
-    artefact_group: list[str] = Field(
-        default_factory=list,
-        description="Fact group to scan; multiple can be specified by "
-        "repeating the option. Individual facts can still be overridden with "
-        "the 'fact' option. ",
-    )
-
-    indent_results: Optional[int] = Field(
-        4,
-        description="Indentation level for the printed results",
-    )
-
-
-    def cli_cmd(self):
-
-        if not self.hosts_file:
-            raise ValueError("hosts_file is None")
-
-        with open(self.hosts_file, "r") as f:
-            hosts = f.read().splitlines()
-
-        # Collect all requested artefacts
-
-        requested_artefacts = []
-        # Add all facts from the requested groups
-        for group in self.artefact_group:
-            requested_artefacts.extend(
-                [
-                    fact.__artefact_name__
-                    for fact in artefact_registry.get_all_in_group(group)
-                ]
-            )
-
-        # Add any individual facts
-        for artefact in self.artefact:
-            artefact_name = artefact
-            knockout = artefact_name.startswith("!")
-            variant = "default"
-
-            # Remove the knockout prefix
-            if knockout:
-                artefact_name = artefact_name[1:]
-
-            if ":" in artefact:
-                artefact_name, variant = artefact.split(":", 1)
-
-            # Check if the artefact is already in the requested facts list
-            # If so, remove it and add the explicitly specified artefact
-            # (This makes sure we can manually override the used variant)
-            if artefact_name in requested_artefacts:
-                requested_artefacts.remove(artefact_name)
-
-            if not knockout:
-                requested_artefacts.append(f"{artefact_name}:{variant}")
-
-        # Transform the requested facts into the instructions for the scanner
-
-        artefacts: dict[str, ArtefactScanOptions] = {}
-
-        for artefact in requested_artefacts:
-            options = {}
-            if ":" in artefact:
-                artefact, variant = artefact.split(":", 1)
-                options["variant"] = variant
-            artefacts[artefact] = ArtefactScanOptions(**options)
-
-        combined = []
-
-        for host in hosts:
-            # Run the scan
-            scan_input = ScanInput(
-                hostname=host,
-                artefacts=artefacts,
-            )
-
-            result = scan(scan_input)
-
-            # Handle the results
-            if self.combine:
-                combined.append(result.model_dump())
-            else:
-                print(result.model_dump_json(indent=self.indent_results))
-
-        if self.combine:
-            json.dump(combined, sys.stdout, indent=self.indent_results, default=str)
-
-
-class ManualScan(BaseModel):
-    host: str | None = Field(
-        None,
-        description="Hostname to scan; defaults to the local host",
-    )
-
-    artefact: list[str] = Field(
-        default_factory=list,
-        description="Fact to scan; multiple can be specified by repeating the "
-        "option. If used in combination with the 'fact_group' "
-        "option, add an '!' prefix to explicitly disable one fact in a group.",
-    )
-    artefact_group: list[str] = Field(
-        default_factory=list,
-        description="Fact group to scan; multiple can be specified by "
-        "repeating the option. Individual facts can still be overridden with "
-        "the 'fact' option. ",
-    )
-
-    indent_results: Optional[int] = Field(
-        4,
-        description="Indentation level for the printed results",
-    )
-
-    def cli_cmd(self):
-
-        if not self.host:
-            self.host = get_local_fqdn()
-
-        # Collect all requested artefacts
-
-        requested_artefacts = []
-        # Add all facts from the requested groups
-        for group in self.artefact_group:
-            requested_artefacts.extend(
-                [
-                    fact.__artefact_name__
-                    for fact in artefact_registry.get_all_in_group(group)
-                ]
-            )
-
-        # Add any individual facts
-        for artefact in self.artefact:
-            artefact_name = artefact
-            knockout = artefact_name.startswith("!")
-            variant = "default"
-
-            # Remove the knockout prefix
-            if knockout:
-                artefact_name = artefact_name[1:]
-
-            if ":" in artefact:
-                artefact_name, variant = artefact.split(":", 1)
-
-            # Check if the artefact is already in the requested facts list
-            # If so, remove it and add the explicitly specified artefact
-            # (This makes sure we can manually override the used variant)
-            if artefact_name in requested_artefacts:
-                requested_artefacts.remove(artefact_name)
-
-            if not knockout:
-                requested_artefacts.append(f"{artefact_name}:{variant}")
-
-        # Transform the requested facts into the instructions for the scanner
-
-        artefacts: dict[str, ArtefactScanOptions] = {}
-
-        for artefact in requested_artefacts:
-            options = {}
-            if ":" in artefact:
-                artefact, variant = artefact.split(":", 1)
-                options["variant"] = variant
-            artefacts[artefact] = ArtefactScanOptions(**options)
-
-        # Run the scan
-        scan_input = ScanInput(
-            hostname=self.host,
-            artefacts=artefacts,
-        )
-
-        result = scan(scan_input)
-
-        # Handle the results
-        print(result.model_dump_json(indent=self.indent_results))
-
-
 class Scan(BaseModel):
+    """Main scan command; retrieves scan spec from API and runs scan according to
+    that specification. Will also upload results back to the API.
+    Use manual_scan or bulk_scan if you want to retrieve info locally/without
+    the server API."""
+
     host: str | None = Field(
         None,
         description="Hostname to scan; defaults to the local host",
@@ -273,12 +88,16 @@ class PrintConfig(BaseModel):
 
 
 class Hostname(BaseModel):
+    """Print the hostname Humitifier Scanner thinks is the name of the local host."""
 
     def cli_cmd(self):
         print(get_local_fqdn())
 
 
 class RetrieveScanSpec(BaseModel):
+    """Retrieve and print the scan spec that the scan command will use from the
+    server."""
+
     host: str | None = Field(
         None,
         description="Hostname to scan; defaults to the local host",
@@ -299,6 +118,40 @@ class RetrieveScanSpec(BaseModel):
             sys.exit(1)
 
         print(scan_spec.model_dump_json(indent=4))
+
+
+class PrintArtefacts(BaseModel):
+    """Print the artefacts that are supported by Humitifier Scanner. If multiple
+    collectors are available for an artefact, they will be listed in parentheses."""
+
+    group: Optional[str] = Field(
+        None,
+        description="Artefact group to print; if not specified, all artefacts will be printed",
+    )
+
+    def cli_cmd(self):
+        if self.group:
+            artefacts = artefact_registry.get_all_in_group(self.group)
+        else:
+            artefacts = artefact_registry.all_available
+
+        print("Available artefacts:")
+        for artefact in artefacts:
+            variants = list(collector_registry.get_variants_for_artefact(artefact))
+            print(
+                f"  - {artefact} ({', '.join(variants)})"
+                if variants
+                else f"  - {artefact}"
+            )
+
+
+class PrintArtefactGroups(BaseModel):
+    """Print the artefact groups that are supported by Humitifier Scanner."""
+
+    def cli_cmd(self):
+        print("Available artefact groups:")
+        for group in artefact_registry.available_groups:
+            print(f"  - {group}")
 
 
 ##
@@ -332,6 +185,8 @@ class CLISettings(Settings, BaseSettings):
     print_config: CliSubCommand[PrintConfig]
     hostname: CliSubCommand[Hostname]
     scan_spec: CliSubCommand[RetrieveScanSpec]
+    print_artefacts: CliSubCommand[PrintArtefacts]
+    print_artefact_groups: CliSubCommand[PrintArtefactGroups]
 
     def cli_cmd(self) -> None:
         if self.debug:

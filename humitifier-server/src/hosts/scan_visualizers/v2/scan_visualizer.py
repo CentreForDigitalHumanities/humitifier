@@ -27,6 +27,7 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         visualizers.PackageListVisualizer,
         visualizers.UsersVisualizer,
         visualizers.GroupsVisualizer,
+        visualizers.SystemdUnitsVisualizer,
     ]
 
     static_data = {
@@ -39,6 +40,7 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         "scan_spec": "Scan spec.",
         "billable": "Billable",
         "is_offline": "Is offline",
+        "asset_tag": "Asset tag",
     }
 
     def get_context(self, **kwargs):
