@@ -19,6 +19,8 @@ from humitifier_common.artefacts import (
     Package,
     PackageList,
     SELinux,
+    Systemd,
+    SystemdUnit,
     User,
     Users,
 )
@@ -427,3 +429,36 @@ class SELinuxFactCollector(ShellCollector):
             policy_name=policy_name,
             mode=mode,
         )
+
+
+class SystemDFactCollector(ShellCollector):
+    fact = Systemd
+    required_facts = [HostnameCtl]
+
+    def collect_from_shell(
+        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    ) -> Systemd | None:
+
+        # CentOS 7 and Debian 10 are not compatible with this code, as it lacks
+        # the -o flag
+        # And I really cannot be bothered to write compatible code,
+        # as it's hard to parse and those OS's should be phased out anyway.
+        host_info: HostnameCtl = info.required_facts[HostnameCtl]
+        if (host_info.cpe_os_name == "cpe:/o:centos:centos:7"
+            or host_info.os == "Debian GNU/Linux 10 (buster)"):
+            return None
+
+        result = shell_executor.execute("systemctl list-units --output json")
+
+        try:
+            unit_data = json.loads("".join(result.stdout))
+        except json.JSONDecodeError:
+            self.add_error("Failed to parse systemctl output")
+            return None
+
+        units = []
+
+        for datum in unit_data:
+            units.append(SystemdUnit(**datum))
+
+        return Systemd(units=units)
