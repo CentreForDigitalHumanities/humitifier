@@ -91,6 +91,13 @@ class DNSAlertGenerator(BaseArtefactAlertGenerator):
                 custom_identifier="no_reverse",
             )
 
+        if not dns_info.dns_lookups:
+            return AlertData(
+                severity=AlertSeverity.CRITICAL,
+                message="Did not find any domains to resolve. This probably means that the reverse entry could not be found!",
+                custom_identifier="no_dns",
+            )
+
         alerts: list[AlertData] = []
         found_ips: list[IPv4Address] = dns_info.reverse_dns_lookups.keys()
 
