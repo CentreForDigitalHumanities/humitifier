@@ -117,6 +117,16 @@ def layout_context(request):
             "This space intentionally left blank",
             "Your server has performed an illegal operation and will be arrested",
             "All your server are belong to us",
+            "Release the ravens!",
+            "Would you like to hear about the thirty-minute meeting regarding the new filing cabinet labels?",
+            mark_safe(">>> import ctypes;ctypes.cast(id(1), ctypes.POINTER(IntObject))[0].int = 2;<br/>>>> 1 + 2<br/>4"),
+            "Send in the orcas!",
+            "Warning: frog detector has failed!",
+            "Warning: frog has been detected!",
+            "Warning: frog has been detected! Please evacuate the premises immediately!",
+            "Polar bears are almost all left-handed",
+            "Snails can sleep for three years",
+            "Please don't forget to maintain 'Coder'",
             # @formatter:on
         ]
         tag_line = random.choice(jokes)
