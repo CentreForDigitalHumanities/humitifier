@@ -132,6 +132,11 @@ class WebserverVisualizer(SearchableCardsVisualizer):
     artefact = Webserver
     title = "Webserver"
 
+    def show(self):
+        if self.artefact_data.hosts:
+            return True
+        return False
+
     def get_items(self) -> list[Card]:
         items: list[Card] = []
 
