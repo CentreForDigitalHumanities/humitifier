@@ -11,7 +11,7 @@
 
     <section class="w-full p-4 flex items-center gap-4">
         {% if layout.wild_wasteland %}
-            <a href="https://commons.wikimedia.org/wiki/File:Cat_python.png" target="_blank">
+            <a href="https://commons.wikimedia.org/wiki/File:Cat_python.png" target="_blank" class="flex-shrink-0">
                 <img
                     src="{% static 'main/img/Cat_python.png' %}"
                     alt="By Victor Alfredo Torres Ramirez, CC BY-SA 4.0 <https://creativecommons.org/licenses/by-sa/4.0>, via Wikimedia Commons"
@@ -20,7 +20,7 @@
                 >
             </a>
         {% else %}
-            <img src="{% static 'main/img/cm_hs_avatar_corporate.png' %}" alt="Utrecht University" class="h-14">
+            <img src="{% static 'main/img/cm_hs_avatar_corporate.png' %}" alt="Utrecht University" class="h-14 flex-shrink-0">
         {% endif %}
         <div>
             <div class="text-2xl font-bold">Humitifier</div>
