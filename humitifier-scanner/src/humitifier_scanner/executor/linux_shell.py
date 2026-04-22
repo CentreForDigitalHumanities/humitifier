@@ -63,6 +63,7 @@ class LocalLinuxShellExecutor(LinuxShellExecutor):
             shell=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            env={},
         )
         stdout, stderr = process.communicate()
 
