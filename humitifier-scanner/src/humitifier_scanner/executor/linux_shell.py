@@ -73,6 +73,8 @@ class LocalLinuxShellExecutor(LinuxShellExecutor):
         if process.returncode != 0:
             log_cmd = logger.debug if fail_silent else logger.error
             log_cmd(f"Command '{command}' failed with return code {process.returncode}")
+            logger.debug(f"Stdout: {stdout_lines}")
+            logger.debug(f"Stderr: {stderr_lines}")
 
         return ShellOutput(
             stdout_lines,
