@@ -144,7 +144,7 @@ def get_easter_stats():
         {"label": "UMC", "count": rn.randint(10, 20)},
         {
             "label": "D10",
-            "count": 8,
+            "count": 9,
         },  # This one is legit, nobody has found them yet
     ]
 
