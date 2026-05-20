@@ -126,6 +126,7 @@ def get_easter_stats():
     ]
 
     top_excuses_for_downtime = [
+        {"label": "Datacenter is (literally) on fire", "count": rn.randint(1, 2)},
         {"label": "It worked on my machine", "count": rn.randint(1, 20)},
         {"label": "DNS", "count": rn.randint(20, 30)},
         {"label": "Deployed on a friday", "count": rn.randint(1, 20)},
