@@ -21,7 +21,7 @@ env:
   POSTGRES_HOST: localhost
   POSTGRES_DB: djtesting
   POSTGRES_PORT: 5432
-  RABBITMQ_URL: amqp://localhost:5672/%2F
+  RABBITMQ_URL: amqp://humitifier:humitifier@localhost:5672/%2F
   RABBITMQ_USER: humitifier
   RABBITMQ_PASSWORD: humitifier
 
