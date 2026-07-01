@@ -19,7 +19,7 @@ from rest_framework.reverse import reverse_lazy
 from sentry_sdk import HttpTransport
 from sentry_sdk.integrations.celery import CeleryIntegration
 
-from . import env
+from .config import CONFIG as HUMITIFIER_CONFIG
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -31,24 +31,18 @@ HUMITIFIER_VERSION_NAME = ".. is not a monitoring solution, honest"
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = env.get(
-    "DJANGO_SECRET_KEY",
-    "django-insecure-ffdjavjsp%s%b069$aai#h7odtbd#!q8uu7=hn1tv&y$gdq17_",
-)
+SECRET_KEY = HUMITIFIER_CONFIG.django.secret_key.get_secret_value()
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = env.get_boolean("DJANGO_DEBUG", False)
+DEBUG = HUMITIFIER_CONFIG.django.debug
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = HUMITIFIER_CONFIG.django.allowed_hosts
 INTERNAL_IPS = [
     "127.0.0.1",
 ]
 
-_env_hosts = env.get("DJANGO_ALLOWED_HOSTS", default=None)
-if _env_hosts:
-    ALLOWED_HOSTS += _env_hosts.split(",")
 
-ENABLE_WHITENOISE = env.get_boolean("DJANGO_ENABLE_WHITENOISE", True)
+ENABLE_WHITENOISE = HUMITIFIER_CONFIG.static_files.enable_whitenoise
 
 # Application definition
 
@@ -136,11 +130,11 @@ AUTH_USER_MODEL = "main.User"
 DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.postgresql",
-        "NAME": env.get("POSTGRES_DB", default="postgres"),
-        "USER": env.get("POSTGRES_USER", default="postgres"),
-        "PASSWORD": env.get("POSTGRES_PASSWORD", default="postgres"),
-        "HOST": env.get("POSTGRES_HOST", default="127.0.0.1"),
-        "PORT": env.get("POSTGRES_PORT", default="5432"),
+        "NAME": HUMITIFIER_CONFIG.database.database_name,
+        "USER": HUMITIFIER_CONFIG.database.username,
+        "PASSWORD": HUMITIFIER_CONFIG.database.password.get_secret_value(),
+        "HOST": HUMITIFIER_CONFIG.database.host,
+        "PORT": HUMITIFIER_CONFIG.database.port,
     }
 }
 
@@ -152,7 +146,7 @@ LOGOUT_REDIRECT_URL = reverse_lazy("main:home")
 
 ## OpenID Connect
 
-if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
+if HUMITIFIER_CONFIG.oidc.enabled:
     try:
         index = INSTALLED_APPS.index("django.contrib.auth")
         INSTALLED_APPS.insert(index + 1, "mozilla_django_oidc")
@@ -161,7 +155,7 @@ if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
             "Cannot enable OIDC; django.contrib.auth is not enabled"
         )
 
-    if env.get_boolean("DJANGO_OIDC_SESSION_REFRESH", default=False):
+    if HUMITIFIER_CONFIG.oidc.session_refresh:
         MIDDLEWARE.append("mozilla_django_oidc.middleware.SessionRefresh")
 
     AUTHENTICATION_BACKENDS = [
@@ -173,44 +167,42 @@ if env.get_boolean("DJANGO_OIDC_ENABLED", default=False):
         re.compile(r"^api/.*$"),
     ]
 
-    OIDC_CREATE_USER = env.get_boolean("OIDC_CREATE_USER", default=False)
-    OIDC_RP_SCOPES = env.get("OIDC_RP_SCOPES", default="openid email profile")
+    OIDC_CREATE_USER = HUMITIFIER_CONFIG.oidc.auto_create_user
+    OIDC_RP_SCOPES = HUMITIFIER_CONFIG.oidc.rp_scopes
 
-    OIDC_RP_SIGN_ALGO = env.get("OIDC_RP_SIGN_ALGO", default="RS256")
+    OIDC_RP_SIGN_ALGO = HUMITIFIER_CONFIG.oidc.rp_sign_algorithm
 
     OIDC_AUTH_REQUEST_EXTRA_PARAMS = {}
 
-    _acr_values = env.get("OIDC_RP_ACR_VALUES", default=None)
-
-    if _acr_values:
+    if _acr_values := HUMITIFIER_CONFIG.oidc.rp_acr_values:
         OIDC_AUTH_REQUEST_EXTRA_PARAMS["acr_values"] = _acr_values
 
-    if client_id := env.get("OIDC_RP_CLIENT_ID", default=None):
+    if client_id := HUMITIFIER_CONFIG.oidc.rp_client_id:
         OIDC_RP_CLIENT_ID = client_id
     else:
         raise ImproperlyConfigured("OIDC_RP_CLIENT_ID is required")
 
-    if client_secret := env.get("OIDC_RP_CLIENT_SECRET", default=None):
+    if client_secret := HUMITIFIER_CONFIG.oidc.rp_client_secret.get_secret_value():
         OIDC_RP_CLIENT_SECRET = client_secret
     else:
         raise ImproperlyConfigured("OIDC_RP_CLIENT_SECRET is required")
 
-    if jwk_endpoint := env.get("OIDC_OP_JWKS_ENDPOINT", default=None):
+    if jwk_endpoint := HUMITIFIER_CONFIG.oidc.op_jwks_endpoint:
         OIDC_OP_JWKS_ENDPOINT = jwk_endpoint
     else:
         raise ImproperlyConfigured("OIDC_OP_JWKS_ENDPOINT is required")
 
-    if auth_endpoint := env.get("OIDC_OP_AUTHORIZATION_ENDPOINT", default=None):
+    if auth_endpoint := HUMITIFIER_CONFIG.oidc.op_authorization_endpoint:
         OIDC_OP_AUTHORIZATION_ENDPOINT = auth_endpoint
     else:
         raise ImproperlyConfigured("OIDC_OP_AUTHORIZATION_ENDPOINT is required")
 
-    if token_endpoint := env.get("OIDC_OP_TOKEN_ENDPOINT", default=None):
+    if token_endpoint := HUMITIFIER_CONFIG.oidc.op_token_endpoint:
         OIDC_OP_TOKEN_ENDPOINT = token_endpoint
     else:
         raise ImproperlyConfigured("OIDC_OP_TOKEN_ENDPOINT is required")
 
-    if user_endpoint := env.get("OIDC_OP_USER_ENDPOINT", default=None):
+    if user_endpoint := HUMITIFIER_CONFIG.oidc.op_userinfo_endpoint:
         OIDC_OP_USER_ENDPOINT = user_endpoint
     else:
         raise ImproperlyConfigured("OIDC_OP_USER_ENDPOINT is required")
@@ -252,7 +244,7 @@ OAUTH2_PROVIDER = {
 
 # Security
 
-_https_enabled = env.get_boolean("DJANGO_HTTPS", default=False)
+_https_enabled = HUMITIFIER_CONFIG.django.enable_https
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_SSL_REDIRECT = _https_enabled
@@ -264,9 +256,9 @@ SESSION_COOKIE_SECURE = _https_enabled
 CSRF_COOKIE_SECURE = _https_enabled
 # Needed to work in kubernetes, as the app may be behind a proxy/may not know it's
 # own domain
-SESSION_COOKIE_DOMAIN = env.get("SESSION_COOKIE_DOMAIN", default=None)
-CSRF_COOKIE_DOMAIN = env.get("CSRF_COOKIE_DOMAIN", default=None)
-SESSION_COOKIE_NAME = env.get("SESSION_COOKIE_NAME", default="humitifier_sessionid")
+SESSION_COOKIE_DOMAIN = HUMITIFIER_CONFIG.cookie.domain
+CSRF_COOKIE_DOMAIN = HUMITIFIER_CONFIG.cookie.domain
+SESSION_COOKIE_NAME = HUMITIFIER_CONFIG.cookie.session_name
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 60 * 60 * 12  # 12 hours
 
@@ -286,17 +278,17 @@ LOGGING = {
     },
     "root": {
         "handlers": ["console"],
-        "level": env.get("LOG_LEVEL", default="INFO"),
+        "level": HUMITIFIER_CONFIG.django.log_level,
     },
     "loggers": {
         "django": {
             "handlers": ["console"],
-            "level": env.get("DJANGO_LOG_LEVEL", default="INFO"),
+            "level": HUMITIFIER_CONFIG.django.log_level,
             "propagate": False,
         },
         "humitifier-server": {
             "handlers": ["console"],
-            "level": env.get("DJANGO_LOG_LEVEL", default="INFO"),
+            "level": HUMITIFIER_CONFIG.django.log_level,
             "propagate": False,
         },
     },
@@ -375,9 +367,8 @@ def before_send(event, hint):
     return event
 
 
-DSN = env.get("SENTRY_DSN", default=None)
-if DSN:
-    SENTRY_INSECURE_DSN = env.get_boolean("SENTRY_INSECURE_DSN", False)
+if HUMITIFIER_CONFIG.sentry:
+    SENTRY_INSECURE_DSN = HUMITIFIER_CONFIG.sentry.insecure_cert
 
     class CustomHttpTransport(HttpTransport):
         def _get_pool_options(self):
@@ -390,7 +381,7 @@ if DSN:
             return options
 
     sentry_sdk.init(
-        dsn=DSN,
+        dsn=HUMITIFIER_CONFIG.sentry.dsn,
         traces_sample_rate=1.0,
         profile_session_sample_rate=1.0,
         profile_lifecycle="trace",
@@ -407,9 +398,12 @@ if DSN:
 ## Celery
 
 ### Broker
-CELERY_BROKER_URL = env.get(
-    "CELERY_BROKER_URL", default="amqp://humitifier:humitifier@localhost//"
-)
+if _redis_dsn := HUMITIFIER_CONFIG.celery.redis_dsn:
+    CELERY_BROKER_URL = str(_redis_dsn)
+elif _rabbit_mq_url := HUMITIFIER_CONFIG.celery.rabbit_mq_url:
+    CELERY_BROKER_URL = str(_rabbit_mq_url)
+else:
+    raise ImproperlyConfigured("No Celery broker configured")
 CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = True
 
 ### Result backend
