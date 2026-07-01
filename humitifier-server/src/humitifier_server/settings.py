@@ -146,7 +146,7 @@ LOGOUT_REDIRECT_URL = reverse_lazy("main:home")
 
 ## OpenID Connect
 
-if HUMITIFIER_CONFIG.oidc.enabled:
+if HUMITIFIER_CONFIG.oidc and HUMITIFIER_CONFIG.oidc.enabled:
     try:
         index = INSTALLED_APPS.index("django.contrib.auth")
         INSTALLED_APPS.insert(index + 1, "mozilla_django_oidc")
