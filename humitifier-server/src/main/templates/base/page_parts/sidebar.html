@@ -39,15 +39,15 @@
         <div class="py-1.5">
             <div class="border-l border-gray-700 h-full"></div>
         </div>
-        <a class="text-blue-300 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_severity=info">
+        <a class="text-blue-300 flex items-center gap-2 py-1.5" href="{% url 'main:dashboard' %}?severity=info#alerts">
             {% include 'icons/info.html' %}
             {{ layout.num_info_alerts|intcomma }}
         </a>
-        <a class="text-orange-500 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_severity=warning">
+        <a class="text-orange-500 flex items-center gap-2 py-1.5" href="{% url 'main:dashboard' %}?severity=warning#alerts">
             {% include 'icons/warning.html' %}
             {{ layout.num_warning_alerts|intcomma }}
         </a>
-        <a class="text-red-500 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_severity=critical">
+        <a class="text-red-500 flex items-center gap-2 py-1.5" href="{% url 'main:dashboard' %}?severity=critical#alerts">
             {% include 'icons/critical.html' %}
             {{ layout.num_critical_alerts|intcomma }}
         </a>
