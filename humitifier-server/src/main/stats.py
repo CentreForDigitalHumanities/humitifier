@@ -15,16 +15,6 @@ def get_os_stats(user):
         .annotate(count=Count("os"))
     )
 
-
-def get_hypervisor_stats(user):
-    return (
-        Host.objects.get_for_user(user)
-        .filter(archived=False)
-        .values("hypervisor")
-        .annotate(count=Count("hypervisor"))
-    )
-
-
 def get_customer_stats(user):
     return (
         Host.objects.get_for_user(user)
