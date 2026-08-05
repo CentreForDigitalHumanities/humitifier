@@ -116,7 +116,7 @@ class HostAlertSeverityFilter(ChoiceFilter):
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__severity=value)
+            return qs.filter(alerts__severity=value, alerts__acknowledgement=None).distinct()
         return qs
 
 
@@ -130,7 +130,7 @@ class HostAlertTypeFilter(ChoiceFilter):
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__short_message=value)
+            return qs.filter(alerts__short_message=value, alerts__acknowledgement=None).distinct()
         return qs
 
 
