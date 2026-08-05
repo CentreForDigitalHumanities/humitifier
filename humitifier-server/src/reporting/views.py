@@ -238,6 +238,57 @@ class ReportDownloadView(SuperuserRequiredMixin, LoginRequiredMixin, View):
         )
 
 
+class ReportDeleteView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+):
+    model = GeneratedReport
+    success_url = reverse_lazy("reporting:report_list")
+    success_message = "Report deleted"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+
+class ReportRerunView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    template_name = "reporting/report_confirm_rerun.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = get_object_or_404(
+            GeneratedReport, pk=self.kwargs["pk"], created_by=self.request.user
+        )
+        return context
+
+    def post(self, request, pk):
+        report = get_object_or_404(GeneratedReport, pk=pk, created_by=request.user)
+
+        new_report = GeneratedReport.objects.create(
+            filename=report.filename,
+            created_by=request.user,
+            customers=report.customers,
+            start_date=report.start_date,
+            end_date=report.end_date,
+        )
+        new_report.costs_schemes.set(report.costs_schemes.all())
+
+        generate_cost_report.delay(
+            new_report.pk,
+            [s.pk for s in new_report.costs_schemes.all()],
+            new_report.filename,
+            new_report.start_date.isoformat(),
+            new_report.end_date.isoformat(),
+            new_report.customers,
+        )
+
+        messages.success(
+            request,
+            f'Report "{new_report.filename}" is being re-generated. '
+            "Please check back in a few minutes.",
+        )
+
+        return redirect("reporting:report_list")
+
+
 class CostsOverviewView(LoginRequiredMixin, FormView):
     form_class = CostsOverviewForm
     template_name = "reporting/costs_overview.html"

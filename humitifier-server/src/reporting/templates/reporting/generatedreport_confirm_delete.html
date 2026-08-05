@@ -1,0 +1,21 @@
+{% extends 'base/base_page_template.html' %}
+
+{% block content %}
+    <div class="h-full--header w-full bg-default px-7 py-5 ">
+        <h1 class="text-3xl font-bold">Delete report</h1>
+        <p class="mt-6">
+            Are you sure you want to delete the report "{{ object.filename }}" created on {{ object.created_at }}?
+        </p>
+        <form method="post">
+            {% csrf_token %}
+            <div class="flex gap-2 mt-6">
+                <a href="{% url 'reporting:report_list' %}" class="btn btn-outline">
+                    Cancel
+                </a>
+                <button type="submit" class="btn btn-danger">
+                    Confirm delete
+                </button>
+            </div>
+        </form>
+    </div>
+{% endblock %}

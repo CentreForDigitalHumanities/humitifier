@@ -49,6 +49,16 @@ class GeneratedReportTable(BaseTable):
                 url=lambda obj: reverse("reporting:report_download", args=[obj.pk]),
                 show_check_function=lambda obj: obj.status == GeneratedReport.Status.COMPLETED,
             ),
+            ButtonColumn(
+                text="Rerun",
+                button_class="btn btn-outline",
+                url=lambda obj: reverse("reporting:report_rerun", args=[obj.pk]),
+            ),
+            ButtonColumn(
+                text="Delete",
+                button_class="btn btn-danger",
+                url=lambda obj: reverse("reporting:report_delete", args=[obj.pk]),
+            ),
         ],
     )
 
