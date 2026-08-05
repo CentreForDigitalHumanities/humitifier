@@ -7,7 +7,7 @@ from reporting.models import CostsScheme, GeneratedReport
 class CostsSchemeFilters(FilterSet):
     class Meta:
         model = CostsScheme
-        fields = []
+        fields = ["name", "platform"]
         form = FiltersForm
 
 

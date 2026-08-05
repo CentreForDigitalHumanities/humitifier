@@ -1,3 +1,5 @@
+from datetime import date
+
 from decimal import Decimal
 from typing import Tuple
 
@@ -178,8 +180,15 @@ class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
     form_class = CostsReportForm
     template_name = "reporting/costs_report.html"
 
+    def get_initial(self):
+        this_year = date.today().year
+        return {
+            "start_date": date(day=1, month=1, year=this_year),
+            "end_date": date(day=31, month=12, year=this_year),
+        }
+
     def form_valid(self, form):
-        costs_scheme = form.cleaned_data["costs_scheme"]
+        costs_schemes = form.cleaned_data["costs_scheme"]
         customers = form.cleaned_data["customers"]
         filename = form.cleaned_data["filename"]
         start_date = form.cleaned_data["start_date"]
@@ -188,11 +197,15 @@ class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
         report = GeneratedReport.objects.create(
             filename=filename,
             created_by=self.request.user,
+            customers=customers,
+            start_date=start_date,
+            end_date=end_date,
         )
+        report.costs_schemes.set(costs_schemes)
 
         generate_cost_report.delay(
             report.pk,
-            costs_scheme.pk,
+            [s.pk for s in costs_schemes],
             filename,
             start_date.isoformat(),
             end_date.isoformat(),
@@ -250,7 +263,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
                 data,
             ) = self.get_data(
                 customer=form_data.get("customer", None),
-                costs_scheme=form_data.get("costs_scheme"),
+                costs_schemes=form_data.get("costs_scheme"),
             )
 
             context["total_vm_costs"] = total_vm_costs
@@ -269,7 +282,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
     def get_data(
         self,
         customer,
-        costs_scheme,
+        costs_schemes,
     ) -> Tuple[
         Decimal, Decimal, Decimal, Decimal, Decimal, list[CostsOverviewTable.Data]
     ]:
@@ -288,10 +301,18 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
         total_management_costs = Decimal("0")
         total_costs = Decimal("0")
 
+        # Find all schemes selected to support multiple platforms
+        schemes_by_platform = {s.platform: s for s in costs_schemes}
+
         for server in servers:
+            scheme = schemes_by_platform.get(server.platform)
+            if not scheme:
+                continue
+
             cost_breakdown = calculate_from_hardware_artefact(
                 server.hardware,
-                costs_scheme,
+                scheme,
+                os=server.os,
             )
 
             total_vm_costs += cost_breakdown.vm_costs
@@ -303,6 +324,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
             data.append(
                 CostsOverviewTable.Data(
                     fqdn=server.hostname,
+                    platform=server.platform,
                     scan_date=server.scan_date,
                     costs_breakdown=cost_breakdown,
                 )

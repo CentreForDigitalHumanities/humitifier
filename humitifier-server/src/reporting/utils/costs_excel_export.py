@@ -27,6 +27,7 @@ from reporting.utils.get_server_hardware import (
 
 class _Host(BaseModel):
     hostname: str
+    platform: str
     hardware: Hardware
     cost_breakdown: CostsBreakdown
     scan_date: datetime
@@ -62,11 +63,13 @@ def create_current_cost_excel(
             cost_breakdown = calculate_from_hardware_artefact(
                 server.hardware,
                 costs_scheme,
+                os=server.os,
             )
 
             hosts.append(
                 _Host(
                     hostname=server.hostname,
+                    platform=server.platform,
                     hardware=server.hardware,
                     cost_breakdown=cost_breakdown,
                     scan_date=server.scan_date,
@@ -85,7 +88,7 @@ def create_current_cost_excel(
 
 
 def create_timeseries_cost_excel(
-    costs_scheme: CostsScheme,
+    costs_scheme: CostsScheme | dict[str, CostsScheme],
     filename: str,
     start_date: date,
     end_date: date,
@@ -114,14 +117,25 @@ def create_timeseries_cost_excel(
                 if not info:
                     continue
 
+                if isinstance(costs_scheme, CostsScheme):
+                    scheme = costs_scheme
+                else:
+                    scheme = costs_scheme.get(info.platform)
+                    if not scheme:
+                        print("whaa")
+                        # Don't do anything if we cannot find a scheme for the platform
+                        continue
+
                 cost_breakdown = calculate_from_hardware_artefact(
                     info.hardware,
-                    costs_scheme,
+                    scheme,
+                    os=info.os,
                 )
 
                 entries.append(
                     _Host(
                         hostname=info.hostname,
+                        platform=info.platform,
                         hardware=info.hardware,
                         cost_breakdown=cost_breakdown,
                         scan_date=info.scan_date,
@@ -165,6 +179,7 @@ def generate_excel(
         ws.append(
             [
                 "Server",
+                "Platform",
                 "Billing month",
                 "Num. CPU",
                 "Memory",
@@ -186,6 +201,7 @@ def generate_excel(
             "G",
             "H",
             "I",
+            "J",
         ]:
             cell = ws[f"{column}1"]
             cell.style = header
@@ -204,6 +220,7 @@ def generate_excel(
             ws.append(
                 [
                     host.hostname,
+                    host.platform,
                     billing_month,
                     host.cost_breakdown.num_cpu,
                     host.cost_breakdown.memory_size,
@@ -215,17 +232,17 @@ def generate_excel(
                 ]
             )
 
-            ws[f"F{i+2}"].number_format = "€ #,##0.00"
             ws[f"G{i+2}"].number_format = "€ #,##0.00"
             ws[f"H{i+2}"].number_format = "€ #,##0.00"
             ws[f"I{i+2}"].number_format = "€ #,##0.00"
+            ws[f"J{i+2}"].number_format = "€ #,##0.00"
 
         _set_sheet_width(ws)
 
         max_index = len(customer.hosts) + 1
 
         filters = ws.auto_filter
-        filters.ref = f"A1:I{max_index}"
+        filters.ref = f"A1:J{max_index}"
         for column in [
             "A",
             "B",
@@ -236,6 +253,7 @@ def generate_excel(
             "G",
             "H",
             "I",
+            "J",
         ]:
             ws.auto_filter.add_sort_condition(f"{column}2:{column}{max_index}")
 
@@ -254,11 +272,11 @@ def generate_excel(
     for i, customer in enumerate(customers):
         sheet_name = _get_customer_sheet_name(customer.name)
         total_vm_costs = (
-            f"=SUM('{sheet_name}'!F2:F{TOTAL_ROWS}) + SUM('{sheet_name}'!G2:"
-            f"G{TOTAL_ROWS})"
+            f"=SUM('{sheet_name}'!G2:G{TOTAL_ROWS}) + SUM('{sheet_name}'!H2:"
+            f"H{TOTAL_ROWS})"
         )
-        total_support_costs = f"=ROUND(SUM('{sheet_name}'!H2:H{TOTAL_ROWS}),2)"
-        total_costs = f"=ROUND(SUM('{sheet_name}'!I2:I{TOTAL_ROWS}),2)"
+        total_support_costs = f"=ROUND(SUM('{sheet_name}'!I2:I{TOTAL_ROWS}),2)"
+        total_costs = f"=ROUND(SUM('{sheet_name}'!J2:J{TOTAL_ROWS}),2)"
         main_sheet.append(
             [
                 customer.name,

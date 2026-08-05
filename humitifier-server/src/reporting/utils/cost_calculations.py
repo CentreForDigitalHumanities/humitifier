@@ -89,8 +89,7 @@ def calculate_costs(
 
 
 def calculate_from_hardware_artefact(
-    hardware: Hardware,
-    costs_scheme: CostsScheme,
+    hardware: Hardware, costs_scheme: CostsScheme, os: str = "linux"
 ) -> CostsBreakdown:
 
     # Memory
@@ -131,6 +130,6 @@ def calculate_from_hardware_artefact(
         num_cpu=hardware.num_cpus,
         memory_in_gb=total_memory,
         storage_in_gb=total_disk_space,
-        os="linux",
+        os=os,
         costs_scheme=costs_scheme,
     )

@@ -5,7 +5,9 @@ from humitifier_server.celery.task_names import REPORTING_GENERATE_COST_REPORT
 
 
 @shared_task(name=REPORTING_GENERATE_COST_REPORT)
-def generate_cost_report(report_id, costs_scheme_id, filename, start_date, end_date, customers):
+def generate_cost_report(
+    report_id, costs_scheme_ids, filename, start_date, end_date, customers
+):
     from datetime import date as date_type
 
     from reporting.models import CostsScheme, GeneratedReport
@@ -14,13 +16,15 @@ def generate_cost_report(report_id, costs_scheme_id, filename, start_date, end_d
     report = GeneratedReport.objects.get(pk=report_id)
 
     try:
-        costs_scheme = CostsScheme.objects.get(pk=costs_scheme_id)
+        # Find all schemes selected to support multiple platforms
+        all_schemes = CostsScheme.objects.filter(pk__in=costs_scheme_ids)
+        schemes_by_platform = {s.platform: s for s in all_schemes}
 
         start = date_type.fromisoformat(start_date)
         end = date_type.fromisoformat(end_date)
 
         file_data = create_timeseries_cost_excel(
-            costs_scheme, filename, start, end, customers or None
+            schemes_by_platform, filename, start, end, customers or None
         )
 
         report.file.save(filename, ContentFile(file_data.getvalue()), save=False)

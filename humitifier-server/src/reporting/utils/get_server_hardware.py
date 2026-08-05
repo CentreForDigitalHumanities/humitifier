@@ -11,6 +11,8 @@ class Server:
     hostname: str
     hardware: Hardware
     scan_date: datetime
+    platform: str
+    os: str
 
 
 def get_hardware_for_hosts(hosts: Iterable[Host]) -> list[Server]:
@@ -42,12 +44,15 @@ def get_hardware_fact(scan_obj: ScanData) -> Server | None:
     if scan_obj.parsed_data.facts[Hardware.__artefact_name__] is None:
         return None
 
+    platform = "physical"
+    os = "linux"
     if HostnameCtl.__artefact_name__ in scan_obj.parsed_data.facts:
         hostname_ctl: HostnameCtl = scan_obj.parsed_data.facts[
             HostnameCtl.__artefact_name__
         ]
-        if hostname_ctl.virtualization != "vmware":
-            return None
+        platform = hostname_ctl.virtualization
+        if hostname_ctl.os and "windows" in hostname_ctl.os.lower():
+            os = "windows"
 
     hardware: Hardware = scan_obj.parsed_data.facts[Hardware.__artefact_name__]
 
@@ -55,4 +60,6 @@ def get_hardware_fact(scan_obj: ScanData) -> Server | None:
         hostname=scan_obj.parsed_data.hostname,
         scan_date=scan_obj.scan_date,
         hardware=hardware,
+        platform=platform,
+        os=os,
     )
