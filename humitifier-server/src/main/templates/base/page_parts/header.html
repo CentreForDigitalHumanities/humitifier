@@ -8,13 +8,13 @@
     </div>
 
 
-    <form action="{% url 'hosts:list' %}" method="get" class="h-full pr-4 flex items-center w-full">
+    <form action="{% url 'hosts:list' %}" method="get" class="h-full pr-4 flex items-center w-full max-w-md mr-4 border-r border-yellow-500 dark:border-gray-700">
         <input placeholder="Search hosts..."
                class="p-2 focus-visible:outline-hidden w-full font-semibold bg-transparent text-black dark:text-white placeholder-gray-700 dark:placeholder-gray-50"
                name="fqdn">
     </form>
 
-    <div class="ml-auto cursor-pointer shrink-0" x-data="{}">
+    <div class="ml-auto cursor-pointer shrink-0 flex items-center h-full lg:pl-6 lg:border-l border-yellow-500 dark:border-gray-700" x-data="{}">
         <div class="hidden dark:block" @click="localStorage.theme = 'light';setTheme();">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5"
                  stroke="currentColor" class="size-6">
