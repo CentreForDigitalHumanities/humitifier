@@ -71,6 +71,10 @@ class StaticFilesConfig(BaseModel):
     enable_whitenoise: bool = True
 
 
+class FilesConfig(BaseModel):
+    storage_path: str = "./files"
+
+
 class CookieConfig(BaseModel):
     domain: str | None = None
     session_name: str = "humitifier_sessionid"
@@ -118,6 +122,7 @@ class HumitifierServerConfig(BaseSettings):
     django: DjangoConfig = Field(default_factory=DjangoConfig)
     database: DatabaseConfig = Field(default_factory=DatabaseConfig)
     static_files: StaticFilesConfig = Field(default_factory=StaticFilesConfig)
+    files: FilesConfig = Field(default_factory=FilesConfig)
     cookie: CookieConfig = Field(default_factory=CookieConfig)
     celery: CeleryConfig = Field(default_factory=CeleryConfig)
     sentry: SentryConfig | None = None

@@ -17,3 +17,7 @@ SCANNING_FULL_SCAN_SCHEDULER = (
 
 ALERTING_GENERATE_ALERTS = f"{SERVER_QUEUE_PREFIX}.internal.alerting.generate_alerts"
 ALERTING_SAVE_ALERTS = f"{SERVER_QUEUE_PREFIX}.internal.alerting.save_alerts"
+
+REPORTING_GENERATE_COST_REPORT = (
+    f"{SERVER_QUEUE_PREFIX}.internal.reporting.generate_cost_report"
+)

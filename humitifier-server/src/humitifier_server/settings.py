@@ -339,7 +339,13 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 STATIC_ROOT = BASE_DIR / "static"
 
+MEDIA_URL = "media/"
+MEDIA_ROOT = HUMITIFIER_CONFIG.files.storage_path
+
 STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
     "staticfiles": {
         "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
     },

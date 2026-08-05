@@ -11,8 +11,45 @@ from main.easy_tables import (
     MethodColumn,
     ValueColumn,
 )
-from reporting.models import CostsScheme
+from reporting.models import CostsScheme, GeneratedReport
 from reporting.utils import CostsBreakdown
+
+
+class GeneratedReportTable(BaseTable):
+    class Meta:
+        model = GeneratedReport
+        columns = [
+            "filename",
+            "status_display",
+            "created_at",
+            "actions",
+        ]
+
+    status_display = MethodColumn("Status", method_name="get_status_display")
+
+    created_at = DateTimeColumn(header="Created", value_attr="created_at")
+
+    actions = CompoundColumn(
+        "Actions",
+        columns=[
+            ButtonColumn(
+                text="Download",
+                button_class="btn light:btn-primary dark:btn-outline",
+                url=lambda obj: reverse("reporting:report_download", args=[obj.pk]),
+                show_check_function=lambda obj: obj.status == GeneratedReport.Status.COMPLETED,
+            ),
+        ],
+    )
+
+    @staticmethod
+    def get_status_display(obj: GeneratedReport):
+        if obj.status == GeneratedReport.Status.PENDING:
+            return "⏳ Generating…"
+        elif obj.status == GeneratedReport.Status.COMPLETED:
+            return "✓ Ready"
+        elif obj.status == GeneratedReport.Status.FAILED:
+            return "✗ Failed"
+        return obj.status
 
 
 class CostsSchemeTable(BaseTable):
