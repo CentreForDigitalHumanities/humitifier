@@ -8,12 +8,6 @@
         <div class="font-bold text-lg">{{ title }}</div>
         {% block header %}{% endblock %}
         <div class="flex gap-2">
-            {% if is_metric %}
-                <div>
-                    {% include 'icons/reload.html' %}
-                </div>
-            {% endif %}
-
             <div>
                 <div x-show="collapsed">
                     {% with icon_size='size-5' %}
