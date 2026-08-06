@@ -59,7 +59,7 @@
 
                 <input placeholder="Search metrics" class="input w-40" x-model="componentSearch">
             </div>
-            <div class="columns-1 2xl:columns-2 ultrawide:columns-3 gap-4 px-2">
+            <div class="stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-4 px-2">
                 {% for component, content in metrics.items %}
                     <div x-data="{ title: '{{ component }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
                         {{ content }}
@@ -80,7 +80,7 @@
             </div>
 
 
-            <div class="columns-1 2xl:columns-2 ultrawide:columns-3 gap-4 px-2">
+            <div class="stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-4 px-2">
                 {% for component, content in facts.items %}
                     <div x-data="{ title: '{{ component }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
                         {{ content }}
@@ -90,4 +90,49 @@
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        // Stable multi-column layout: items are assigned to a fixed column
+        // (round-robin by index), so they don't jump between columns when
+        // their height changes (e.g. when collapsing/expanding components).
+        // The column count matches the Tailwind breakpoints on the container:
+        // 1 column by default, 2 from 'xl' (80rem), 3 from 'ultrawide' (100rem).
+        const twoColumnQuery = window.matchMedia('(min-width: 80rem)');
+        const threeColumnQuery = window.matchMedia('(min-width: 100rem)');
+
+        function getColumnCount() {
+            if (threeColumnQuery.matches) return 3;
+            if (twoColumnQuery.matches) return 2;
+            return 1;
+        }
+
+        function distribute(container, items) {
+            const columnCount = getColumnCount();
+
+            const columns = [];
+            for (let i = 0; i < columnCount; i++) {
+                columns.push(document.createElement('div'));
+            }
+
+            items.forEach(function (item, index) {
+                columns[index % columnCount].appendChild(item);
+            });
+
+            container.replaceChildren(...columns);
+        }
+
+        document.querySelectorAll('.stable-columns').forEach(function (container) {
+            const items = Array.from(container.children);
+
+            distribute(container, items);
+
+            [twoColumnQuery, threeColumnQuery].forEach(function (query) {
+                query.addEventListener('change', function () {
+                    distribute(container, items);
+                });
+            });
+        });
+    })();
+</script>
 
