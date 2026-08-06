@@ -103,6 +103,7 @@ jobs:
           HUMITIFIER_SERVER_DATABASE__HOST: ${{ env.POSTGRES_HOST }}
           HUMITIFIER_SERVER_DATABASE__PORT: ${{ env.POSTGRES_PORT }}
           HUMITIFIER_SERVER_CELERY__RABBIT_MQ_URL: ${{ env.RABBITMQ_URL }}
+          HUMITIFIER_SERVER_STATIC_FILES__ENABLE_WHITENOISE: false
         run: |
           source $VENV
           python src/manage.py test src/
