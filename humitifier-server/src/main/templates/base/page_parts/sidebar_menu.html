@@ -4,13 +4,13 @@
         {% if item.visible %}
             {% if item.separator %}
                 <li class="px-3 py-2">
-                    <div class="border-t w-full border-gray-700"></div>
+                    <div class="border-t w-full border-gray-800"></div>
                 </li>
             {% endif %}
             <li x-data="{show_children: {{ item.child_selected|yesno:'true,false' }} }" class="w-full">
                 {% if item.children %}
                     <div
-                        class="flex w-full items-center gap-3 py-2 px-3 cursor-pointer text-white text-sm hover:bg-gray-800 rounded-md transition ease-in-out duration-150"
+                        class="flex w-full items-center gap-3 py-2 px-3 cursor-pointer text-gray-300 hover:text-white text-sm hover:bg-gray-800 rounded-md transition ease-in-out duration-150"
                         @click="show_children = !show_children"
                     >
                         {% if item.icon %}
@@ -19,7 +19,7 @@
                         <span>
                             {{ item.title }}
                         </span>
-                        <div class="ml-auto">
+                        <div class="ml-auto text-gray-500">
                             <div x-show="show_children">
                                 {% with icon_size='size-5' %}
                                     {% include 'icons/chevron-up.html' %}
@@ -34,7 +34,7 @@
                     </div>
 
                     <div
-                        class="hidden mt-2 ml-4 pl-2 border-l border-gray-700"
+                        class="hidden mt-2 ml-4 pl-2 border-l border-gray-800"
                         x-bind:class="show_children && 'flex!'"
                     >
                         {% with menu_items=item.children %}
@@ -47,7 +47,7 @@
                     <a
                         href="{{ item.url }}"
                         target="{{ item.target }}"
-                        class="flex gap-3 py-2 px-3 text-white text-sm hover:bg-gray-800 rounded-md transition ease-in-out duration-150 {% if item.selected %}bg-gray-800{% endif %}"
+                        class="flex gap-3 py-2 px-3 text-sm rounded-md border-l-2 transition ease-in-out duration-150 {% if item.selected %}bg-gray-800 border-primary text-primary font-semibold{% else %}border-transparent text-gray-300 hover:text-white hover:bg-gray-800{% endif %}"
                     >
                         {% if item.icon %}
                             {% include item.icon %}
