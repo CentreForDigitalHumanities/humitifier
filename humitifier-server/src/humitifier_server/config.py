@@ -57,6 +57,7 @@ class DjangoConfig(BaseModel):
     allowed_hosts: list[str] = []
     enable_https: bool = False
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    enable_automigrate: bool = True
 
 
 class DatabaseConfig(BaseModel):
