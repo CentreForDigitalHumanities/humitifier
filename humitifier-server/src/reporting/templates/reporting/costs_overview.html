@@ -6,73 +6,86 @@
 {% block content %}
     <div class="h-full--header w-full bg-default py-5">
         <div class="px-7 mb-5">
-            <h1 class="text-3xl font-bold">Server costs overview</h1>
+            <h1 class="text-2xl font-bold">Server costs overview</h1>
 
-            <div class="flex items-center gap-3 p-3 mt-4 rounded-sm bg-blue-300 dark:bg-blue-800">
-                {% include 'icons/info.html' %}
+            <div class="flex items-center gap-2.5 px-3 py-2 mt-4 text-sm rounded-md border-l-4 border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200">
+                {% with icon_size='size-4' %}
+                    {% include 'icons/info.html' %}
+                {% endwith %}
                 <div>
                     This calculator provides estimates only and actual costs may vary. Please ask your contact if you require definitive answers.
                 </div>
             </div>
 
-            <div class="mt-5 flex gap-6">
-                <div class="lg:w-96">
-                    <form method="post">
-                        {% csrf_token %}
-                        {{ form }}
-
-                        <div class="flex gap-2 mt-6">
-                            <button type="submit"
-                                    class="btn light:btn-primary dark:btn-outline">
-                                Calculate
-                            </button>
+            <div class="mt-8 flex flex-col lg:flex-row gap-6">
+                <div class="lg:w-96 shrink-0">
+                    <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700">
+                        <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                            Parameters
                         </div>
-                    </form>
+                        <div class="p-4 text-sm">
+                            <form method="post">
+                                {% csrf_token %}
+                                {{ form }}
+
+                                <div class="flex gap-2 mt-6">
+                                    <button type="submit"
+                                            class="btn btn-sm light:btn-primary dark:btn-outline">
+                                        Calculate
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
                 {% if total_vm_costs %}
-                    <div>
-                        <h2 class="text-xl font-bold">
-                            Total costs
-                        </h2>
-                        <table class="mt-3">
-                            <tbody>
-                                <tr>
-                                    <td colspan="2" class="p-2 border border-gray-200 dark:border-gray-700">
-                                        Total VM costs
-                                    </td>
-                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
-                                        {{ total_vm_costs|floatformat:2 }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
-                                        Total storage
-                                    </td>
-                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
-                                        {{ total_storage_usage|intcomma }} GB
-                                    </td>
-                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
-                                        {{ total_storage_costs|floatformat:2 }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" class="p-2 border border-gray-200 dark:border-gray-700">
-                                        Total support costs
-                                    </td>
-                                    <td class="p-2 border border-gray-200 dark:border-gray-700">
-                                        {{ total_management_costs|floatformat:2 }}
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td colspan="2" class="p-2 border border-gray-200 border-t-2 dark:border-gray-700">
-                                        Total costs
-                                    </td>
-                                    <td class="p-2 border border-gray-200 border-t-2 dark:border-gray-700">
-                                        {{ total_costs|floatformat:2 }}
-                                    </td>
-                                </tr>
-                            </tbody>
-                        </table>
+                    <div class="grow lg:max-w-md">
+                        <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                            <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                                Total costs breakdown
+                            </div>
+                            <div class="p-0 text-sm">
+                                <table class="w-full">
+                                    <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
+                                        <tr>
+                                            <td colspan="2" class="px-4 py-2.5">
+                                                Total VM costs
+                                            </td>
+                                            <td class="px-4 py-2.5 font-mono text-right">
+                                                {{ total_vm_costs|floatformat:2 }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td class="px-4 py-2.5">
+                                                Total storage
+                                            </td>
+                                            <td class="px-4 py-2.5 text-gray-500 text-xs">
+                                                {{ total_storage_usage|intcomma }} GB
+                                            </td>
+                                            <td class="px-4 py-2.5 font-mono text-right">
+                                                {{ total_storage_costs|floatformat:2 }}
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="2" class="px-4 py-2.5">
+                                                Total support costs
+                                            </td>
+                                            <td class="px-4 py-2.5 font-mono text-right">
+                                                {{ total_management_costs|floatformat:2 }}
+                                            </td>
+                                        </tr>
+                                        <tr class="bg-gray-100 dark:bg-gray-800 font-bold">
+                                            <td colspan="2" class="px-4 py-3">
+                                                Total costs
+                                            </td>
+                                            <td class="px-4 py-3 font-mono text-right text-base">
+                                                {{ total_costs|floatformat:2 }}
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
                 {% endif %}
             </div>

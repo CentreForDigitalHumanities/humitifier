@@ -6,28 +6,36 @@
 {% block page_title %}Hosts | {{ block.super }}{% endblock %}
 
 {% block content %}
-    <div class="h-full--header w-full bg-default transition ease-in-out duration-150">
-        <div class="px-7 py-5 flex justify-between">
-            <h1 class="text-3xl font-bold">Export host data</h1>
+    <div class="h-full--header w-full bg-default transition ease-in-out duration-150 text-sm">
+        <div class="px-7 py-5">
+            <h1 class="text-2xl font-bold">Export host data</h1>
         </div>
-        <p class="px-7 pt-5">
-            Here you can export the host data in either CSV or host-list format. You can filter the data before exporting.<br/>
-            CSV's contain hostname, os, department, customer, contact, creation date, archival data and last seen date. Host-lists contain only the hostname.
-        </p>
-        <div class="px-7 py-5 flex justify-between">
-            <h1 class="text-xl font-bold">Filters</h1>
+
+        <div class="px-7 mb-6">
+            <p>
+                Here you can export the host data in either CSV or host-list format. You can filter the data before exporting.<br/>
+                CSV's contain hostname, os, department, customer, contact, creation date, archival data and last seen date. Host-lists contain only the hostname.
+            </p>
         </div>
-        <form method="post" class="px-7 flex flex-col gap-3 max-w-xl">
-            {% csrf_token %}
-            {{ filterset.form }}
-            <div class="flex gap-2 w-full">
-                <button class="btn light:btn-primary dark:btn-outline grow" type="submit" name="csv">
-                    Export as CSV
-                </button>
-                <button class="btn light:btn-primary dark:btn-outline grow" type="submit" name="host-list">
-                    Export as host-list
-                </button>
+
+        <div class="mx-7 max-w-xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+            <div class="flex justify-between items-center px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                Filters
             </div>
-        </form>
+            <form method="post" class="p-6 flex flex-col gap-4">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    {{ filterset.form }}
+                </div>
+                <div class="flex gap-2 w-full mt-2">
+                    <button class="btn btn-sm btn-primary grow" type="submit" name="csv">
+                        Export as CSV
+                    </button>
+                    <button class="btn btn-sm btn-primary grow" type="submit" name="host-list">
+                        Export as host-list
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 {% endblock %}

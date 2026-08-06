@@ -1,22 +1,38 @@
 {% extends 'base/base_page_template.html' %}
 
 {% block content %}
-    <div class="h-full--header w-full bg-default px-7 py-5 ">
-        <h1 class="text-3xl font-bold">Delete costs scheme</h1>
-        <p class="mt-6">
-            Are you sure you want to delete the costs scheme "{{ object }}"?
-        </p>
-        <form method="post">
-            {% csrf_token %}
-            {{ form }}
-            <div class="flex gap-2 mt-6">
-                <a href="{% url 'reporting:costs_list' %}" class="btn btn-outline">
-                    Cancel
-                </a>
-                <button type="submit" class="btn btn-danger">
-                    Confirm
-                </button>
+    <div class="h-full--header w-full bg-default px-7 py-5">
+        <h1 class="text-2xl font-bold">Delete costs scheme</h1>
+
+        <div class="mt-8 lg:max-w-xl">
+            <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                    Confirm deletion
+                </div>
+                <div class="p-4 text-sm">
+                    <div class="flex items-center gap-2.5 px-3 py-2 mb-6 text-sm rounded-md border-l-4 border-red-500 bg-red-100 text-red-900 dark:bg-red-950/60 dark:text-red-200">
+                        {% with icon_size='size-4' %}
+                            {% include 'icons/exclamation-circle.html' %}
+                        {% endwith %}
+                        <div>
+                            Are you sure you want to delete the costs scheme <strong>"{{ object }}"</strong>?
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form }}
+                        <div class="flex gap-2">
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                Confirm
+                            </button>
+                            <a href="{% url 'reporting:costs_list' %}" class="btn btn-sm btn-outline">
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </form>
+        </div>
     </div>
 {% endblock %}

@@ -55,72 +55,90 @@ document.addEventListener("alpine:init", () => {
 
 {% block content %}
     <div class="h-full--header w-full bg-default px-7 py-5">
-        {% if object %}
-            <h1 class="text-3xl font-bold">Edit scan specifications</h1>
-        {% else %}
-            <h1 class="text-3xl font-bold">Create scan specifications</h1>
-        {% endif %}
+        <h1 class="text-2xl font-bold">
+            {% if object %}Edit scan specifications{% else %}Create scan specifications{% endif %}
+        </h1>
 
-        <div class="flex gap-10 mt-8">
-            <form method="post" class="max-w-xl w-full"  x-data="formset">
-                {% csrf_token %}
-
-                {{ form }}
-
-                {% if object %}
-                    {{ formset.management_form }}
-
-                    <h1 class="text-xl font-bold mb-3">Individual artefacts</h1>
-
-                    <div class="forms">
-                        {% for subform in formset %}
-                            <div class="bg-gray-200 dark:bg-gray-700 mb-5 p-5">
-                                {{ subform }}
-                            </div>
-                        {% endfor %}
-
-                        <template>
-                            <div class="bg-gray-200 dark:bg-gray-700 mb-5 p-5">
-                                {{ formset.empty_form }}
-                            </div>
-                        </template>
+        <div class="flex flex-col lg:flex-row gap-8 mt-8">
+            <div class="max-w-xl w-full">
+                <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                        Specification details
                     </div>
-                    <div class="flex w-full justify-end">
-                        <button class="btn btn-outline" type="button" @click="addForm()">Add form</button>
-                    </div>
-                {% endif %}
+                    <div class="p-4 text-sm">
+                        <form method="post" x-data="formset">
+                            {% csrf_token %}
 
-                <div class="flex gap-2 mt-6">
-                    <a href="{% url 'scanning:scan_specs' %}"
-                       class="btn btn-outline">
-                        Cancel
-                    </a>
-                    <button type="submit"
-                            class="btn light:btn-primary dark:btn-outline">
-                        Confirm
-                    </button>
+                            {{ form }}
+
+                            {% if object %}
+                                {{ formset.management_form }}
+
+                                <div class="flex items-center gap-3 mb-3 mt-8">
+                                    <h3 class="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+                                        Individual artefacts
+                                    </h3>
+                                    <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
+                                </div>
+
+                                <div class="forms flex flex-col gap-3">
+                                    {% for subform in formset %}
+                                        <div class="rounded-md bg-gray-50 dark:bg-gray-800/60 p-3 border border-gray-200 dark:border-gray-700">
+                                            {{ subform }}
+                                        </div>
+                                    {% endfor %}
+
+                                    <template>
+                                        <div class="rounded-md bg-gray-50 dark:bg-gray-800/60 p-3 border border-gray-200 dark:border-gray-700">
+                                            {{ formset.empty_form }}
+                                        </div>
+                                    </template>
+                                </div>
+                                <div class="flex w-full justify-end mt-3">
+                                    <button class="btn btn-sm btn-outline" type="button" @click="addForm()">Add form</button>
+                                </div>
+                            {% endif %}
+
+                            <div class="flex gap-2 mt-8">
+                                <button type="submit"
+                                        class="btn btn-sm btn-primary">
+                                    Confirm
+                                </button>
+                                <a href="{% url 'scanning:scan_specs' %}"
+                                   class="btn btn-sm btn-outline">
+                                    Cancel
+                                </a>
+                            </div>
+                        </form>
+                    </div>
                 </div>
-            </form>
+            </div>
 
             {# Add a fake form to display the parents value #}
             {% if object and object.parent %}
-                <div class="max-w-xl">
-                    <h1 class="text-xl font-bold mb-3">Parent information</h1>
+                <div class="grow lg:max-w-md">
+                    <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                            Parent information
+                        </div>
+                        <div class="p-4 text-sm">
+                            <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-1.5 gap-x-3 text-sm">
+                                <div class="font-semibold text-gray-600 dark:text-gray-300">Name</div>
+                                <div>{{ object.parent.name }}</div>
 
-                    <div class="font-semibold mb-1">Name</div>
-                    <div class="mb-3">{{ object.parent.name }}</div>
+                                {% if object.parent.parent %}
+                                    <div class="font-semibold text-gray-600 dark:text-gray-300">Parent</div>
+                                    <div>{{ object.parent.parent.name }}</div>
+                                {% endif %}
 
-                    {% if object.parent.parent %}
-                        <div class="font-semibold mb-1">Parent</div>
-                        <div class="mb-3">{{ object.parent.parent.name }}</div>
-                    {% endif %}
+                                <div class="font-semibold text-gray-600 dark:text-gray-300">Artefact groups</div>
+                                <div>{{ object.parent.get_artefact_groups_display }}</div>
 
-                    <div class="font-semibold mb-1">Artefact groups</div>
-                    <div class="mb-3">{{ object.parent.get_artefact_groups_display }}</div>
-
-                    <div class="font-semibold mb-1">Individual artefacts</div>
-                    <div class="mb-3">{{ object.parent.get_artefacts_display }}</div>
-
+                                <div class="font-semibold text-gray-600 dark:text-gray-300">Individual artefacts</div>
+                                <div>{{ object.parent.get_artefacts_display }}</div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             {% endif %}
         </div>

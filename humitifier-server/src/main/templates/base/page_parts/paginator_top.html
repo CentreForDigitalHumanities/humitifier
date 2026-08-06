@@ -1,7 +1,7 @@
 {% load param_replace %}
 
 <div class="flex justify-between xl:items-end flex-col xl:flex-row gap-3" x-data="{show_filters: false}">
-    <div>
+    <div class="text-sm text-gray-600 dark:text-gray-400">
         {% if paginator_middle is None or paginator_middle is True %}
             Total items: {{ paginator.count }} |
             Page {{ page_obj.number }} of {{ paginator.num_pages }}
@@ -10,18 +10,18 @@
 
     <div class="flex gap-2">
         <div class="relative"  @click.outside="show_filters = false">
-            <button class="btn btn-sm light:btn-primary dark:btn-outline" @click="show_filters = !show_filters">
+            <button class="btn btn-sm btn-outline" @click="show_filters = !show_filters">
                 Filters
             </button>
-            <div class="absolute left-0 xl:right-0 xl:left-auto top-11 z-10 bg-white rounded-lg shadow-sm w-[calc(100vw-3.5rem)] md:w-80 dark:bg-gray-800 hidden" x-bind:class="show_filters ? 'block!' : 'hidden'">
+            <div class="absolute left-0 xl:right-0 xl:left-auto top-11 z-10 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 shadow-lg w-[calc(100vw-3.5rem)] md:w-80 hidden" x-bind:class="show_filters ? 'block!' : 'hidden'">
                 <form method="get" class="p-5 flex gap-3 flex-row flex-wrap items-stretch"  x-ref="filtering_form">
                     {{ filterset.form }}
                     <input type="hidden" name="page" value="{{ page_obj.number }}" x-ref="actual_page_field">
                     <input type="hidden" name="page_size" value="{{ paginator.per_page }}" x-ref="actual_page_size_field">
                     <input type="hidden" name="ordering" value="{{ ordering }}" x-ref="actual_ordering_field">
                     <div class="flex justify-end items-end gap-x-2 ml-auto text-sm">
-                        <button class="btn btn-outline" type="reset">Reset</button>
-                        <button class="btn btn-outline" type="submit">Apply</button>
+                        <button class="btn btn-sm btn-outline" type="reset">Reset</button>
+                        <button class="btn btn-sm btn-outline" type="submit">Apply</button>
                     </div>
                 </form>
             </div>
@@ -48,15 +48,15 @@
             <div class="mr-3"> {# spacer #}</div>
 
             {% if page_obj.has_previous %}
-                <a href="?{% param_replace page=page_obj.previous_page_number %}" class="btn btn-sm light:btn-primary dark:btn-outline">Previous</a>
+                <a href="?{% param_replace page=page_obj.previous_page_number %}" class="btn btn-sm btn-outline">Previous</a>
             {% else %}
-                <div class="btn btn-sm light:btn-primary dark:btn-outline cursor-not-allowed text-gray-400">Previous</div>
+                <div class="btn btn-sm btn-outline cursor-not-allowed opacity-50">Previous</div>
             {% endif %}
             {% if page_obj.has_next %}
                 <a href="?{% param_replace page=page_obj.next_page_number %}"
-                   class="btn btn-sm light:btn-primary dark:btn-outline">Next</a>
+                   class="btn btn-sm btn-outline">Next</a>
             {% else %}
-                <div class="btn btn-sm light:btn-primary dark:btn-outline cursor-not-allowed text-gray-400">Next</div>
+                <div class="btn btn-sm btn-outline cursor-not-allowed opacity-50">Next</div>
             {% endif %}
         {% endif %}
     </div>

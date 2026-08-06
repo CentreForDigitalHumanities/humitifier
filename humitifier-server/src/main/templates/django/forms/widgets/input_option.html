@@ -1,5 +1,5 @@
 {% if widget.wrap_label %}
-    <label{% if widget.attrs.id %} for="{{ widget.attrs.id }}"{% endif %} class="flex gap-2 justify-start">
+    <label{% if widget.attrs.id %} for="{{ widget.attrs.id }}"{% endif %} class="flex gap-2 items-center text-sm font-semibold">
 {% endif %}
 {% include "django/forms/widgets/input_option_field.html" %}
 {% if widget.wrap_label %}

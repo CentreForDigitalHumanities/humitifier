@@ -1,5 +1,5 @@
 {% if errors %}
-    <div class="text-red-500 mb-4">
+    <div class="text-sm text-red-600 dark:text-red-400 mb-4">
     {{ errors }}
     </div>
 {% endif %}
@@ -11,7 +11,7 @@
     {{ field.as_field_group }}
 
     {% if errors %}
-        <div class="text-red-500 text-sm mt-1">
+        <div class="text-sm text-red-600 dark:text-red-400 mt-1">
             {% for error in errors %}
                 {{ error }}
             {% endfor %}

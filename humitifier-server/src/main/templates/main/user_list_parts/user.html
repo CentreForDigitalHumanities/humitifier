@@ -9,12 +9,18 @@
     <td class="hidden xl:table-cell">
         {{ user.get_access_profile_display }}
     </td>
-    <td class="hidden 2xl:table-cell">
-        {{ user.is_active|yesno:"Yes,No" }} {# TODO: icon? #}
+    <td class="hidden 2xl:table-cell px-2">
+        {% if user.is_active %}
+            <span class="inline-flex items-center rounded-full border border-blue-500/30 bg-blue-100 px-2.5 py-0.5 text-xs font-semibold text-blue-900 dark:bg-blue-950/60 dark:text-blue-200">Yes</span>
+        {% else %}
+            <span class="inline-flex items-center rounded-full border border-red-500/30 bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-900 dark:bg-red-950/60 dark:text-red-200">No</span>
+        {% endif %}
     </td>
     {% if layout.oidc_enabled %}
-        <td class="hidden lg:table-cell">
-            {{ user.is_local_account|yesno:"Local,Solis" }}
+        <td class="hidden lg:table-cell px-2">
+            <span class="inline-flex items-center rounded-full border border-gray-300 dark:border-gray-700 px-2.5 py-0.5 text-xs text-gray-600 dark:text-gray-400">
+                {{ user.is_local_account|yesno:"Local,Solis" }}
+            </span>
         </td>
     {% endif %}
     <td class="pr-7 py-3">

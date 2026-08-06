@@ -158,7 +158,8 @@ class CompoundColumn(BaseColumn):
 
     def render(self, obj):
         output = [column.render(obj) for column in self.columns]
-        return mark_safe(" ".join(output))
+        output = " ".join(output)
+        return mark_safe(f'<div class="text-nowrap">{output}</div>')
 
 
 class DateColumn(ValueColumn):

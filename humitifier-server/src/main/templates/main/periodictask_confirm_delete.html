@@ -1,22 +1,34 @@
 {% extends 'base/base_page_template.html' %}
 
 {% block content %}
-    <div class="h-full--header w-full bg-default px-7 py-5 ">
-        <h1 class="text-3xl font-bold">Delete periodic task</h1>
-        <p class="mt-6">
-            Are you sure you want to delete the periodic task "{{ object }}"?
-        </p>
-        <form method="post">
-            {% csrf_token %}
-            {{ form }}
-            <div class="flex gap-2 mt-6">
-                <a href="{% url 'main:periodic_tasks' %}" class="btn btn-outline">
-                    Cancel
-                </a>
-                <button type="submit" class="btn btn-danger">
-                    Confirm
-                </button>
+    <div class="h-full--header w-full bg-default px-7 py-5">
+        <h1 class="text-2xl font-bold">Delete periodic task</h1>
+
+        <div class="mt-8 max-w-2xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+            <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                Confirm deletion
             </div>
-        </form>
+            <div class="p-6 text-sm">
+                <div class="mb-6 flex items-center gap-2.5 px-3 py-2 text-sm rounded-md border-l-4 border-red-500 bg-red-100 text-red-900 dark:bg-red-950/60 dark:text-red-200">
+                    {% include 'icons/critical.html' %}
+                    <div>
+                        Are you sure you want to delete the periodic task "<strong>{{ object }}</strong>"?
+                    </div>
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form }}
+                    <div class="flex gap-2 mt-6">
+                        <a href="{% url 'main:periodic_tasks' %}" class="btn btn-sm btn-outline">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-sm btn-danger">
+                            Confirm Deletion
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 {% endblock %}

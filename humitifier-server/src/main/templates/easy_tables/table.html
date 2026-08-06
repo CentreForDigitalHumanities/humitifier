@@ -5,10 +5,10 @@
 {% endif %}
 
  <table class="w-full table-auto">
-     <thead>
-        <tr class="text-left">
+    <thead class="text-left sticky bg-gray-50 dark:bg-gray-900 top-14 border-b-4 border-gray-200 dark:border-gray-700 outline-1 outline-gray-200 dark:outline-gray-700">
+        <tr >
             {% for column in columns.values %}
-                <th class="{% if forloop.first %}pl-7 {% endif %}{% if forloop.last %}pr-7 {% endif %}py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 {{ column.header_classes }}">
+                <th class="pr-2 {% if forloop.first %}pl-7 {% endif %}{% if forloop.last %}pr-7 {% endif %}pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 transition ease-in-out duration-150 {{ column.header_classes }}">
                     {{ column.header|default:"unknown"|capfirst }}
                 </th>
             {% endfor %}
@@ -16,9 +16,9 @@
     </thead>
     <tbody>
         {% for row in rows %}
-            <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+            <tr class="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150 text-sm">
                 {% for column, content in row %}
-                    <td class="{% if forloop.first %}pl-7 {% endif %}{% if forloop.last %}pr-7 {% endif %}py-5 {{ column.column_classes }}">
+                    <td class="pr-2 {% if forloop.first %}pl-7 {% endif %}{% if forloop.last %}pr-7 {% endif %}py-3.5 {{ column.column_classes }}">
                         {{ content }}
                     </td>
                 {% endfor %}
@@ -29,7 +29,7 @@
 
 {# Not in the table as it's a pain to deal with colspan and responsiveness #}
 {% if rows|length == 0 %}
-    <div class="pl-7 py-8 text-center" >
+    <div class="pl-7 py-10 text-center text-sm text-gray-500" >
         {{ no_data_message }}
     </div>
 {% endif %}

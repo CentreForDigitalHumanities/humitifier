@@ -387,36 +387,36 @@
         {% endif %}
     </div>
     <div class="p-3">
-        <div class="section transition ease-in-out duration-150">
-            <h2 class="text-2xl font-bold" id="alerts">
+        <div class="section transition ease-in-out duration-150 px-0">
+            <h2 class="text-2xl font-bold px-7" id="alerts">
                 Alerts
             </h2>
-            <div class="py-4">
+            <div class="py-4 px-7">
                 {% include 'base/page_parts/paginator_top.html' %}
             </div>
             <table class="w-full table-auto">
-                <thead>
-                <tr class="text-left">
-                    <th class="pl-7 py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150 rounded-tl">
-                        Hostname
-                    </th>
-                    <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
-                        Severity
-                    </th>
-                    <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
-                        Acknowledged
-                    </th>
-                    <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
-                        Type
-                    </th>
-                    <th class="py-3 bg-gray-200 dark:bg-gray-700 hidden lg:table-cell transition ease-in-out duration-150 rounded-tr">
-                        Message
-                    </th>
-                </tr>
+                <thead class="text-left sticky bg-white dark:bg-gray-900 top-14 border-b-4 border-gray-200 dark:border-gray-700 outline-1 outline-gray-200 dark:outline-gray-700">
+                    <tr class="text-left">
+                        <th class="pl-7 pr-3 pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 transition ease-in-out duration-150 rounded-tl-md">
+                            Hostname
+                        </th>
+                        <th class="pt-3 pb-2.5 pr-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                            Severity
+                        </th>
+                        <th class="pt-3 pb-2.5 pr-3  text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                            Acknowledged
+                        </th>
+                        <th class="pt-3 pb-2.5 pr-3 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                            Type
+                        </th>
+                        <th class="pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 hidden lg:table-cell transition ease-in-out duration-150 rounded-tr-md">
+                            Message
+                        </th>
+                    </tr>
                 </thead>
                 <tbody>
                 {% for alert in object_list %}
-                    <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
+                    <tr class="text-sm border-b border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
                         <td class="py-3 pl-7">
                             <a href="{% url 'hosts:detail' alert.host.fqdn %}" class="underline">
                                 {{ alert.host.fqdn }}
@@ -438,7 +438,7 @@
                 {% endfor %}
                 {% if object_list.count == 0 %}
                     <tr>
-                        <td colspan="3" class="text-center py-10">
+                        <td colspan="3" class="text-center py-10 text-sm text-gray-500">
                             {% if layout.wild_wasteland %}
                                 No hosts found, have you looked under the rug?
                             {% else %}

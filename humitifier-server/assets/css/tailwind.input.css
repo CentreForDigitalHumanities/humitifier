@@ -122,7 +122,7 @@
 }
 
 @utility section {
-  @apply bg-default p-7 pt-5 rounded-sm border border-gray-300 dark:border-gray-700;
+  @apply bg-white dark:bg-gray-900 p-7 pt-5 rounded-md border border-gray-200 dark:border-gray-700 transition duration-150;
 }
 
 @utility text-green {
@@ -164,7 +164,7 @@
 }
 
 @utility btn {
-  @apply px-3 py-2 font-bold rounded-sm transition duration-150 ease-in-out border border-primary cursor-pointer;
+  @apply px-3 py-2 font-bold rounded-sm transition duration-150 ease-in-out border border-primary cursor-pointer text-nowrap;
 }
 
 @utility btn-sm {

@@ -50,7 +50,6 @@ class HostsTable(BaseTable):
         columns = [
             "fqdn",
             "os",
-            "hypervisor",
             "last_scan_date",
             "created_at",
             "customer",

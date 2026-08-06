@@ -1,20 +1,24 @@
 <span x-data="{show: false}">
-    <button class="btn btn-outline" @click="show = !show">
+    <button class="btn btn-sm btn-outline" @click="show = !show">
         Preview
     </button>
 
-    <div class="absolute top-0 left-0 w-screen h-screen items-center justify-center z-50 bg-black bg-opacity-20" x-bind:class="show ? 'flex': 'hidden'" @click="show = false">
-        <div class="bg-white dark:bg-gray-700 rounded-sm p-4 max-w-full max-h-full min-w-[600px]" @click.stop="">
-            <div class="flex justify-between">
-                <h1 class="text-lg font-bold">
+    <div class="fixed inset-0 flex items-center justify-center z-40 bg-black/30 backdrop-blur-sm" x-show="show" @click="show = false" style="display: none;">
+        <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col mx-4" @click.stop="">
+            <div class="flex justify-between items-center px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800">
+                <h3 class="text-sm font-semibold">
                     Scan specification preview
-                </h1>
-                <button class="cursor-pointer" @click="show = false">
-                    {% include 'icons/clear.html' %}
+                </h3>
+                <button class="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors" @click="show = false">
+                    {% with icon_size='size-5' %}
+                        {% include 'icons/clear.html' %}
+                    {% endwith %}
                 </button>
             </div>
-            <div class="bg-gray-200 dark:bg-gray-900 rounded-sm p-3 mt-5">
-                <pre>{{ obj.preview }}</pre>
+            <div class="p-4 overflow-auto bg-white dark:bg-gray-900">
+                <div class="rounded-md bg-gray-50 dark:bg-gray-800/60 p-3 border border-gray-200 dark:border-gray-700 font-mono text-xs">
+                    <pre class="whitespace-pre-wrap">{{ obj.preview }}</pre>
+                </div>
             </div>
         </div>
     </div>

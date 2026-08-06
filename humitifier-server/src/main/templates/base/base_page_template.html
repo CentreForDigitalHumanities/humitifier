@@ -30,7 +30,7 @@
     <div class="z-50 absolute right-2 bottom-2 p-2 max-w-full md:max-w-md flex flex-col gap-3">
         {% for message in messages %}
             <div
-                class="{{ message.level|map_message_colors }} rounded-sm flex items-stretch"
+                class="{{ message.level|map_message_colors }} rounded-md border-l-4 text-sm shadow-lg flex items-stretch"
                 x-data="{hide: false}"
                 :class="hide && 'hidden'"
             >

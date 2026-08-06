@@ -3,23 +3,30 @@
 {% block content %}
     <div class="h-full--header w-full bg-default px-7 py-5">
         {% if object %}
-            <h1 class="text-3xl font-bold">Edit OAuth2 Application</h1>
+            <h1 class="text-2xl font-bold mb-6">Edit OAuth2 Application</h1>
         {% else %}
-            <h1 class="text-3xl font-bold">Create OAuth2 Application</h1>
+            <h1 class="text-2xl font-bold mb-6">Create OAuth2 Application</h1>
         {% endif %}
 
-        <form method="post" class="max-w-xl mt-8">
-            {% csrf_token %}
-            {{ form }}
-
-            <div class="flex gap-2 mt-6">
-                <a href="{% url 'api:oauth_applications' %}" class="btn btn-outline">
-                    Cancel
-                </a>
-                <button type="submit" class="btn light:btn-primary dark:btn-outline">
-                    Confirm
-                </button>
+        <div class="max-w-2xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+            <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                Application Details
             </div>
-        </form>
+            <div class="p-4 text-sm">
+                <form method="post">
+                    {% csrf_token %}
+                    {{ form }}
+
+                    <div class="flex gap-2 mt-6">
+                        <button type="submit" class="btn btn-primary">
+                            Confirm
+                        </button>
+                        <a href="{% url 'api:oauth_applications' %}" class="btn btn-sm btn-outline">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 {% endblock %}
