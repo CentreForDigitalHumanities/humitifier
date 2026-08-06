@@ -9,7 +9,7 @@
         </svg>
     </div>
 
-    <section class="w-full p-4 mb-3 flex items-center gap-4 border-b-2 border-gray-700">
+    <section class="w-full p-4 mb-3 flex items-center gap-4">
         {% if layout.wild_wasteland %}
             <a href="https://commons.wikimedia.org/wiki/File:Cat_python.png" target="_blank" class="flex-shrink-0">
                 <img
@@ -28,7 +28,7 @@
         </div>
     </section>
 
-    <div class="mx-3 mb-2 px-2 py-1 flex justify-between items-stretch font-semibold rounded-md border border-gray-800 bg-gray-900">
+    <div class="mx-3 mb-3 px-2 py-1 flex justify-between items-stretch font-semibold rounded-md border border-gray-800 bg-gray-900">
         <a class="flex items-center gap-2 py-1.5 px-2 rounded-md text-primary hover:bg-gray-800 transition duration-150" href="{% url 'hosts:list' %}">
             {% with stroke="stroke-2" %}
                 {% include 'icons/host.html' %}
