@@ -1,7 +1,7 @@
-<div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden break-inside-avoid mb-3 transition duration-150" x-data="{ collapsed: false, {% for setting, value in alpinejs_settings.items %}{{ setting }}: {{ value }},{% endfor %} }">
+<div class="bg-white dark:bg-gray-900 rounded-md border border-gray-300 dark:border-gray-700 overflow-hidden break-inside-avoid mb-3 transition duration-150" x-data="{ collapsed: false, {% for setting, value in alpinejs_settings.items %}{{ setting }}: {{ value }},{% endfor %} }">
 
     <div
-        class="flex justify-between items-center gap-3 px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 hover:bg-gray-100 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-800 cursor-pointer select-none transition duration-150"
+        class="flex justify-between items-center gap-3 px-4 py-2.5 bg-white dark:bg-gray-800/60 hover:bg-gray-50 dark:hover:bg-gray-800 border-gray-300 dark:border-gray-800 cursor-pointer select-none transition duration-150"
         x-bind:class="collapsed ? '' : 'border-b'"
         @click="collapsed = !collapsed"
     >
