@@ -127,6 +127,12 @@ def layout_context(request):
             "Polar bears are almost all left-handed",
             "Snails can sleep for three years",
             "Please don't forget to maintain 'Coder'",
+            "Real-time data from three days ago",
+            "Track everything, understand nothing",
+            "Connecting the dots that shouldn't be connected",
+            "Powered by caffeine and architectural panic",
+            "Powered by caffeine and architectural panic, with a dash of [REDACTED]",
+            "Press buttons to see what breaks next",
             # @formatter:on
         ]
         tag_line = random.choice(jokes)
