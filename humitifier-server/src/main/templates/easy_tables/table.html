@@ -16,7 +16,7 @@
     </thead>
     <tbody>
         {% for row in rows %}
-            <tr class="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150 text-sm">
+            <tr class="border-b bg-gray-100 dark:bg-gray-900 border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150 text-sm">
                 {% for column, content in row %}
                     <td class="pr-2 {% if forloop.first %}pl-7 {% endif %}{% if forloop.last %}pr-7 {% endif %}py-3.5 {{ column.column_classes }}">
                         {{ content }}
