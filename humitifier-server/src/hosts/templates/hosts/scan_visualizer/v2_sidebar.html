@@ -1,9 +1,9 @@
 {% load param_replace %}
 
-<form method="get" class="flex gap-3 items-center mb-5" x-data="{}"
+<form method="get" class="flex gap-2.5 items-center mb-6" x-data="{}"
       x-ref="scanForm">
-    <label for="scan" class="text-nowrap">Select scan:</label>
-    <select id="scan" name="scan" class="input grow"
+    <label for="scan" class="text-nowrap text-sm font-semibold">Scan:</label>
+    <select id="scan" name="scan" class="input select grow py-1.5"
             @change="$refs.scanForm.submit()">
         <option {% if current_scan == 'latest' %}selected{% endif %}
                 value="latest">
@@ -18,12 +18,15 @@
     </select>
 </form>
 
-<h3 class="text-xl font-bold mb-4">
-    Static config
-</h3>
-<div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2">
+<div class="flex items-center gap-3 mb-3">
+    <h3 class="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+        Static config
+    </h3>
+    <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-1.5 gap-x-3 text-sm">
     {% for item in static_data %}
-        <div class="font-semibold">{{ item.label }}</div>
+        <div class="font-semibold text-gray-600 dark:text-gray-300">{{ item.label }}</div>
         <div class="">
             {% if item.value is None %}
                 <div class="text-gray-500">Unknown</div>
@@ -34,43 +37,46 @@
     {% endfor %}
 </div>
 
-<h3 class="text-xl font-bold mb-3 mt-8">
-    Actions
-</h3>
+<div class="flex items-center gap-3 mb-3 mt-8">
+    <h3 class="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+        Actions
+    </h3>
+    <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
+</div>
 <div class="flex flex-col gap-2">
     <a
         href="{% url 'reporting:cost_calculator' %}?fqdn={{ host.fqdn }}"
-        class="btn btn-outline"
+        class="btn btn-sm btn-outline text-center"
     >
         Calculate costs
     </a>
     {% if request.user.is_superuser %}
         <a
             href="{% url 'hosts:download_raw' host.fqdn %}?{% param_replace %}"
-            class="btn btn-outline"
+            class="btn btn-sm btn-outline text-center"
         >
             Download raw data
         </a>
         <a
             href="{% url 'scanning:start_scan_host' host.fqdn %}"
-            class="btn btn-outline"
+            class="btn btn-sm btn-outline text-center"
         >
             Queue scan
         </a>
 
         {% if host.can_manually_edit %}
-            <a href="{% url 'hosts:edit' host.fqdn %}" class="btn btn-outline">
+            <a href="{% url 'hosts:edit' host.fqdn %}" class="btn btn-sm btn-outline text-center">
                 Edit host config
             </a>
 
-            <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-danger">
+            <a href="{% url 'hosts:archive' host.fqdn %}" class="btn btn-sm btn-danger text-center">
                 Archive
             </a>
         {% else %}
             {# If we are not allowed to use the full-edit form, we offer this limited form #}
             <a
                 href="{% url 'hosts:change-scan-spec' host.fqdn %}"
-                class="btn btn-outline"
+                class="btn btn-sm btn-outline text-center"
             >
                 Change scan specification
             </a>

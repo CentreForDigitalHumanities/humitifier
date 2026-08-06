@@ -1,7 +1,7 @@
-<div class="flex items-center gap-3 p-3 mx-2 my-3 mb-0 rounded-sm {% block style %}{% endblock %}">
+<div class="flex items-center gap-2.5 px-3 py-2 mx-2 mt-3 text-sm rounded-md border-l-4 {% block style %}{% endblock %}">
     {% block icon %}{% endblock %}
     <div>{{ alert.message }}</div>
     {% if alert.can_acknowledge and request.user.is_superuser %}
-        <a href="{% url 'alerting:acknowledge' alert.id %}" class="btn btn-sm btn-outline ml-auto hover:bg-opacity-50 hover:bg-black hover:border-opacity-50 hover:border-black">Acknowledge</a>
+        <a href="{% url 'alerting:acknowledge' alert.id %}" class="btn btn-xs btn-outline ml-auto shrink-0 text-inherit border-current/30 hover:bg-black/10 dark:hover:bg-white/10">Acknowledge</a>
     {% endif %}
 </div>
