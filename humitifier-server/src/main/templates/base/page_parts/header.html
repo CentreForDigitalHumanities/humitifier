@@ -1,4 +1,4 @@
-<div class="sticky z-10 top-0 flex items-center gap-2 w-full h-14 backdrop-blur-sm bg-primary/30 dark:bg-black/30 px-4 border-b border-gray-200 dark:border-gray-800 transition ease-in-out duration-150">
+<div class="sticky z-10 top-0 flex items-center gap-2 w-full h-14 backdrop-blur-sm bg-yellow-400/80 dark:bg-black/50 px-4 border-b border-yellow-200 dark:border-gray-800 transition ease-in-out duration-150">
 
     <div class="md:hidden mr-2 p-2 -ml-2 rounded-md text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-200 cursor-pointer transition duration-150" @click="show_sidebar = !show_sidebar">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
@@ -44,15 +44,15 @@
         </div>
     </div>
 
-    <div class="h-6 border-l border-gray-200 dark:border-gray-700 shrink-0"></div>
+    <div class="h-6 border-l border-gray-700 dark:border-gray-700 shrink-0"></div>
 
     <div class="pl-2 pr-3 py-1.5 flex items-center gap-2.5 rounded-md text-sm font-semibold cursor-pointer relative shrink-0 text-nowrap hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150" x-data="{show_dropdown: false}"
          @click="show_dropdown = !show_dropdown">
-        <div class="size-7 shrink-0 rounded-full bg-primary text-black text-xs font-bold flex items-center justify-center select-none">
+        <div class="size-7 shrink-0 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center select-none">
             {{ user.get_full_name|slice:":1"|upper }}
         </div>
         {{ user.get_full_name }}
-        <div class="text-gray-400">
+        <div class="text-gray-700 dark:text-gray-200">
             <div x-show="show_dropdown">
                 {% with icon_size='size-4' %}
                     {% include 'icons/chevron-up.html' %}
