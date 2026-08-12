@@ -14,7 +14,7 @@
                         {% csrf_token %}
                         {{ form }}
                         <div class="flex gap-2 mt-6">
-                            <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-sm btn-outline">
+                            <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-sm btn-secondary">
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-sm btn-primary">
@@ -36,7 +36,7 @@
                         {% csrf_token %}
                         {{ form }}
                         <div class="flex gap-2 mt-6">
-                            <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-sm btn-outline">
+                            <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-sm btn-secondary">
                                 Cancel
                             </a>
                             <button type="submit" class="btn btn-sm btn-danger">

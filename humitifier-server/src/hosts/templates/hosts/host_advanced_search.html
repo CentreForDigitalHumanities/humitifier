@@ -16,10 +16,10 @@
                 {% endif %}
             </h1>
             <div class="flex gap-2">
-                <a href="{% url 'hosts:saved_searches' %}" class="btn btn-sm btn-outline">
+                <a href="{% url 'hosts:saved_searches' %}" class="btn btn-sm btn-secondary">
                     Saved Searches
                 </a>
-                <button type="button" @click="showHelp = !showHelp" class="btn btn-sm btn-outline">
+                <button type="button" @click="showHelp = !showHelp" class="btn btn-sm btn-secondary">
                     <span x-show="!showHelp">Show Help</span>
                     <span x-show="showHelp">Hide Help</span>
                 </button>
@@ -264,11 +264,11 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button type="button" class="btn btn-sm btn-outline" @click="saveCurrentSearch()">
+                    <button type="button" class="btn btn-sm btn-secondary" @click="saveCurrentSearch()">
                         Save Search
                     </button>
                     <div class="relative" x-data="{ exportOpen: false }">
-                        <button type="button" class="btn btn-sm btn-outline flex items-center gap-1" @click="exportOpen = !exportOpen" @click.outside="exportOpen = false">
+                        <button type="button" class="btn btn-sm btn-secondary flex items-center gap-1" @click="exportOpen = !exportOpen" @click.outside="exportOpen = false">
                             Export
                             {% with icon_size='size-4' %}
                                 <template x-if="exportOpen">
@@ -291,7 +291,7 @@
                             </button>
                         </div>
                     </div>
-                    <button class="btn btn-sm light:btn-primary dark:btn-outline" type="submit" name="search" @click="normalizeForSubmit()">
+                    <button class="btn btn-sm btn-primary" type="submit" name="search" @click="normalizeForSubmit()">
                         Search
                     </button>
                 </div>

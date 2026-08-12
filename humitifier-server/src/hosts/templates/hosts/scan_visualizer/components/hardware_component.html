@@ -22,7 +22,7 @@
         </div>
         {% if hardware.block_devices %}
             <div class="font-semibold">Block devices</div>
-            <div class="cursor-pointer btn btn-xs btn-outline mr-auto" @click="show_block_devices = !show_block_devices">
+            <div class="cursor-pointer btn btn-xs btn-secondary mr-auto" @click="show_block_devices = !show_block_devices">
                 <span x-bind:class="show_block_devices ? 'hidden': ''">Show</span>
                 <span x-bind:class="show_block_devices ? '': 'hidden'">Hide</span>
             </div>
@@ -60,7 +60,7 @@
         {% endif %}
         {% if hardware.pci_devices %}
             <div class="font-semibold">PCI(e) devices</div>
-            <div class="cursor-pointer btn btn-xs btn-outline mr-auto" @click="show_pci_devices = !show_pci_devices">
+            <div class="cursor-pointer btn btn-xs btn-secondary mr-auto" @click="show_pci_devices = !show_pci_devices">
                 <span x-bind:class="show_pci_devices ? 'hidden': ''">Show</span>
                 <span x-bind:class="show_pci_devices ? '': 'hidden'">Hide</span>
             </div>
@@ -74,7 +74,7 @@
         {% endif %}
         {% if hardware.usb_devices %}
             <div class="font-semibold">USB devices</div>
-            <div class="cursor-pointer btn btn-xs btn-outline mr-auto" @click="show_usb_devices = !show_usb_devices">
+            <div class="cursor-pointer btn btn-xs btn-secondary mr-auto" @click="show_usb_devices = !show_usb_devices">
                 <span x-bind:class="show_usb_devices ? 'hidden': ''">Show</span>
                 <span x-bind:class="show_usb_devices ? '': 'hidden'">Hide</span>
             </div>

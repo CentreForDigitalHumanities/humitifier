@@ -277,7 +277,7 @@ class ButtonColumn(LinkColumn):
 
     def __init__(
         self,
-        button_class: str = "btn light:btn-primary dark:btn-outline",
+        button_class: str = "btn btn-primary",
         show_check_function: Callable = None,
         *args,
         **kwargs,

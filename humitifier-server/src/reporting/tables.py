@@ -45,13 +45,13 @@ class GeneratedReportTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Download",
-                button_class="btn light:btn-primary dark:btn-outline",
+                button_class="btn btn-primary",
                 url=lambda obj: reverse("reporting:report_download", args=[obj.pk]),
                 show_check_function=lambda obj: obj.status == GeneratedReport.Status.COMPLETED,
             ),
             ButtonColumn(
                 text="Rerun",
-                button_class="btn btn-outline",
+                button_class="btn btn-secondary",
                 url=lambda obj: reverse("reporting:report_rerun", args=[obj.pk]),
             ),
             ButtonColumn(
@@ -104,7 +104,7 @@ class CostsSchemeTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn btn-outline",
+                button_class="btn btn-secondary",
                 url=lambda obj: reverse("reporting:costs_update", args=[obj.pk]),
             ),
             ButtonColumn(

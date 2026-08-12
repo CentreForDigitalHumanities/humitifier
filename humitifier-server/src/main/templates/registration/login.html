@@ -54,7 +54,7 @@
                     </div>
                 {% endif %}
 
-                <button class="btn block btn-outline text-center w-full" x-show="!show_manual_login" @click="show_manual_login = true">
+                <button class="btn block btn-secondary text-center w-full" x-show="!show_manual_login" @click="show_manual_login = true">
                     Login with local account
                 </button>
                 <form method="post" action="{% url 'main:login' %}" class="flex gap-4 flex-col" x-show="show_manual_login">

@@ -17,11 +17,11 @@
 
                 <div class="flex gap-2 mt-6">
                     {% if object %}
-                        <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-sm btn-outline">
+                        <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-sm btn-secondary">
                             Cancel
                         </a>
                     {% else %}
-                        <a href="{% url 'hosts:list' %}" class="btn btn-sm btn-outline">
+                        <a href="{% url 'hosts:list' %}" class="btn btn-sm btn-secondary">
                             Cancel
                         </a>
                     {% endif %}

@@ -51,7 +51,7 @@ class UsersTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                button_class="btn btn-primary mr-2",
                 url=lambda obj: reverse("main:edit_user", args=[obj.pk]),
             ),
             ButtonColumn(
@@ -61,7 +61,7 @@ class UsersTable(BaseTable):
             ),
             ButtonColumn(
                 text="Change Password",
-                button_class="btn btn-outline",
+                button_class="btn btn-secondary",
                 url=lambda obj: reverse("main:user_change_password", args=[obj.pk]),
                 show_check_function=lambda obj: obj.is_local_account,
             ),
@@ -103,7 +103,7 @@ class AccessProfilesTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                button_class="btn btn-primary mr-2",
                 url=lambda obj: reverse("main:edit_access_profile", args=[obj.pk]),
             ),
             ButtonColumn(
@@ -139,7 +139,7 @@ class TaskResultTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="View details",
-                button_class="btn light:btn-primary dark:btn-outline",
+                button_class="btn btn-primary",
                 url=lambda obj: reverse("main:task_details", args=[obj.task_id]),
             ),
         ],
@@ -188,7 +188,7 @@ class PeriodicTaskTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                button_class="btn btn-primary mr-2",
                 url=lambda obj: reverse("main:edit_periodic_task", args=[obj.pk]),
             ),
             ButtonColumn(

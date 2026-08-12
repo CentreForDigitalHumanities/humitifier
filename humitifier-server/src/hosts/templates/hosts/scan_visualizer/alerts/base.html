@@ -2,6 +2,6 @@
     {% block icon %}{% endblock %}
     <div>{{ alert.message }}</div>
     {% if alert.can_acknowledge and request.user.is_superuser %}
-        <a href="{% url 'alerting:acknowledge' alert.id %}" class="btn btn-xs btn-outline ml-auto shrink-0 text-inherit border-current/30 hover:bg-black/10 dark:hover:bg-white/10">Acknowledge</a>
+        <a href="{% url 'alerting:acknowledge' alert.id %}" class="btn btn-xs btn-secondary bg-transparent ml-auto shrink-0 text-inherit border-current/30 hover:bg-black/10 dark:hover:bg-white/10">Acknowledge</a>
     {% endif %}
 </div>

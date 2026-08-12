@@ -46,26 +46,26 @@
 <div class="flex flex-col gap-2">
     <a
         href="{% url 'reporting:cost_calculator' %}?fqdn={{ host.fqdn }}"
-        class="btn btn-sm btn-outline"
+        class="btn btn-sm btn-secondary"
     >
         Calculate costs
     </a>
     {% if request.user.is_superuser %}
         <a
             href="{% url 'hosts:download_raw' host.fqdn %}?{% param_replace %}"
-            class="btn btn-sm btn-outline"
+            class="btn btn-sm btn-secondary"
         >
             Download raw data
         </a>
         <a
             href="{% url 'scanning:start_scan_host' host.fqdn %}"
-            class="btn btn-sm btn-outline"
+            class="btn btn-sm btn-secondary"
         >
             Queue scan
         </a>
 
         {% if host.can_manually_edit %}
-            <a href="{% url 'hosts:edit' host.fqdn %}" class="btn btn-sm btn-outline">
+            <a href="{% url 'hosts:edit' host.fqdn %}" class="btn btn-sm btn-secondary">
                 Edit host config
             </a>
 
@@ -76,7 +76,7 @@
             {# If we are not allowed to use the full-edit form, we offer this limited form #}
             <a
                 href="{% url 'hosts:change-scan-spec' host.fqdn %}"
-                class="btn btn-sm btn-outline"
+                class="btn btn-sm btn-secondary"
             >
                 Change scan specification
             </a>

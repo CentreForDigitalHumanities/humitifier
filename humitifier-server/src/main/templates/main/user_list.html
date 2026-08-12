@@ -12,14 +12,14 @@
             <div class="flex gap-3 text-sm">
                 <a
                     href="{% url 'main:create_user' %}"
-                    class="btn btn-sm light:btn-primary dark:btn-outline"
+                    class="btn btn-sm btn-primary"
                 >
                     New {% if layout.oidc_enabled %}local {% endif %}user
                 </a>
                 {% if layout.oidc_enabled %}
                     <a
                         href="{% url 'main:create_solis_user' %}"
-                        class="btn btn-sm light:btn-primary dark:btn-outline"
+                        class="btn btn-sm btn-primary"
                     >
                         New Solis user
                     </a>

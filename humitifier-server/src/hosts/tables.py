@@ -35,7 +35,7 @@ class DataSourcesTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                button_class="btn btn-primary mr-2",
                 url=lambda obj: reverse("hosts:edit_data_source", args=[obj.pk]),
             ),
         ],
@@ -70,12 +70,12 @@ class OperatingSystemsTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                button_class="btn btn-primary mr-2",
                 url=lambda obj: reverse("hosts:edit_operating_system", args=[obj.pk]),
             ),
             ButtonColumn(
                 text="Delete",
-                button_class="btn btn-outline text-red-600 dark:text-red-400",
+                button_class="btn btn-danger",
                 url=lambda obj: reverse("hosts:delete_operating_system", args=[obj.pk]),
                 is_form_submit=True,
                 confirm_message="Are you sure you want to delete this operating system?",
@@ -168,18 +168,18 @@ class SavedSearchesTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Load",
-                button_class="btn btn-sm btn-outline mr-2",
+                button_class="btn btn-sm btn-secondary mr-2",
                 url=lambda obj: reverse("hosts:saved_search_load", args=[obj.pk]),
             ),
             ButtonColumn(
                 text="Edit",
-                button_class="btn btn-sm btn-outline mr-2",
+                button_class="btn btn-sm btn-secondary mr-2",
                 url=lambda obj: reverse("hosts:saved_search_edit", args=[obj.pk]),
                 condition=lambda obj, request: obj.creator == request.user or obj.is_public,
             ),
             ButtonColumn(
                 text="Delete",
-                button_class="btn btn-sm btn-outline text-red-600 dark:text-red-400",
+                button_class="btn btn-sm btn-secondary text-red-600 dark:text-red-400",
                 url=lambda obj: reverse("hosts:saved_search_delete", args=[obj.pk]),
                 is_form_submit=True,
                 confirm_message="Are you sure you want to delete this saved search?",
