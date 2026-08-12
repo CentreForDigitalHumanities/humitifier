@@ -1,3 +1,4 @@
+from django.utils.timezone import localtime
 from typing import Callable
 
 from django.template.defaultfilters import date
@@ -178,6 +179,9 @@ class DateColumn(ValueColumn):
 
         if not value:
             return ""
+
+        # Convert date to localtime
+        value = localtime(value)
 
         return date(value, self.date_format)
 
