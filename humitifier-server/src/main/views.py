@@ -204,7 +204,7 @@ class HomeRedirectView(LoginRequiredMixin, RedirectView):
 class DashboardView(LoginRequiredMixin, FilteredListView):
     model = Alert
     filterset_class = AlertFilters
-    paginate_by = 20
+    paginate_by = 50
     template_name = "main/dashboard.html"
     ordering = "host"
     ordering_fields = {
