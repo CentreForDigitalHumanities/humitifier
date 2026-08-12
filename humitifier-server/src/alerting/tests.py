@@ -1,8 +1,12 @@
 from django.test import TestCase
+from django.utils import timezone
 
 from main.models import User
+from humitifier_common.artefacts import HostnameCtl
+
+from .alerts.generic import OutdatedOSAlertGenerator
 from .models import Alert, AlertAcknowledgment
-from hosts.models import Host
+from hosts.models import Host, OperatingSystem
 
 
 class TestAlertSignals(TestCase):
@@ -114,3 +118,60 @@ class TestAlertSignals(TestCase):
         self.assertIsNone(
             acknowledgment._alert
         )  # Ensure `_alert` is de-coupled but acknowledgment is not deleted
+
+
+class TestOutdatedOSAlertGenerator(TestCase):
+
+    @staticmethod
+    def _run_generator(os_name: str | None):
+        artefact_data = None
+        if os_name is not None:
+            artefact_data = HostnameCtl(
+                hostname="test",
+                os=os_name,
+                cpe_os_name=None,
+                kernel="6.1.0",
+                virtualization=None,
+            )
+
+        generator = OutdatedOSAlertGenerator(
+            artefact_data=artefact_data,
+            scan_date=timezone.now(),
+        )
+
+        return generator.generate_alerts()
+
+    def test_alert_for_outdated_os(self):
+        """An alert should be generated for an OS marked as outdated."""
+        OperatingSystem.objects.create(
+            name="Test OS 1 (old)",
+            outdated=True,
+        )
+
+        alert = self._run_generator("Test OS 1 (old)")
+
+        self.assertIsNotNone(alert)
+        self.assertEqual(alert.message, "This operating system is no longer supported")
+
+    def test_no_alert_for_supported_os(self):
+        """No alert should be generated for an OS not marked as outdated."""
+        OperatingSystem.objects.create(
+            name="Test OS 2 (shiny)",
+            outdated=False,
+        )
+
+        alert = self._run_generator("Test OS 2 (shiny)")
+
+        self.assertIsNone(alert)
+
+    def test_no_alert_for_unknown_os(self):
+        """No alert should be generated for an OS that is not configured."""
+        alert = self._run_generator("TempleOS 5.03")
+
+        self.assertIsNone(alert)
+
+    def test_no_alert_without_artefact_data(self):
+        """No alert should be generated when there is no artefact data."""
+        alert = self._run_generator(None)
+
+        self.assertIsNone(alert)

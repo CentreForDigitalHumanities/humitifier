@@ -1,8 +1,10 @@
+from django.db.models import Q
 from django.urls import reverse
 
-from hosts.models import Host, DataSource, SavedSearch
+from hosts.models import Host, DataSource, OperatingSystem, SavedSearch
 from main.easy_tables import (
     BaseTable,
+    BooleanColumn,
     ButtonColumn,
     CompoundColumn,
     DateTimeColumn,
@@ -42,6 +44,48 @@ class DataSourcesTable(BaseTable):
     @staticmethod
     def get_num_hosts(obj: DataSource):
         return obj.hosts.count()
+
+
+class OperatingSystemsTable(BaseTable):
+    class Meta:
+        model = OperatingSystem
+        columns = [
+            "name",
+            "outdated",
+            "num_hosts",
+            "actions",
+        ]
+        column_type_overrides = {
+            "outdated": BooleanColumn(
+                header="Outdated",
+                value_attr="outdated",
+            ),
+        }
+        no_data_message = "No operating systems configured yet."
+
+    num_hosts = MethodColumn("Number of hosts", method_name="get_num_hosts")
+
+    actions = CompoundColumn(
+        "Actions",
+        columns=[
+            ButtonColumn(
+                text="Edit",
+                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                url=lambda obj: reverse("hosts:edit_operating_system", args=[obj.pk]),
+            ),
+            ButtonColumn(
+                text="Delete",
+                button_class="btn btn-outline text-red-600 dark:text-red-400",
+                url=lambda obj: reverse("hosts:delete_operating_system", args=[obj.pk]),
+                is_form_submit=True,
+                confirm_message="Are you sure you want to delete this operating system?",
+            ),
+        ],
+    )
+
+    @staticmethod
+    def get_num_hosts(obj: OperatingSystem):
+        return Host.objects.filter(Q(os=obj.name) | Q(os=f'"{obj.name}"'), archived=False).count()
 
 
 class HostsTable(BaseTable):

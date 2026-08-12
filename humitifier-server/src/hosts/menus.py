@@ -35,6 +35,12 @@ Menu.add_item(
                 and request.user.can_view_datasources,
             ),
             HumitifierMenuItem(
+                "Operating systems",
+                reverse("hosts:operating_systems"),
+                icon="icons/computer.html",
+                check=lambda request: request.user.is_superuser,
+            ),
+            HumitifierMenuItem(
                 "Scan specifications",
                 reverse("scanning:scan_specs"),
                 icon="icons/terminal.html",
