@@ -1,6 +1,7 @@
 from humitifier_common.celery.task_names import SERVER_QUEUE_PREFIX
 
 API_CLEAR_EXPIRED_TOKENS = f"{SERVER_QUEUE_PREFIX}.internal.api.clear_expired_tokens"
+API_DATASOURCE_SYNC = f"{SERVER_QUEUE_PREFIX}.internal.api.datasource_sync"
 
 MAIN_LOG_ERROR = f"{SERVER_QUEUE_PREFIX}.internal.main.log_error"
 

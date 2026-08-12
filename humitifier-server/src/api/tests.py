@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 from django.test import TestCase
 from rest_framework.test import APIClient
 
+from api.tasks import datasource_sync
 from hosts.models import DataSource, DataSourceType, Host
 from humitifier_common.scan_data import ScanInput, ScanOutput
 
@@ -137,14 +140,23 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         return Host.objects.create(**host_data)
 
     def _send_sync(self, hosts):
-        return self.system_client.post(
-            "/api/inventory_sync/",
-            data={
-                "data_source": self.data_source.identifier,
-                "hosts": hosts,
-            },
-            format="json",
-        )
+        # The view offloads the actual sync to a Celery task; run that task
+        # synchronously in tests to be able to check its effects
+        with patch("api.views.system.datasource_sync.delay") as mock_delay:
+            response = self.system_client.post(
+                "/api/inventory_sync/",
+                data={
+                    "data_source": self.data_source.identifier,
+                    "hosts": hosts,
+                },
+                format="json",
+            )
+
+        if mock_delay.called:
+            call_args = mock_delay.call_args
+            datasource_sync(*call_args.args, **call_args.kwargs)
+
+        return response
 
     def test_new_host(self):
         self.assertEqual(self.data_source.hosts.count(), 0)
@@ -163,11 +175,6 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         )
 
         self.assertRequestSuccessful(test_request)
-
-        response = test_request.data
-        self.assertEqual(response["updated"], [])
-        self.assertEqual(response["created"], ["example.org"])
-        self.assertEqual(response["archived"], [])
 
         self.assertEqual(self.data_source.hosts.count(), 1)
 
@@ -198,11 +205,6 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
 
         self.assertRequestSuccessful(test_request)
 
-        response = test_request.data
-        self.assertEqual(response["updated"], [])
-        self.assertEqual(response["created"], ["example.org"])
-        self.assertEqual(response["archived"], [])
-
         self.assertEqual(self.data_source.hosts.count(), 1)
 
         host = Host.objects.get(fqdn="example.org")
@@ -227,11 +229,6 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         )
 
         self.assertRequestSuccessful(test_request)
-
-        response = test_request.data
-        self.assertEqual(response["updated"], ["example.org"])
-        self.assertEqual(response["created"], [])
-        self.assertEqual(response["archived"], [])
 
         self.assertEqual(self.data_source.hosts.count(), 1)
 
@@ -262,11 +259,6 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
 
         self.assertRequestSuccessful(test_request)
 
-        response = test_request.data
-        self.assertEqual(response["updated"], ["example.org"])
-        self.assertEqual(response["created"], [])
-        self.assertEqual(response["archived"], [])
-
         self.assertEqual(self.data_source.hosts.count(), 1)
 
         host = Host.objects.get(fqdn="example.org")
@@ -280,11 +272,6 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         test_request = self._send_sync([])
 
         self.assertRequestSuccessful(test_request)
-
-        response = test_request.data
-        self.assertEqual(response["updated"], [])
-        self.assertEqual(response["created"], [])
-        self.assertEqual(response["archived"], ["example.org"])
 
         # It shouldn't have been deleted
         self.assertEqual(self.data_source.hosts.count(), 1)
@@ -311,16 +298,11 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         )
         self.assertRequestSuccessful(test_request)
 
-        response = test_request.data
-        self.assertEqual(response["updated"], ["example.org"])
-        self.assertEqual(response["created"], [])
-        self.assertEqual(response["archived"], [])
-
         self.assertEqual(self.data_source.hosts.count(), 1)
         self.assertEqual(self.data_source.hosts.filter(archived=False).count(), 1)
 
     def test_archive_host_twice(self):
-        # This test makes sure we only display an archived server if it was archived during this sync
+        # This test makes sure syncing an already archived host is a no-op
         self._create_host()
 
         self.assertEqual(self.data_source.hosts.count(), 1)
@@ -329,13 +311,12 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
 
         test_request = self._send_sync([])
 
-        response = test_request.data
-
-        self.assertEqual(response["updated"], [])
-        self.assertEqual(response["created"], [])
-        self.assertEqual(response["archived"], [])
-
         self.assertRequestSuccessful(test_request)
+
+        # It shouldn't have been deleted
+        self.assertEqual(self.data_source.hosts.count(), 1)
+        # And it should still be archived
+        self.assertEqual(self.data_source.hosts.filter(archived=False).count(), 0)
 
     def test_ignore_other_hosts(self):
         other_data_source = DataSource.objects.create()
@@ -347,11 +328,6 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         test_request = self._send_sync([])
 
         self.assertRequestSuccessful(test_request)
-
-        response = test_request.data
-        self.assertEqual(response["updated"], [])
-        self.assertEqual(response["created"], [])
-        self.assertEqual(response["archived"], [])
 
         self.assertEqual(Host.objects.count(), 1)
         self.assertEqual(self.data_source.hosts.count(), 0)
@@ -401,11 +377,6 @@ class HostSyncTestCase(ApiTestCaseMixin, TestCase):
         )
 
         self.assertRequestSuccessful(test_request)
-
-        response = test_request.data
-        self.assertEqual(response["updated"], ["example.org"])
-        self.assertEqual(response["created"], [])
-        self.assertEqual(response["archived"], [])
 
         self.assertEqual(Host.objects.count(), 1)
         self.assertEqual(self.data_source.hosts.count(), 1)
