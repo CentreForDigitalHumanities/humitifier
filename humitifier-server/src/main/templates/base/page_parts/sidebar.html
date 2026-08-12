@@ -65,4 +65,10 @@
             Humitifier {{ layout.humitifier_version }}{% if debug %}-dev{% endif %}
         </a>
     </div>
+
+    {% if debug %}
+        <div class="grow-0 bg-red-700 px-3 py-2 text-center text-white font-bold">
+            DEBUG MODE
+        </div>
+    {% endif %}
 </aside>
