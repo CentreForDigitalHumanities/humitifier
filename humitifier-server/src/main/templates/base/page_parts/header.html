@@ -48,7 +48,7 @@
 
     <div class="pl-2 pr-3 py-1.5 flex items-center gap-2.5 rounded-md text-sm font-semibold cursor-pointer relative shrink-0 text-nowrap hover:bg-gray-100 dark:hover:bg-gray-800 transition duration-150" x-data="{show_dropdown: false}"
          @click="show_dropdown = !show_dropdown">
-        <div class="size-7 shrink-0 rounded-full bg-black text-white text-xs font-bold flex items-center justify-center select-none">
+        <div class="size-7 shrink-0 rounded-full bg-black text-white dark:bg-primary dark:text-black text-xs font-bold flex items-center justify-center select-none">
             {{ user.get_full_name|slice:":1"|upper }}
         </div>
         {{ user.get_full_name }}
