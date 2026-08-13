@@ -160,7 +160,7 @@ class CompoundColumn(BaseColumn):
     def render(self, obj):
         output = [column.render(obj) for column in self.columns]
         output = " ".join(output)
-        return mark_safe(f'<div class="text-nowrap">{output}</div>')
+        return mark_safe(f'<div class="flex text-nowrap">{output}</div>')
 
 
 class DateColumn(ValueColumn):
