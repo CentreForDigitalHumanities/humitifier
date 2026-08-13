@@ -9,9 +9,55 @@
 {% block head %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
+        let charts = [];
+
+        const chartColors = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1',
+            '#0ea5e9', '#84cc16', '#eab308', '#f43f5e', '#a855f7', '#d946ef', '#4f46e5', '#0891b2', '#0d9488', '#7c3aed'
+        ];
+
+        function getChartColors() {
+            const isDark = document.documentElement.classList.contains('dark');
+            return {
+                text: isDark ? '#e5e7eb' : '#1f2937',
+                grid: isDark ? '#374151' : '#e5e7eb',
+            };
+        }
+
+        function updateChartTheme() {
+            const colors = getChartColors();
+
+            Chart.defaults.color = colors.text;
+            Chart.defaults.borderColor = colors.grid;
+            Chart.defaults.plugins.legend.labels.color = colors.text;
+            Chart.defaults.plugins.title.color = colors.text;
+
+            charts.forEach(chart => {
+                chart.options.plugins.legend.labels.color = colors.text;
+                chart.options.plugins.title.color = colors.text;
+
+                if (chart.options.scales) {
+                    Object.values(chart.options.scales).forEach(scale => {
+                        if (scale.ticks) scale.ticks.color = colors.text;
+                        if (scale.grid) scale.grid.color = colors.grid;
+                        if (scale.title) scale.title.color = colors.text;
+                    });
+                }
+                chart.update();
+            });
+        }
+
+        document.addEventListener('themeChanged', updateChartTheme);
+
         document.addEventListener('DOMContentLoaded', function () {
+            const colors = getChartColors();
+            Chart.defaults.color = colors.text;
+            Chart.defaults.borderColor = colors.grid;
+            Chart.defaults.plugins.legend.labels.color = colors.text;
+            Chart.defaults.plugins.title.color = colors.text;
+
             let alerts = document.getElementById('alertsChart');
-            new Chart(alerts, {
+            charts.push(new Chart(alerts, {
                 type: 'pie',
                 data: {
                     labels: [
@@ -41,9 +87,9 @@
                         },
                     },
                 },
-            });
+            }));
             let alertType = document.getElementById('alertTypeChart');
-            new Chart(alertType, {
+            charts.push(new Chart(alertType, {
                 type: 'pie',
                 data: {
                     labels: [
@@ -59,6 +105,7 @@
                                 {{ item.count }},
                             {% endfor %}
                             ],
+                            backgroundColor: chartColors,
                         },
                     ]
                 },
@@ -75,9 +122,9 @@
                         },
                     },
                 },
-            });
+            }));
             let otapChart = document.getElementById('otapChart');
-            new Chart(otapChart, {
+            charts.push(new Chart(otapChart, {
                 type: 'pie',
                 data: {
                     labels: [
@@ -93,6 +140,7 @@
                                 {{ item.count }},
                             {% endfor %}
                             ],
+                            backgroundColor: chartColors,
                         },
                     ]
                 },
@@ -109,9 +157,9 @@
                         },
                     },
                 },
-            });
+            }));
             let os = document.getElementById('osChart');
-            new Chart(os, {
+            charts.push(new Chart(os, {
                 type: 'pie',
                 data: {
                     labels: [
@@ -126,6 +174,7 @@
                                 {{ os.count }},
                             {% endfor %}
                         ],
+                        backgroundColor: chartColors,
                     }]
                 },
                 options: {
@@ -141,9 +190,9 @@
                         }
                     },
                 },
-            });
+            }));
             let customer = document.getElementById('customerChart');
-            new Chart(customer, {
+            charts.push(new Chart(customer, {
                 type: 'pie',
                 data: {
                     labels: [
@@ -158,6 +207,7 @@
                                 {{ os.count }},
                             {% endfor %}
                         ],
+                        backgroundColor: chartColors,
                     }]
                 },
                 options: {
@@ -173,9 +223,9 @@
                         }
                     },
                 },
-            });
+            }));
             let datasource = document.getElementById('datasourceChart');
-            new Chart(datasource, {
+            charts.push(new Chart(datasource, {
                 type: 'pie',
                 data: {
                     labels: [
@@ -190,6 +240,7 @@
                                 {{ ds.count }},
                             {% endfor %}
                         ],
+                        backgroundColor: chartColors,
                     }]
                 },
                 options: {
@@ -205,10 +256,10 @@
                         }
                     },
                 },
-            });
+            }));
             {% if layout.wild_wasteland %}
             let gremlins = document.getElementById('gremlinsChart');
-            new Chart(gremlins, {
+            charts.push(new Chart(gremlins, {
                 type: 'bar',
                 data: {
                     labels: [
@@ -221,6 +272,7 @@
                                 data: [
                                     {{ gremlin.count }}
                                 ],
+                                backgroundColor: chartColors[{{ forloop.counter0 }} % chartColors.length],
                             },
                         {% endfor %}
                     ]
@@ -238,9 +290,9 @@
                         }
                     },
                 },
-            });
+            }));
             let topExcuses = document.getElementById('topExcusesChart');
-            new Chart(topExcuses, {
+            charts.push(new Chart(topExcuses, {
                 type: 'bar',
                 data: {
                     labels: [
@@ -253,6 +305,7 @@
                                 data: [
                                     {{ excuse.count }}
                                 ],
+                                backgroundColor: chartColors[{{ forloop.counter0 }} % chartColors.length],
                             },
                         {% endfor %}
                     ]
@@ -270,9 +323,9 @@
                         }
                     },
                 },
-            });
+            }));
             let ducks = document.getElementById('ducksChart');
-            new Chart(ducks, {
+            charts.push(new Chart(ducks, {
                 type: 'bar',
                 data: {
                     labels: [
@@ -285,6 +338,7 @@
                                 data: [
                                     {{ duck.count }}
                                 ],
+                                backgroundColor: chartColors[{{ forloop.counter0 }} % chartColors.length],
                             },
                         {% endfor %}
                     ]
@@ -302,9 +356,9 @@
                         }
                     },
                 },
-            });
+            }));
             let productivity = document.getElementById('productivityChart');
-            new Chart(productivity, {
+            charts.push(new Chart(productivity, {
                 type: 'bar',
                 data: {
                     labels: [
@@ -320,6 +374,7 @@
                                     {{ p.percent }},
                                 {% endfor %}
                             ],
+                            backgroundColor: chartColors[0],
                         },
                         {
                             label: 'Coffee machine downtime',
@@ -328,6 +383,7 @@
                                     {{ c.percent }},
                                 {% endfor %}
                             ],
+                            backgroundColor: chartColors[1],
                         }
                     ]
                 },
@@ -344,7 +400,7 @@
                         }
                     },
                 },
-            });
+            }));
             {% endif %}
         });
     </script>
