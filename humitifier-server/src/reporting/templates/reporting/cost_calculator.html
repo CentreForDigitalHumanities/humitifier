@@ -20,7 +20,7 @@
             {# Form #}
             <div class="ultrawide:w-xl lg:w-96 shrink-0">
                 <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-                    <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                    <div class="px-4 py-2.5 bg-gray-100 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
                         Parameters
                     </div>
                     <div class="p-4 text-sm">
@@ -41,16 +41,16 @@
 
             {# Results #}
             {% if costs %}
-                <div class="grow flex flex-col gap-6">
+                <div class="grow flex flex-col gap-6 max-w-2xl">
 
                     <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                        <div class="px-4 py-2.5 bg-gray-100 dark:bg-gray-800/60 font-semibold text-sm">
                             Costs breakdown
                         </div>
                         <div class="p-0 text-sm">
                             <table class="w-full">
                                 <thead>
-                                <tr class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-800/30">
+                                <tr class="text-xs font-semibold uppercase tracking-wider bg-gray-100 dark:bg-gray-800/60">
                                     <td class="px-4 py-2 border-b border-gray-200 dark:border-gray-800">
                                         What
                                     </td>
@@ -66,12 +66,7 @@
                                     <td class="border-b border-gray-200 dark:border-gray-800"></td>
                                 </tr>
                                 </thead>
-                                <tbody class="divide-y divide-gray-200 dark:divide-gray-800">
-                                <tr>
-                                    <td colspan="5" class="px-4 py-2 font-bold uppercase text-[10px] tracking-widest text-gray-500 dark:text-gray-400 bg-gray-50/30 dark:bg-gray-800/10">
-                                        VM
-                                    </td>
-                                </tr>
+                                <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
                                 <tr>
                                     <td class="px-4 py-2">
                                         CPU
@@ -113,7 +108,7 @@
                                         +
                                     </td>
                                 </tr>
-                                <tr class="bg-gray-50/30 dark:bg-gray-800/10">
+                                <tr class="bg-gray-100 dark:bg-gray-800">
                                     <td class="px-4 py-2 font-semibold">
                                         Total VM
                                     </td>
@@ -125,11 +120,6 @@
                                         {{ costs.vm_costs }}
                                     </td>
                                     <td></td>
-                                </tr>
-                                <tr>
-                                    <td colspan="5" class="px-4 py-2 font-bold uppercase text-[10px] tracking-widest text-gray-500 dark:text-gray-400 bg-gray-50/30 dark:bg-gray-800/10">
-                                        Storage
-                                    </td>
                                 </tr>
                                 <tr>
                                     <td class="px-4 py-2">
@@ -168,7 +158,7 @@
                                     </tr>
                                 {% endif %}
 
-                                <tr class="bg-gray-50/30 dark:bg-gray-800/10">
+                                <tr class="bg-gray-100 dark:bg-gray-800">
                                     <td class="px-4 py-2 font-semibold">
                                         Total storage
                                     </td>
@@ -182,11 +172,6 @@
                                     <td></td>
                                 </tr>
                                 {% if costs_scheme.management %}
-                                    <tr>
-                                        <td colspan="5" class="px-4 py-2 font-bold uppercase text-[10px] tracking-widest text-gray-500 dark:text-gray-400 bg-gray-50/30 dark:bg-gray-800/10">
-                                            Management
-                                        </td>
-                                    </tr>
                                     <tr>
                                         <td class="px-4 py-2">
                                             Support
@@ -203,7 +188,7 @@
                                         </td>
                                     </tr>
 
-                                    <tr class="bg-gray-50/30 dark:bg-gray-800/10">
+                                    <tr class="bg-gray-100 dark:bg-gray-800">
                                         <td class="px-4 py-2 font-semibold">
                                             Total management
                                         </td>
@@ -218,7 +203,7 @@
                                     </tr>
                                 {% endif %}
 
-                                <tr class="bg-gray-100 dark:bg-gray-800 font-bold">
+                                <tr class="bg-gray-100 dark:bg-gray-800 text-lg font-bold">
                                     <td class="px-4 py-3">
                                         Total
                                     </td>
@@ -235,13 +220,13 @@
                     </div>
 
                     <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
-                        <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                        <div class="px-4 py-2.5 bg-gray-100 dark:bg-gray-800/60 font-semibold text-sm">
                             Used prices: {{ costs_scheme.name }}
                         </div>
                         <div class="p-0 text-sm">
                             <table class="w-full">
                                 <thead>
-                                <tr class="text-xs font-semibold uppercase tracking-wider text-gray-500 dark:text-gray-400 bg-gray-50/50 dark:bg-gray-800/30">
+                                <tr class="text-xs font-semibold uppercase tracking-wider bg-gray-100 dark:bg-gray-800/60">
                                     <td class="px-4 py-2 border-b border-gray-200 dark:border-gray-800">
                                         CPU
                                     </td>
