@@ -1,4 +1,5 @@
 {% extends "base/base_page_template.html" %}
+{% load static %}
 {% load strip_quotes %}
 
 {% load humanize %}
@@ -8,399 +9,120 @@
 
 {% block head %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="{% static 'main/js/dashboard-charts.js' %}"></script>
     <script>
-        let charts = [];
-
-        const chartColors = [
-            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316', '#14b8a6', '#6366f1',
-            '#0ea5e9', '#84cc16', '#eab308', '#f43f5e', '#a855f7', '#d946ef', '#4f46e5', '#0891b2', '#0d9488', '#7c3aed'
-        ];
-
-        function getChartColors() {
-            const isDark = document.documentElement.classList.contains('dark');
-            return {
-                text: isDark ? '#e5e7eb' : '#1f2937',
-                grid: isDark ? '#374151' : '#e5e7eb',
-            };
-        }
-
-        function updateChartTheme() {
-            const colors = getChartColors();
-
-            Chart.defaults.color = colors.text;
-            Chart.defaults.borderColor = colors.grid;
-            Chart.defaults.plugins.legend.labels.color = colors.text;
-            Chart.defaults.plugins.title.color = colors.text;
-
-            charts.forEach(chart => {
-                chart.options.plugins.legend.labels.color = colors.text;
-                chart.options.plugins.title.color = colors.text;
-
-                if (chart.options.scales) {
-                    Object.values(chart.options.scales).forEach(scale => {
-                        if (scale.ticks) scale.ticks.color = colors.text;
-                        if (scale.grid) scale.grid.color = colors.grid;
-                        if (scale.title) scale.title.color = colors.text;
-                    });
-                }
-                chart.update();
-            });
-        }
-
-        document.addEventListener('themeChanged', updateChartTheme);
-
         document.addEventListener('DOMContentLoaded', function () {
-            const colors = getChartColors();
-            Chart.defaults.color = colors.text;
-            Chart.defaults.borderColor = colors.grid;
-            Chart.defaults.plugins.legend.labels.color = colors.text;
-            Chart.defaults.plugins.title.color = colors.text;
+            initDashboardChart('alertsChart', 'pie', 'Alerts',
+                ['No alert', 'Info', 'Warning', 'Critical'],
+                [{
+                    label: 'Alert levels',
+                    data: [{{ num_fine }}, {{ num_info }}, {{ num_warning }}, {{ num_critical }}],
+                    backgroundColor: ["#44ef44", "#93c5fd", "#f97316", "#ef4444"]
+                }]
+            );
 
-            let alerts = document.getElementById('alertsChart');
-            charts.push(new Chart(alerts, {
-                type: 'pie',
-                data: {
-                    labels: [
-                        'No alert',
-                        'Info',
-                        'Warning',
-                        'Critical',
-                    ],
-                    datasets: [
-                        {
-                            label: 'Alert levels',
-                            data: [{{ num_fine }}, {{ num_info }}, {{ num_warning }}, {{ num_critical }}],
-                            backgroundColor: ["#44ef44", "#93c5fd", "#f97316", "#ef4444"]
-                        },
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Alerts',
-                        },
-                    },
-                },
-            }));
-            let alertType = document.getElementById('alertTypeChart');
-            charts.push(new Chart(alertType, {
-                type: 'pie',
-                data: {
-                    labels: [
-                        {% for item in alert_message_counts %}
-                            '{{ item.short_message }}',
-                        {% endfor %}
-                    ],
-                    datasets: [
-                        {
-                            label: 'Alert type',
-                            data: [
-                            {% for item in alert_message_counts %}
-                                {{ item.count }},
-                            {% endfor %}
-                            ],
-                            backgroundColor: chartColors,
-                        },
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Alerts by type',
-                        },
-                    },
-                },
-            }));
-            let otapChart = document.getElementById('otapChart');
-            charts.push(new Chart(otapChart, {
-                type: 'pie',
-                data: {
-                    labels: [
-                        {% for item in otap_counts %}
-                            '{{ item.otap_stage }}',
-                        {% endfor %}
-                    ],
-                    datasets: [
-                        {
-                            label: 'OTAP stage',
-                            data: [
-                            {% for item in otap_counts %}
-                                {{ item.count }},
-                            {% endfor %}
-                            ],
-                            backgroundColor: chartColors,
-                        },
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                        },
-                        title: {
-                            display: true,
-                            text: 'OTAP distribution',
-                        },
-                    },
-                },
-            }));
-            let os = document.getElementById('osChart');
-            charts.push(new Chart(os, {
-                type: 'pie',
-                data: {
-                    labels: [
-                        {% for os in os_stats %}
-                            '{{ os.os|strip_quotes }}',
-                        {% endfor %}
-                    ],
-                    datasets: [{
-                        label: 'Operating Systems',
-                        data: [
-                            {% for os in os_stats %}
-                                {{ os.count }},
-                            {% endfor %}
-                        ],
-                        backgroundColor: chartColors,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'right',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Server OS distribution',
-                        }
-                    },
-                },
-            }));
-            let customer = document.getElementById('customerChart');
-            charts.push(new Chart(customer, {
-                type: 'pie',
-                data: {
-                    labels: [
-                        {% for os in customer_stats %}
-                            '{{ os.customer|strip_quotes }}',
-                        {% endfor %}
-                    ],
-                    datasets: [{
-                        label: 'Operating Systems',
-                        data: [
-                            {% for os in customer_stats %}
-                                {{ os.count }},
-                            {% endfor %}
-                        ],
-                        backgroundColor: chartColors,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Servers by customer',
-                        }
-                    },
-                },
-            }));
-            let datasource = document.getElementById('datasourceChart');
-            charts.push(new Chart(datasource, {
-                type: 'pie',
-                data: {
-                    labels: [
-                        {% for ds in datasource_counts %}
-                            '{{ ds.data_source__name|strip_quotes }}',
-                        {% endfor %}
-                    ],
-                    datasets: [{
-                        label: 'Hosts per data source',
-                        data: [
-                            {% for ds in datasource_counts %}
-                                {{ ds.count }},
-                            {% endfor %}
-                        ],
-                        backgroundColor: chartColors,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Hosts by data source',
-                        }
-                    },
-                },
-            }));
+            initDashboardChart('alertTypeChart', 'pie', 'Alerts by type',
+                [{% for item in alert_message_counts %}'{{ item.short_message|escapejs }}',{% endfor %}],
+                [{
+                    label: 'Alert type',
+                    data: [{% for item in alert_message_counts %}{{ item.count }},{% endfor %}],
+                    backgroundColor: chartColors,
+                }]
+            );
+
+            initDashboardChart('otapChart', 'pie', 'OTAP distribution',
+                [{% for item in otap_counts %}'{{ item.otap_stage|escapejs }}',{% endfor %}],
+                [{
+                    label: 'OTAP stage',
+                    data: [{% for item in otap_counts %}{{ item.count }},{% endfor %}],
+                    backgroundColor: chartColors,
+                }]
+            );
+
+            initDashboardChart('osChart', 'pie', 'Server OS distribution',
+                [{% for os in os_stats %}'{{ os.os|strip_quotes|escapejs }}',{% endfor %}],
+                [{
+                    label: 'Operating Systems',
+                    data: [{% for os in os_stats %}{{ os.count }},{% endfor %}],
+                    backgroundColor: chartColors,
+                }]
+            );
+
+            initDashboardChart('customerChart', 'pie', 'Servers by customer',
+                [{% for os in customer_stats %}'{{ os.customer|strip_quotes|escapejs }}',{% endfor %}],
+                [{
+                    label: 'Operating Systems',
+                    data: [{% for os in customer_stats %}{{ os.count }},{% endfor %}],
+                    backgroundColor: chartColors,
+                }],
+                { plugins: { legend: { position: 'bottom' } } }
+            );
+
+            initDashboardChart('datasourceChart', 'pie', 'Hosts by data source',
+                [{% for ds in datasource_counts %}'{{ ds.data_source__name|strip_quotes|escapejs }}',{% endfor %}],
+                [{
+                    label: 'Hosts per data source',
+                    data: [{% for ds in datasource_counts %}{{ ds.count }},{% endfor %}],
+                    backgroundColor: chartColors,
+                }],
+                { plugins: { legend: { position: 'bottom' } } }
+            );
+
             {% if layout.wild_wasteland %}
-            let gremlins = document.getElementById('gremlinsChart');
-            charts.push(new Chart(gremlins, {
-                type: 'bar',
-                data: {
-                    labels: [
-                        ''
-                    ],
-                    datasets: [
-                        {% for gremlin in gremlins %}
-                            {
-                                label: "{{ gremlin.label }}",
-                                data: [
-                                    {{ gremlin.count }}
-                                ],
-                                backgroundColor: chartColors[{{ forloop.counter0 }} % chartColors.length],
-                            },
-                        {% endfor %}
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Detected gremlins',
-                        }
-                    },
-                },
-            }));
-            let topExcuses = document.getElementById('topExcusesChart');
-            charts.push(new Chart(topExcuses, {
-                type: 'bar',
-                data: {
-                    labels: [
-                        ''
-                    ],
-                    datasets: [
-                        {% for excuse in top_excuses_for_downtime %}
-                            {
-                                label: "{{ excuse.label }}",
-                                data: [
-                                    {{ excuse.count }}
-                                ],
-                                backgroundColor: chartColors[{{ forloop.counter0 }} % chartColors.length],
-                            },
-                        {% endfor %}
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Top excuses for downtime',
-                        }
-                    },
-                },
-            }));
-            let ducks = document.getElementById('ducksChart');
-            charts.push(new Chart(ducks, {
-                type: 'bar',
-                data: {
-                    labels: [
-                        ''
-                    ],
-                    datasets: [
-                        {% for duck in ducks_per_dc %}
-                            {
-                                label: "{{ duck.label }}",
-                                data: [
-                                    {{ duck.count }}
-                                ],
-                                backgroundColor: chartColors[{{ forloop.counter0 }} % chartColors.length],
-                            },
-                        {% endfor %}
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
-                        },
-                        title: {
-                            display: true,
-                            text: 'Number of ducks per location',
-                        }
-                    },
-                },
-            }));
-            let productivity = document.getElementById('productivityChart');
-            charts.push(new Chart(productivity, {
-                type: 'bar',
-                data: {
-                    labels: [
-                        {% for p in productivity %}
-                            '{{ p.label }}',
-                        {% endfor %}
-                    ],
-                    datasets: [
+            initDashboardChart('gremlinsChart', 'bar', 'Detected gremlins',
+                [''],
+                [
+                    {% for gremlin in gremlins %}
                         {
-                            label: 'Productivity',
-                            data: [
-                                {% for p in productivity %}
-                                    {{ p.percent }},
-                                {% endfor %}
-                            ],
-                            backgroundColor: chartColors[0],
+                            label: "{{ gremlin.label|escapejs }}",
+                            data: [{{ gremlin.count }}],
+                            backgroundColor: chartColors[{{ forloop.counter0 }} % chartColors.length],
                         },
+                    {% endfor %}
+                ]
+            );
+
+            initDashboardChart('topExcusesChart', 'bar', 'Top excuses for downtime',
+                [''],
+                [
+                    {% for excuse in top_excuses_for_downtime %}
                         {
-                            label: 'Coffee machine downtime',
-                            data: [
-                                {% for c in coffee_machine_downtime %}
-                                    {{ c.percent }},
-                                {% endfor %}
-                            ],
-                            backgroundColor: chartColors[1],
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    plugins: {
-                        legend: {
-                            position: 'bottom',
+                            label: "{{ excuse.label|escapejs }}",
+                            data: [{{ excuse.count }}],
+                            backgroundColor: chartColors[{{ forloop.counter0 }} % chartColors.length],
                         },
-                        title: {
-                            display: true,
-                            text: 'Productivity distribution',
-                        }
+                    {% endfor %}
+                ]
+            );
+
+            initDashboardChart('ducksChart', 'bar', 'Number of ducks per location',
+                [''],
+                [
+                    {% for duck in ducks_per_dc %}
+                        {
+                            label: "{{ duck.label|escapejs }}",
+                            data: [{{ duck.count }}],
+                            backgroundColor: chartColors[{{ forloop.counter0 }} % chartColors.length],
+                        },
+                    {% endfor %}
+                ]
+            );
+
+            initDashboardChart('productivityChart', 'bar', 'Productivity distribution',
+                [{% for p in productivity %}'{{ p.label|escapejs }}',{% endfor %}],
+                [
+                    {
+                        label: 'Productivity',
+                        data: [{% for p in productivity %}{{ p.percent }},{% endfor %}],
+                        backgroundColor: chartColors[0],
                     },
-                },
-            }));
+                    {
+                        label: 'Coffee machine downtime',
+                        data: [{% for c in coffee_machine_downtime %}{{ c.percent }},{% endfor %}],
+                        backgroundColor: chartColors[1],
+                    }
+                ]
+            );
             {% endif %}
         });
     </script>
