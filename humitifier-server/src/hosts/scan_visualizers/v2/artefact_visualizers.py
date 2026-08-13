@@ -71,17 +71,17 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
 
     @staticmethod
     def get_update_policy_display(value):
-        output = "<div class='flex gap-2'>"
+        output = "<div class='flex gap-2 justify-start font-semibold'>"
 
         if value["enable"]:
-            output += f"<span class='text-green-500'>Enabled</span>"
+            output += f"<span class='px-3 py-1 rounded-sm bg-green-500 text-white'>Enabled</span>"
         else:
-            output += f"<span class='text-red'>Disabled</span>"
+            output += f"<span class='px-3 py-1 rounded-sm bg-red-500 text-white'>Disabled</span>"
 
         if value["apply_updates"]:
-            output += f"<span class='text-green-500'>Applied</span>"
+            output += f"<span class='px-3 py-1 rounded-sm bg-green-500 text-white'>Applied</span>"
         else:
-            output += f"<span class='text-red'>Not applied</span>"
+            output += f"<span class='px-3 py-1 rounded-sm bg-red-500 text-white'>Not applied</span>"
 
         output += "</div>"
 
