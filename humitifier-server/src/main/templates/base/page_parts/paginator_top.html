@@ -1,7 +1,7 @@
 {% load param_replace %}
 
 <div class="flex justify-between xl:items-end flex-col xl:flex-row gap-3" x-data="{show_filters: false}">
-    <div class="text-sm text-gray-600 dark:text-gray-300">
+    <div class="text-sm text-gray-600 dark:text-gray-200">
         {% if paginator_middle is None or paginator_middle is True %}
             Total items: {{ paginator.count }} |
             Page {{ page_obj.number }} of {{ paginator.num_pages }}

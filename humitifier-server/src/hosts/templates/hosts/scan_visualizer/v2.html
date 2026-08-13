@@ -1,8 +1,8 @@
 {% load host_tags %}
 {% load param_replace %}
 
-<div class="grid lg:grid-cols-[auto_400px] grid-cols-1 grid-rows-[3.5rem_1fr] h-full--header" x-data="{show_action_bar: false}">
-    <div class="sticky top-header z-10 backdrop-blur-sm bg-white/30 dark:bg-black/30 border-b border-gray-300 dark:border-gray-700 px-5 flex items-center gap-3 transition ease-in-out duration-150">
+<div class="grid lg:grid-cols-[auto_400px] grid-cols-1 grid-rows-[3.5rem_1fr] h-full--header relative" x-data="{show_action_bar: false}">
+    <div class="sticky col-span-2 top-header z-10 backdrop-blur-sm bg-white/30 dark:bg-black/30 border-b border-gray-300 dark:border-gray-700 px-5 flex items-center gap-3 transition ease-in-out duration-150">
         <div class="font-bold truncate">{{ host.fqdn }}</div>
         <div class="hidden md:flex items-center gap-1.5 rounded-full border border-gray-300 dark:border-gray-700 px-2.5 py-0.5 text-xs text-gray-600 dark:text-gray-400">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-3.5">
@@ -17,17 +17,26 @@
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
             </svg>
         </div>
-    </div>
 
-    <div
-        class="row-span-2 bg-white dark:bg-gray-900/50 lg:border-l border-gray-300 dark:border-gray-700 transition duration-150 fixed lg:sticky lg:self-start lg:h-max-full--header top-header bottom-0 z-20 w-full max-w-[400px] overflow-y-auto"
-        x-bind:class="show_action_bar ? 'right-0' : 'right-[-800px]'"
-    >
-        <div class="p-5">
-            {% include 'hosts/scan_visualizer/v2_sidebar.html' %}
-        </div>
-    </div>
 
+        <form method="get" class="gap-2.5 items-center ml-auto hidden lg:flex" x-data="{}"
+              x-ref="scanForm">
+            <label for="scan" class="text-nowrap text-sm font-semibold">Scan:</label>
+            <select id="scan" name="scan" class="input select grow py-1.5"
+                    @change="$refs.scanForm.submit()">
+                <option {% if current_scan == 'latest' %}selected{% endif %}
+                        value="latest">
+                    Latest scan
+                </option>
+                {% for scan in all_scans %}
+                    <option value="{{ scan.isoformat }}"
+                            {% if current_scan == scan.isoformat %}selected{% endif %}>
+                        {{ scan|date:"Y-m-d H:i" }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
 
     <div class="p-3 pt-0 pb-8 bg-gray-100 dark:bg-gray-950 transition duration-150">
         {% if is_latest_scan %}
@@ -64,7 +73,7 @@
 
         <div  x-data="{componentSearch: ''}">
             <div class="flex items-center gap-3 w-full px-2 pt-6 pb-3">
-                <h1 class="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Metrics</h1>
+                <h1 class="text-sm font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300">Metrics</h1>
                 <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
                 <input placeholder="Search metrics" class="input w-48 py-1.5" x-model="componentSearch">
             </div>
@@ -79,8 +88,8 @@
 
         <div  x-data="{componentSearch: ''}">
             <div class="flex items-center gap-3 w-full px-2 pt-6 pb-3">
-                <h1 class="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">Facts</h1>
-                <div class="text-xs text-gray-500 dark:text-gray-500">
+                <h1 class="text-sm font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300">Facts</h1>
+                <div class="text-xs text-gray-600 dark:text-gray-400">
                     {{ current_scan_date|date:"Y-m-d H:i" }}
                 </div>
                 <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
@@ -94,6 +103,16 @@
                     </div>
                 {% endfor %}
             </div>
+        </div>
+    </div>
+
+
+    <div
+        class="backdrop-blur-sm bg-white/30 dark:bg-black/30 lg:border-l border-gray-300 dark:border-gray-700 transition duration-150 w-full lg:max-w-[400px] overflow-y-auto fixed top-[112px] lg:static max-h-[calc(100vh-112px)] lg:max-h-full"
+        x-bind:class="show_action_bar ? 'right-0' : 'right-[-800px]'"
+    >
+        <div class="p-5 sticky top-0 right-0">
+            {% include 'hosts/scan_visualizer/v2_sidebar.html' %}
         </div>
     </div>
 </div>

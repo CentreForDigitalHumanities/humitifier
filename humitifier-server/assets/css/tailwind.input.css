@@ -108,7 +108,7 @@
 }
 
 @utility bg-default {
-  @apply bg-gray-50 dark:bg-gray-950 transition duration-150;
+  @apply bg-gray-50 dark:bg-gray-900 transition duration-150;
 }
 
 @utility h-full--header {
