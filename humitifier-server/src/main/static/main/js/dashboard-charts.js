@@ -69,6 +69,31 @@ function initDashboardChart(canvasId, type, title, labels, datasets, extraOption
     const options = {
         ...defaultOptions,
         ...extraOptions,
+        onClick: (event, elements, chart) => {
+            if (elements.length > 0) {
+                const element = elements[0];
+                const datasetIndex = element.datasetIndex;
+                const index = element.index;
+                const dataset = chart.data.datasets[datasetIndex];
+
+                if (dataset.links && dataset.links[index]) {
+                    window.location.href = dataset.links[index];
+                }
+            }
+        },
+        onHover: (event, elements, chart) => {
+            if (elements.length > 0) {
+                const element = elements[0];
+                const datasetIndex = element.datasetIndex;
+                const index = element.index;
+                const dataset = chart.data.datasets[datasetIndex];
+                if (dataset.links && dataset.links[index]) {
+                    event.native.target.style.cursor = 'pointer';
+                    return;
+                }
+            }
+            event.native.target.style.cursor = 'default';
+        },
         plugins: {
             ...defaultOptions.plugins,
             ...(extraOptions.plugins || {}),

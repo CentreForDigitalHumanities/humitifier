@@ -99,7 +99,7 @@ def get_hosts_by_datasource(user):
     return (
         Host.objects.get_for_user(user)
         .filter(archived=False)
-        .values("data_source__name")
+        .values("data_source__id", "data_source__name")
         .annotate(count=Count("id"))
     )
 
