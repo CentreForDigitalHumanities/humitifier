@@ -393,7 +393,7 @@ class IsWordpressVisualizer(ArtefactVisualizer):
 
 
 class HardwareVisualizer(ArtefactVisualizer):
-    title = "Hardware"
+    title = "Hardware (overview)"
     artefact = Hardware
     template = "hosts/scan_visualizer/components/hardware_component.html"
 
