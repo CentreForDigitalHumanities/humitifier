@@ -9,10 +9,10 @@
     x-show="query() === '' || subtree.includes(query())"
 >
     <div
-        class="flex items-center gap-2 rounded-md pl-1 pr-2 py-1 cursor-pointer select-none transition duration-150"
+        class="flex items-center gap-2 rounded-md pl-1 pr-2 py-1 cursor-pointer select-none transition duration-150 font-semibold"
         x-bind:class="{
-            'bg-blue-50 dark:bg-blue-900/30': selected === '{{ node.key }}',
-            'hover:bg-gray-50 dark:hover:bg-gray-800/60': selected !== '{{ node.key }}',
+            'bg-primary text-black': selected === '{{ node.key }}',
+            'hover:bg-gray-100 dark:hover:bg-gray-700': selected !== '{{ node.key }}',
             'opacity-50': query() !== '' && !own.includes(query())
         }"
         @click="select('{{ node.key }}', {% if node.children %}true{% else %}false{% endif %})"
@@ -37,13 +37,23 @@
         <div class="truncate">{{ node.title }}</div>
 
         {% if node.badge %}
-            <div class="shrink-0 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-1.5 text-xs text-gray-500 dark:text-gray-400">
+            <div
+                class="shrink-0 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-1.5 text-xs text-gray-500 dark:text-gray-400"
+                x-bind:class="{
+                    'bg-yellow-500 dark:bg-yellow-500 border-yellow-700 dark:border-yellow-700 text-gray-700 dark:text-gray-700': selected === '{{ node.key }}',
+                }"
+            >
                 {{ node.badge }}
             </div>
         {% endif %}
 
         {% if node.aside %}
-            <div class="ml-auto shrink-0 pl-2 text-xs text-gray-500 dark:text-gray-400">
+            <div
+                class="ml-auto shrink-0 pl-2 text-xs text-gray-500 dark:text-gray-400"
+                    x-bind:class="{
+                    'text-gray-700 dark:text-gray-700': selected === '{{ node.key }}',
+                }"
+            >
                 {{ node.aside }}
             </div>
         {% endif %}
