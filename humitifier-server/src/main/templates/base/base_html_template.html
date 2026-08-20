@@ -16,7 +16,9 @@
         {{ filterset.form.media }}
     {% endif %}
 
-    {% if layout.wild_wasteland %}
+    {% if debug %}
+        <link rel="icon" type="image/x-icon" href="{% static 'main/img/debug_favicon.ico' %}">
+    {% elif layout.wild_wasteland %}
         <link rel="icon" type="image/x-icon" href="{% static 'main/img/wild_wasteland_favicon.ico' %}">
     {% else %}
         <link rel="icon" type="image/x-icon" href="{% static 'main/img/favicon.ico' %}">
