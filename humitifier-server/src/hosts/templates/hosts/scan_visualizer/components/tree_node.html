@@ -1,0 +1,63 @@
+{# Renders a single TreeNode row and, recursively, the rows below it. #}
+{# Selection/expansion state lives in the tree component; this template #}
+{# only carries the node's own search values. #}
+<div
+    x-data="{
+        own: '{{ node.search_value|default_if_none:''|lower|escapejs }}',
+        subtree: '{{ node.subtree_search_value|lower|escapejs }}'
+    }"
+    x-show="query() === '' || subtree.includes(query())"
+>
+    <div
+        class="flex items-center gap-2 rounded-md pl-1 pr-2 py-1 cursor-pointer select-none transition duration-150"
+        x-bind:class="{
+            'bg-blue-50 dark:bg-blue-900/30': selected === '{{ node.key }}',
+            'hover:bg-gray-50 dark:hover:bg-gray-800/60': selected !== '{{ node.key }}',
+            'opacity-50': query() !== '' && !own.includes(query())
+        }"
+        @click="select('{{ node.key }}', {% if node.children %}true{% else %}false{% endif %})"
+        role="treeitem"
+    >
+        {% if node.children %}
+            <button
+                type="button"
+                class="shrink-0 rounded text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition duration-150"
+                x-bind:class="isExpanded('{{ node.key }}', {{ depth }}) ? '' : '-rotate-90'"
+                x-bind:aria-label="isExpanded('{{ node.key }}', {{ depth }}) ? 'Collapse' : 'Expand'"
+                @click.stop="toggle('{{ node.key }}', {{ depth }})"
+            >
+                {% with icon_size='size-4' %}
+                    {% include 'icons/chevron-down.html' %}
+                {% endwith %}
+            </button>
+        {% else %}
+            <div class="shrink-0 size-4"></div>
+        {% endif %}
+
+        <div class="truncate">{{ node.title }}</div>
+
+        {% if node.badge %}
+            <div class="shrink-0 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-1.5 text-xs text-gray-500 dark:text-gray-400">
+                {{ node.badge }}
+            </div>
+        {% endif %}
+
+        {% if node.aside %}
+            <div class="ml-auto shrink-0 pl-2 text-xs text-gray-500 dark:text-gray-400">
+                {{ node.aside }}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if node.children %}
+        <div
+            class="ml-3 pl-2 border-l border-gray-200 dark:border-gray-700"
+            x-show="isExpanded('{{ node.key }}', {{ depth }}) || query() !== ''"
+            {% if depth > initially_expanded_depth %}style="display: none"{% endif %}
+        >
+            {% for child in node.children %}
+                {% include 'hosts/scan_visualizer/components/tree_node.html' with node=child depth=depth|add:1 %}
+            {% endfor %}
+        </div>
+    {% endif %}
+</div>

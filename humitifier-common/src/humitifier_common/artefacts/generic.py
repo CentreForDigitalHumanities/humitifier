@@ -40,6 +40,70 @@ class Hardware(BaseModel):
     usb_devices: list[str]
     total_memory_gb: int = 0
 
+
+##
+## Hardware (lshw)
+##
+
+
+class LshwNode(BaseModel):
+    """A single node of the hardware tree as reported by `lshw`.
+
+    The tree structure is kept intact: every node holds its own children, so
+    it stays clear what a device is attached to.
+    """
+
+    id: str
+    node_class: str
+    handle: str | None = None
+    description: str | None = None
+    product: str | None = None
+    vendor: str | None = None
+    serial: str | None = None
+    version: str | None = None
+    physid: str | None = None
+    businfo: str | None = None
+    logical_names: list[str] = []
+    dev: str | None = None
+    slot: str | None = None
+    units: str | None = None
+    size: int | None = None
+    capacity: int | None = None
+    clock: int | None = None
+    width: int | None = None
+    claimed: bool = False
+    disabled: bool = False
+    configuration: dict[str, str] = {}
+    capabilities: dict[str, str] = {}
+    children: list["LshwNode"] = []
+
+    def walk(self, parent_path: str = "", depth: int = 0):
+        """Yield (node, path, depth) for this node and all its descendants.
+
+        The path is the slash-separated list of ids of all ancestors plus the
+        node itself, making it unique within a single tree.
+        """
+        path = f"{parent_path}/{self.id}" if parent_path else self.id
+
+        yield self, path, depth
+
+        for child in self.children:
+            yield from child.walk(path, depth + 1)
+
+
+@fact(group=GENERIC, metadata=ArtefactMetadata(null_is_valid=True))
+class Lshw(BaseModel):
+    product: str | None = None
+    vendor: str | None = None
+    serial: str | None = None
+    nodes: list[LshwNode] = []
+
+    def walk(self):
+        """Yield (node, path, depth) for every node in the hardware tree."""
+        for node in self.nodes:
+            yield from node.walk()
+
+
 ##
 ## Storage
 ##
@@ -169,9 +233,11 @@ class SELinux(BaseModel):
     policy_name: str | None
     mode: str | None
 
+
 ##
 ## SystemD info
 ##
+
 
 class SystemdUnit(BaseModel):
     unit: str
@@ -179,6 +245,7 @@ class SystemdUnit(BaseModel):
     description: str | None
     active: str
     sub: str
+
 
 @fact(group=GENERIC, metadata=ArtefactMetadata(null_is_valid=True))
 class Systemd(BaseModel):
