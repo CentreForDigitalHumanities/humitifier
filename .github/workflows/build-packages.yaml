@@ -189,6 +189,7 @@ jobs:
           --version ${{ env.ref_name }} \
           --architecture native \
           --depends bash --depends python3 \
+          --depends lshw --depends usbutils \
           --description "Scan the universe" \
           --url "https://github.com/CentreForDigitalHumanities/humitifier" \
           --maintainer "Humanities IT System Team <systemteam.gw@uu.nl>" \
