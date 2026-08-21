@@ -106,4 +106,4 @@ jobs:
           HUMITIFIER_SERVER_STATIC_FILES__ENABLE_WHITENOISE: false
         run: |
           source $VENV
-          python src/manage.py test src/
+          python src/manage.py test -b src/
