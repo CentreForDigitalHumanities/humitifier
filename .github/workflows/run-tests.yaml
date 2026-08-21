@@ -15,7 +15,7 @@ on:
       - 'experimental'
 
 env:
-  PYTHON_VERSION: 3.13
+  PYTHON_VERSION: 3.14
   POSTGRES_USER: postgres
   POSTGRES_PASSWORD: postgres
   POSTGRES_HOST: localhost
@@ -65,9 +65,9 @@ jobs:
       # Setup
       #
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
            python-version: ${{ env.PYTHON_VERSION }}
 
@@ -82,7 +82,7 @@ jobs:
       - name: Load cached venv
         if: matrix.os != 'windows-latest'
         id: cached-poetry-dependencies
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: humitifier-scanner/.venv
           key: venv-tests-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('humitifier-server/poetry.lock') }}
