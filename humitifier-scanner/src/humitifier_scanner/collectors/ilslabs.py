@@ -8,7 +8,7 @@ from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 class PyInfraReportCollector(FileCollector):
     fact = PyInfraReport
 
-    FILE_PATH = "/home/ty/projects/python/pyinfra-lab-setup/logs/run_report.json"
+    FILE_PATH = "/var/log/pyinfra/run_report.json"
 
     def collect_from_files(
         self, files_executor: LinuxFilesExecutor, info: CollectInfo
