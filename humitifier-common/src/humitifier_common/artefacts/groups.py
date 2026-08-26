@@ -1,4 +1,5 @@
 GENERIC = "generic"
+ILSLABS = "ilslabs"
 SERVER = "server"
 SPECIAL = "special"
 CLI = "cli"

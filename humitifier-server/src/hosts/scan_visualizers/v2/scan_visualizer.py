@@ -23,6 +23,7 @@ class V2ScanVisualizer(ComponentScanVisualizer):
         # visualizers.HostMetaVHostsVisualizer, # deprecated in favor of above
         visualizers.HostnameCtlVisualizer,
         visualizers.PuppetAgentVisualizer,
+        visualizers.PyInfraReportVisualizer,
         visualizers.IsWordpressVisualizer,
         visualizers.SELinuxVisualizer,
         visualizers.PackageListVisualizer,

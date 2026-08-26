@@ -36,6 +36,7 @@ from humitifier_common.artefacts import (
     NetworkInterfaces,
     PackageList,
     PuppetAgent,
+    PyInfraReport,
     RebootPolicy,
     SELinux,
     Uptime,
@@ -376,6 +377,25 @@ class PuppetAgentVisualizer(ArtefactVisualizer):
         return context
 
 
+class PyInfraReportVisualizer(ArtefactVisualizer):
+    title = "PyInfra"
+    artefact = PyInfraReport
+
+    template = "hosts/scan_visualizer/components/pyinfra_component.html"
+
+    def get_context(self, **kwargs) -> dict:
+        context = super().get_context(**kwargs)
+
+        last_run = None
+        if self.artefact_data.start_time:
+            last_run = datetime.fromisoformat(self.artefact_data.start_time)
+
+        context["pyinfra"] = self.artefact_data
+        context["last_run"] = last_run
+
+        return context
+
+
 class IsWordpressVisualizer(ArtefactVisualizer):
     title = "Is Wordpress?"
     artefact = IsWordpress
@@ -614,13 +634,11 @@ class SELinuxVisualizer(ItemizedArtefactVisualizer):
             return self._get_button_str(value, "orange")
 
     def _get_button_str(self, value, color):
-        return mark_safe(
-            f"""
+        return mark_safe(f"""
             <div class="px-3 py-1 inline-block mr-auto rounded-sm bg-{color}-500 text-white">
                 {value.capitalize()}
             </div>
-            """
-        )
+            """)
 
 
 class SystemdUnitsVisualizer(SearchableCardsVisualizer):
