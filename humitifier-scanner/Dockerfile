@@ -21,7 +21,7 @@ RUN poetry lock
 
 RUN poetry install --only=main,celery --compile --no-interaction -vvv
 
-FROM python:3.13-alpine
+FROM python:3.14-alpine
 
 ENV PYTHONUNBUFFERED=1
 
