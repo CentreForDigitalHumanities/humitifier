@@ -168,7 +168,7 @@ if HUMITIFIER_CONFIG.oidc and HUMITIFIER_CONFIG.oidc.enabled:
     ]
 
     OIDC_CREATE_USER = HUMITIFIER_CONFIG.oidc.auto_create_user
-    OIDC_RP_SCOPES = HUMITIFIER_CONFIG.oidc.rp_scopes
+    OIDC_RP_SCOPES = " ".join(HUMITIFIER_CONFIG.oidc.rp_scopes)
 
     OIDC_RP_SIGN_ALGO = HUMITIFIER_CONFIG.oidc.rp_sign_algorithm
 
