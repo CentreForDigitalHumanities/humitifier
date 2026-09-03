@@ -1156,7 +1156,7 @@ name = "humitifier-common"
 version = "5.0.0"
 description = ""
 optional = false
-python-versions = "^3.14"
+python-versions = "^3.14,<3.15"
 groups = ["dev", "production"]
 files = []
 develop = true
@@ -2412,5 +2412,5 @@ brotli = ["brotli"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = "^3.14"
-content-hash = "c31ccff2346356dd11237b8e764cfbf9c183ef17beab32a27ef5b2e48a40fc43"
+python-versions = "^3.14,<3.15"
+content-hash = "ac7807d0701255f09966811e5a3c88d7b9db6888238014c76e12669a83801a10"

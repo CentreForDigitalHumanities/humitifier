@@ -22,3 +22,12 @@ ALERTING_SAVE_ALERTS = f"{SERVER_QUEUE_PREFIX}.internal.alerting.save_alerts"
 REPORTING_GENERATE_COST_REPORT = (
     f"{SERVER_QUEUE_PREFIX}.internal.reporting.generate_cost_report"
 )
+
+NETWORK_START_IP_INDEX = f"{SERVER_QUEUE_PREFIX}.internal.network.start_ip_index"
+NETWORK_PROCESS_INDEXED_IP = (
+    f"{SERVER_QUEUE_PREFIX}.internal.network.process_indexed_ip"
+)
+NETWORK_INDEX_HANDLE_ERROR = (
+    f"{SERVER_QUEUE_PREFIX}.internal.network.handle_index_error"
+)
+NETWORK_INDEXER_SCHEDULER = f"{SERVER_QUEUE_PREFIX}.internal.network.indexer_scheduler"

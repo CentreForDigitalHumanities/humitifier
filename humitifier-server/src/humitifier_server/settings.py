@@ -71,6 +71,7 @@ INSTALLED_APPS = [
     "scanning",
     "alerting",
     "reporting",
+    "network",
 ]
 
 

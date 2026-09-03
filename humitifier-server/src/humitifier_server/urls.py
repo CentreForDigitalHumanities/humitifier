@@ -29,6 +29,7 @@ urlpatterns = [
     path("scanning/", include("scanning.urls")),
     path("alerts/", include("alerting.urls")),
     path("reporting/", include("reporting.urls")),
+    path("networks/", include("network.urls")),
     path("", include("main.urls")),
 ]
 
