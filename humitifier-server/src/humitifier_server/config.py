@@ -42,7 +42,7 @@ _CONFIG_LOCATIONS = generate_config_locations(
     _BASE_DIR, "server", "HUMITIFIER_SERVER_CONFIG"
 )
 
-_SECRETS_DIR = os.environ.get("HUMITIFIER_SCANNER_SECRETS_DIR", None)
+_SECRETS_DIR = os.environ.get("HUMITIFIER_SERVER_SECRETS_DIR", None)
 
 for loc in _CONFIG_LOCATIONS:
     if loc.exists():
