@@ -29,9 +29,15 @@ def generate_cost_report(
 
         report.file.save(filename, ContentFile(file_data.getvalue()), save=False)
         report.status = GeneratedReport.Status.COMPLETED
-        report.save()
+
+        # Only save if the report still exists in the DB; handles race conditions
+        if GeneratedReport.objects.filter(pk=report_id).exists():
+            report.save()
     except Exception as e:
         report.status = GeneratedReport.Status.FAILED
         report.error_message = str(e)
-        report.save()
+
+        # Only save if the report still exists in the DB; handles race conditions
+        if GeneratedReport.objects.filter(pk=report_id).exists():
+            report.save()
         raise
