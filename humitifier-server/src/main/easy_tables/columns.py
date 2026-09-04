@@ -70,7 +70,11 @@ class MethodColumn(BaseColumn):
         if not method:
             return ""
 
-        return method(obj)
+        output = method(obj)
+
+        if self.mark_safe:
+            return mark_safe(output)
+        return output
 
 
 class ValueColumn(BaseColumn):
