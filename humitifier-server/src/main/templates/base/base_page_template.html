@@ -5,14 +5,14 @@
 {% block body %}
     <div class="h-screen w-screen absolute top-0 left-0 flex flex-col overflow-hidden">
         {% if layout.gitlab_gag %}
-            <div class="grow-0 bg-blue-800 px-3 md:pl-72 py-2 text-center text-white font-bold">
+            <div class="grow-0 bg-blue-800 px-3 md:pl-80 py-2 text-center text-white font-bold">
                 It's thursday; A new critical security update for GitLab has probably been released. Click <a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ" class="underline">here</a> to see if that's true.
             </div>
         {% endif %}
         <div class="w-full grow overflow-hidden">
             {% include 'base/page_parts/sidebar.html' %}
 
-            <section class="md:ml-72 min-h-full h-full overflow-auto">
+            <section class="md:ml-80 min-h-full h-full overflow-auto">
                 {% include 'base/page_parts/header.html' %}
 
                 {% block content %}
@@ -20,17 +20,12 @@
 
             </section>
         </div>
-        {% if debug %}
-            <div class="grow-0 bg-red-700 px-3 md:pl-72 py-2 text-center text-white font-bold">
-                DEBUG MODE
-            </div>
-        {% endif %}
     </div>
     {% if messages %}
     <div class="z-50 absolute right-2 bottom-2 p-2 max-w-full md:max-w-md flex flex-col gap-3">
         {% for message in messages %}
             <div
-                class="{{ message.level|map_message_colors }} rounded-sm flex items-stretch"
+                class="{{ message.level|map_message_colors }} backdrop-blur-md rounded-md border-l-4 text-sm shadow-lg flex items-stretch"
                 x-data="{hide: false}"
                 :class="hide && 'hidden'"
             >

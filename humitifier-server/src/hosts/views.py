@@ -22,13 +22,29 @@ from rest_framework.reverse import reverse_lazy
 
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 
-from .filters import DataSourceFilters, HostFilters, SavedSearchFilters
-from .forms import DataSourceForm, HostForm, HostScanSpecForm, SavedSearchForm
-from .models import DataSource, Host, SavedSearch
+from .filters import (
+    DataSourceFilters,
+    HostFilters,
+    OperatingSystemFilters,
+    SavedSearchFilters,
+)
+from .forms import (
+    DataSourceForm,
+    HostForm,
+    HostScanSpecForm,
+    OperatingSystemForm,
+    SavedSearchForm,
+)
+from .models import DataSource, Host, OperatingSystem, SavedSearch
 from .scan_visualizers import get_scan_visualizer
 from .search import get_searchable_fields, search_hosts_by_scan_fields, \
     get_scan_field_values, parse_query
-from .tables import DataSourcesTable, HostsTable, SavedSearchesTable
+from .tables import (
+    DataSourcesTable,
+    HostsTable,
+    OperatingSystemsTable,
+    SavedSearchesTable,
+)
 
 ##
 ## Host views
@@ -516,6 +532,52 @@ class DataSourceEditView(LoginRequiredMixin, SuperuserRequiredMixin,SuccessMessa
     form_class = DataSourceForm
     success_url = reverse_lazy("hosts:data_sources")
     success_message = "Data source edited"
+
+
+##
+## Operating system views
+##
+
+
+class OperatingSystemsView(LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView):
+    template_name = "hosts/operatingsystem_list.html"
+    model = OperatingSystem
+    table_class = OperatingSystemsTable
+    filterset_class = OperatingSystemFilters
+    ordering_fields = {
+        "name": "Name",
+        "outdated": "Outdated",
+    }
+    paginate_by = 50
+
+
+class OperatingSystemCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView):
+    template_name = "hosts/operatingsystem_form.html"
+    model = OperatingSystem
+    form_class = OperatingSystemForm
+    success_url = reverse_lazy("hosts:operating_systems")
+    success_message = "Operating system created"
+
+
+class OperatingSystemEditView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView):
+    template_name = "hosts/operatingsystem_form.html"
+    model = OperatingSystem
+    form_class = OperatingSystemForm
+    success_url = reverse_lazy("hosts:operating_systems")
+    success_message = "Operating system edited"
+
+
+class OperatingSystemDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, View):
+    success_message = "Operating system deleted"
+
+    def post(self, request, pk):
+        operating_system = OperatingSystem.objects.filter(pk=pk).first()
+
+        if operating_system:
+            operating_system.delete()
+            messages.success(request, self.success_message)
+
+        return HttpResponseRedirect(reverse("hosts:operating_systems"))
 
 
 ##

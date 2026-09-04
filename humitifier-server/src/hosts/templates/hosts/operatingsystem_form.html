@@ -1,0 +1,29 @@
+{% extends 'base/base_page_template.html' %}
+
+{% block content %}
+    <div class="h-full--header w-full bg-default px-7 py-5 text-sm">
+        {% if object %}
+            <h1 class="text-2xl font-bold mb-6">Edit operating system</h1>
+        {% else %}
+            <h1 class="text-2xl font-bold mb-6">Create new operating system</h1>
+        {% endif %}
+
+        <div class="max-w-xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+            <form method="post" class="p-6">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    {{ form }}
+                </div>
+
+                <div class="flex gap-2 mt-6">
+                    <a href="{% url 'hosts:operating_systems' %}" class="btn btn-sm btn-secondary">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        Confirm
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+{% endblock %}

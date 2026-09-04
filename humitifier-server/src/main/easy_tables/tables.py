@@ -171,7 +171,10 @@ class BaseTable(metaclass=DeclarativeColumnsMetaclass):
         for obj in data:
             row = []
             for column in self.columns.values():
-                row.append((column, column.render(obj)))
+                try:
+                    row.append((column, column.render(obj)))
+                except Exception as e:
+                    row.append((column, "Error rendering column"))
             rows.append(row)
 
         no_data_message = self._meta.no_data_message

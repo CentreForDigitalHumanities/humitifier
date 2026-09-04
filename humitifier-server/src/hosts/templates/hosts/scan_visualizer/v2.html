@@ -1,26 +1,44 @@
 {% load host_tags %}
 {% load param_replace %}
 
-<div class="grid lg:grid-cols-[auto_400px] grid-cols-1 grid-rows-[3.5rem_1fr] sticky left-0 top-[69px] h-max-full--header overflow-hidden" x-data="{show_action_bar: false}">
-    <div class="bg-default border-b border-gray-300 dark:border-gray-700 px-6 py-4 sticky top-0 z-10 flex">
-        <div class="font-bold text-lg">{{ host.fqdn }}</div>
+<div class="grid lg:grid-cols-[auto_350px] grid-cols-1 grid-rows-[3.5rem_1fr] h-full--header relative" x-data="{show_action_bar: false}">
+    <div class="sticky col-span-2 top-header z-10 backdrop-blur-sm bg-white/30 dark:bg-black/30 border-b border-gray-300 dark:border-gray-700 px-5 flex items-center gap-3 transition ease-in-out duration-150">
+        <div class="font-bold truncate">{{ host.fqdn }}</div>
+        <div class="hidden md:flex items-center gap-1.5 rounded-full border border-gray-300 dark:border-gray-700 px-2.5 py-0.5 text-xs text-gray-600 dark:text-gray-400">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-3.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+            </svg>
+            {% if is_latest_scan %}Latest scan &middot;{% endif %}
+            {{ current_scan_date|date:"Y-m-d H:i" }}
+        </div>
         <div class="lg:hidden cursor-pointer ml-auto" @click="show_action_bar = !show_action_bar">
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"
              class="size-6">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"/>
             </svg>
         </div>
+
+
+        <form method="get" class="gap-2.5 items-center ml-auto hidden lg:flex" x-data="{}"
+              x-ref="scanForm">
+            <label for="scan" class="text-nowrap text-sm font-semibold">Scan:</label>
+            <select id="scan" name="scan" class="input select grow py-1.5"
+                    @change="$refs.scanForm.submit()">
+                <option {% if current_scan == 'latest' %}selected{% endif %}
+                        value="latest">
+                    Latest scan
+                </option>
+                {% for scan in all_scans %}
+                    <option value="{{ scan.isoformat }}"
+                            {% if current_scan == scan.isoformat %}selected{% endif %}>
+                        {{ scan|date:"Y-m-d H:i" }}
+                    </option>
+                {% endfor %}
+            </select>
+        </form>
     </div>
 
-    <div
-        class="h-full w-full p-5 row-span-2 bg-default lg:border-l border-gray-300 dark:border-gray-700 lg:static absolute "
-        x-bind:class="show_action_bar ? 'right-0' : 'right-[-800px]'"
-    >
-        {% include 'hosts/scan_visualizer/v2_sidebar.html' %}
-    </div>
-
-
-    <div class="overflow-auto p-3 pt-0">
+    <div class="p-3 pt-0 pb-8 bg-gray-100 dark:bg-gray-950 transition duration-150">
         {% if is_latest_scan %}
             {% for alert in alerts %}
                 {% if alert.severity == 'critical' %}
@@ -32,34 +50,34 @@
                 {% endif %}
             {% endfor %}
         {% else %}
-            <div class="flex items-center gap-3 p-3 mx-2 my-3 mb-0 rounded-sm bg-orange-300 dark:bg-orange-800">
+            <div class="flex items-center gap-2.5 px-3 py-2 mx-2 mt-3 text-sm rounded-md border-l-4 border-orange-500 bg-orange-100 text-orange-900 dark:bg-orange-950/60 dark:text-orange-200">
                 {% include 'icons/warning.html' %}
                 <div>This is historical data, it does not reflect the current configuration.</div>
             </div>
         {% endif %}
 
         {% if host.alert_acknowledgements.exists %}
-            <div class="flex items-center gap-3 p-3 mx-2 my-3 mb-0 rounded-sm bg-blue-300 dark:bg-blue-800">
+            <div class="flex items-center gap-2.5 px-3 py-2 mx-2 mt-3 text-sm rounded-md border-l-4 border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200">
                 {% include 'icons/info.html' %}
                 <div>There are {{ host.alert_acknowledgements.count }} acknowledged alert(s) for this host.</div>
-                <a href="{% url 'alerting:acknowledgments_list' %}?host={{ host.pk }}" class="btn btn-sm btn-outline ml-auto hover:bg-opacity-50 hover:bg-black hover:border-opacity-50 hover:border-black">View</a>
+                <a href="{% url 'alerting:acknowledgments_list' %}?host={{ host.pk }}" class="btn btn-xs btn-secondary bg-transparent ml-auto shrink-0 border-blue-500/40 text-inherit hover:bg-blue-200 dark:hover:bg-blue-900">View</a>
             </div>
         {% endif %}
 
         {% if host.archived %}
-            <div class="flex items-center gap-3 p-3 mx-2 my-3 mb-0 rounded-sm bg-blue-300 dark:bg-blue-800">
+            <div class="flex items-center gap-2.5 px-3 py-2 mx-2 mt-3 text-sm rounded-md border-l-4 border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200">
                 {% include 'icons/info.html' %}
                 <div>{{ host.archived_string }}</div>
             </div>
         {% endif %}
 
         <div  x-data="{componentSearch: ''}">
-            <div class="flex items-center w-full px-2 pt-5 pb-4">
-                <h1 class="text-2xl font-bold mr-auto">Metrics</h1>
-
-                <input placeholder="Search metrics" class="input w-40" x-model="componentSearch">
+            <div class="flex items-center gap-3 w-full px-2 pt-6 pb-3">
+                <h1 class="text-sm font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300">Metrics</h1>
+                <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
+                <input placeholder="Search metrics" class="input w-48 py-1.5" x-model="componentSearch">
             </div>
-            <div class="columns-1 2xl:columns-2 ultrawide:columns-3 gap-4 px-2">
+            <div class="stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-3 px-2">
                 {% for component, content in metrics.items %}
                     <div x-data="{ title: '{{ component }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
                         {{ content }}
@@ -69,18 +87,16 @@
         </div>
 
         <div  x-data="{componentSearch: ''}">
-            <div class="flex items-center w-full px-2 pt-5 pb-4">
-                <h1 class="text-2xl font-bold mr-2">Facts</h1>
-
-                <div class="text-xl text-gray-700 dark:text-gray-500 mr-auto">
-                    - {{ current_scan_date|date:"Y-m-d H:i" }}
+            <div class="flex items-center gap-3 w-full px-2 pt-6 pb-3">
+                <h1 class="text-sm font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300">Facts</h1>
+                <div class="text-xs text-gray-600 dark:text-gray-400">
+                    {{ current_scan_date|date:"Y-m-d H:i" }}
                 </div>
-
-                <input placeholder="Search facts" class="input w-40" x-model="componentSearch">
+                <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
+                <input placeholder="Search facts" class="input w-48 py-1.5" x-model="componentSearch">
             </div>
 
-
-            <div class="columns-1 2xl:columns-2 ultrawide:columns-3 gap-4 px-2">
+            <div class="stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-3 px-2">
                 {% for component, content in facts.items %}
                     <div x-data="{ title: '{{ component }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
                         {{ content }}
@@ -89,5 +105,60 @@
             </div>
         </div>
     </div>
+
+
+    <div
+        class="backdrop-blur-sm bg-white/30 dark:bg-black/30 lg:border-l border-gray-300 dark:border-gray-700 transition duration-150 w-full lg:max-w-[400px] overflow-y-auto fixed top-[112px] lg:static max-h-[calc(100vh-112px)] lg:max-h-full"
+        x-bind:class="show_action_bar ? 'right-0' : 'right-[-800px]'"
+    >
+        <div class="p-5 sticky top-0 right-0">
+            {% include 'hosts/scan_visualizer/v2_sidebar.html' %}
+        </div>
+    </div>
 </div>
+
+<script>
+    (function () {
+        // Stable multi-column layout: items are assigned to a fixed column
+        // (round-robin by index), so they don't jump between columns when
+        // their height changes (e.g. when collapsing/expanding components).
+        // The column count matches the Tailwind breakpoints on the container:
+        // 1 column by default, 2 from 'xl' (80rem), 3 from 'ultrawide' (100rem).
+        const twoColumnQuery = window.matchMedia('(min-width: 80rem)');
+        const threeColumnQuery = window.matchMedia('(min-width: 100rem)');
+
+        function getColumnCount() {
+            if (threeColumnQuery.matches) return 3;
+            if (twoColumnQuery.matches) return 2;
+            return 1;
+        }
+
+        function distribute(container, items) {
+            const columnCount = getColumnCount();
+
+            const columns = [];
+            for (let i = 0; i < columnCount; i++) {
+                columns.push(document.createElement('div'));
+            }
+
+            items.forEach(function (item, index) {
+                columns[index % columnCount].appendChild(item);
+            });
+
+            container.replaceChildren(...columns);
+        }
+
+        document.querySelectorAll('.stable-columns').forEach(function (container) {
+            const items = Array.from(container.children);
+
+            distribute(container, items);
+
+            [twoColumnQuery, threeColumnQuery].forEach(function (query) {
+                query.addEventListener('change', function () {
+                    distribute(container, items);
+                });
+            });
+        });
+    })();
+</script>
 

@@ -18,7 +18,8 @@
         "algorithm": "",
         "allowed_origins": "",
         "access_profile": 1,
-        "allowed_scopes": "[\"read\"]"
+        "allowed_scopes": "[\"read\"]",
+        "registration_source": "manual"
       }
     },
     {
@@ -40,7 +41,8 @@
         "algorithm": "",
         "allowed_origins": "",
         "access_profile": 1,
-        "allowed_scopes": "[\"system\"]"
+        "allowed_scopes": "[\"system\"]",
+        "registration_source": "manual"
       }
     }
 ]

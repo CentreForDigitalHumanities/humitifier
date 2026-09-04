@@ -1,10 +1,14 @@
+from datetime import date
+
 from decimal import Decimal
 from typing import Tuple
 
-from celery.bin.worker import Hostname
+from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.messages.views import SuccessMessageMixin
-from django.http import HttpResponse
+from django.http import FileResponse, Http404
+from django.shortcuts import get_object_or_404, redirect
+from django.views import View
 from django.views.generic import (
     CreateView,
     DeleteView,
@@ -15,19 +19,19 @@ from django.views.generic import (
 from rest_framework.reverse import reverse_lazy
 
 from hosts.models import Host, ScanData
-from humitifier_common.artefacts import Hardware, HostnameCtl
+from humitifier_common.artefacts import Hardware
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
-from reporting.filters import CostsSchemeFilters
+from reporting.filters import CostsSchemeFilters, GeneratedReportFilters
 from reporting.forms import (
     CostCalculatorForm,
     CostsOverviewForm,
     CostsReportForm,
     CostsSchemeForm,
 )
-from reporting.models import CostsScheme
-from reporting.tables import CostsOverviewTable, CostsSchemeTable
+from reporting.models import CostsScheme, GeneratedReport
+from reporting.tables import CostsOverviewTable, CostsSchemeTable, GeneratedReportTable
+from reporting.tasks import generate_cost_report
 from reporting.utils import calculate_costs, calculate_from_hardware_artefact
-from reporting.utils.costs_excel_export import create_timeseries_cost_excel
 from reporting.utils.get_server_hardware import get_hardware_for_hosts
 
 
@@ -158,28 +162,131 @@ class CostCalculatorView(LoginRequiredMixin, FormView):
         return context
 
 
+class ReportListView(
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+):
+    model = GeneratedReport
+    table_class = GeneratedReportTable
+    filterset_class = GeneratedReportFilters
+    template_name = "reporting/report_list.html"
+    paginate_by = 25
+    ordering = "-created_at"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+
 class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
     form_class = CostsReportForm
     template_name = "reporting/costs_report.html"
 
+    def get_initial(self):
+        this_year = date.today().year
+        return {
+            "start_date": date(day=1, month=1, year=this_year),
+            "end_date": date(day=31, month=12, year=this_year),
+        }
+
     def form_valid(self, form):
-        costs_scheme = form.cleaned_data["costs_scheme"]
+        costs_schemes = form.cleaned_data["costs_scheme"]
         customers = form.cleaned_data["customers"]
         filename = form.cleaned_data["filename"]
         start_date = form.cleaned_data["start_date"]
         end_date = form.cleaned_data["end_date"]
 
-        file_data = create_timeseries_cost_excel(
-            costs_scheme, filename, start_date, end_date, customers
+        report = GeneratedReport.objects.create(
+            filename=filename,
+            created_by=self.request.user,
+            customers=customers,
+            start_date=start_date,
+            end_date=end_date,
+        )
+        report.costs_schemes.set(costs_schemes)
+
+        generate_cost_report.delay(
+            report.pk,
+            [s.pk for s in costs_schemes],
+            filename,
+            start_date.isoformat(),
+            end_date.isoformat(),
+            customers,
         )
 
-        response = HttpResponse(
-            file_data.getvalue(),
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        messages.success(
+            self.request,
+            f'Report "{filename}" is being generated. '
+            "Please check back in a few minutes.",
         )
-        response["Content-Disposition"] = f'attachment; filename="{filename}"'
 
-        return response
+        return redirect("reporting:report_list")
+
+
+class ReportDownloadView(SuperuserRequiredMixin, LoginRequiredMixin, View):
+
+    def get(self, request, pk):
+        report = get_object_or_404(
+            GeneratedReport, pk=pk, created_by=request.user
+        )
+
+        if report.status != GeneratedReport.Status.COMPLETED:
+            raise Http404
+
+        return FileResponse(
+            report.file.open("rb"),
+            as_attachment=True,
+            filename=report.filename,
+        )
+
+
+class ReportDeleteView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+):
+    model = GeneratedReport
+    success_url = reverse_lazy("reporting:report_list")
+    success_message = "Report deleted"
+
+    def get_queryset(self):
+        return super().get_queryset().filter(created_by=self.request.user)
+
+
+class ReportRerunView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+    template_name = "reporting/report_confirm_rerun.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["object"] = get_object_or_404(
+            GeneratedReport, pk=self.kwargs["pk"], created_by=self.request.user
+        )
+        return context
+
+    def post(self, request, pk):
+        report = get_object_or_404(GeneratedReport, pk=pk, created_by=request.user)
+
+        new_report = GeneratedReport.objects.create(
+            filename=report.filename,
+            created_by=request.user,
+            customers=report.customers,
+            start_date=report.start_date,
+            end_date=report.end_date,
+        )
+        new_report.costs_schemes.set(report.costs_schemes.all())
+
+        generate_cost_report.delay(
+            new_report.pk,
+            [s.pk for s in new_report.costs_schemes.all()],
+            new_report.filename,
+            new_report.start_date.isoformat(),
+            new_report.end_date.isoformat(),
+            new_report.customers,
+        )
+
+        messages.success(
+            request,
+            f'Report "{new_report.filename}" is being re-generated. '
+            "Please check back in a few minutes.",
+        )
+
+        return redirect("reporting:report_list")
 
 
 class CostsOverviewView(LoginRequiredMixin, FormView):
@@ -207,7 +314,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
                 data,
             ) = self.get_data(
                 customer=form_data.get("customer", None),
-                costs_scheme=form_data.get("costs_scheme"),
+                costs_schemes=form_data.get("costs_scheme"),
             )
 
             context["total_vm_costs"] = total_vm_costs
@@ -226,7 +333,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
     def get_data(
         self,
         customer,
-        costs_scheme,
+        costs_schemes,
     ) -> Tuple[
         Decimal, Decimal, Decimal, Decimal, Decimal, list[CostsOverviewTable.Data]
     ]:
@@ -245,10 +352,18 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
         total_management_costs = Decimal("0")
         total_costs = Decimal("0")
 
+        # Find all schemes selected to support multiple platforms
+        schemes_by_platform = {s.platform: s for s in costs_schemes}
+
         for server in servers:
+            scheme = schemes_by_platform.get(server.platform)
+            if not scheme:
+                continue
+
             cost_breakdown = calculate_from_hardware_artefact(
                 server.hardware,
-                costs_scheme,
+                scheme,
+                os=server.os,
             )
 
             total_vm_costs += cost_breakdown.vm_costs
@@ -260,6 +375,7 @@ class CostsOverviewView(LoginRequiredMixin, FormView):
             data.append(
                 CostsOverviewTable.Data(
                     fqdn=server.hostname,
+                    platform=server.platform,
                     scan_date=server.scan_date,
                     costs_breakdown=cost_breakdown,
                 )

@@ -1,6 +1,6 @@
 from django import forms
 
-from .models import DataSource, DataSourceType, Host, SavedSearch
+from .models import DataSource, DataSourceType, Host, OperatingSystem, SavedSearch
 
 
 class DataSourceForm(forms.ModelForm):
@@ -35,6 +35,15 @@ class DataSourceForm(forms.ModelForm):
             return self.data["initial-identifier"]
 
         return None
+
+
+class OperatingSystemForm(forms.ModelForm):
+    class Meta:
+        model = OperatingSystem
+        fields = [
+            "name",
+            "outdated",
+        ]
 
 
 class HostScanSpecForm(forms.ModelForm):

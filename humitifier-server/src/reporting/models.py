@@ -1,11 +1,14 @@
 from decimal import Decimal
 
+from django.conf import settings
+from django.contrib.postgres.fields import ArrayField
 from django.db import models
 
 
 class CostsScheme(models.Model):
 
     name = models.CharField(max_length=100)
+    platform = models.CharField(max_length=100, default="vmware")
 
     cpu = models.DecimalField("Price per CPU", max_digits=10, decimal_places=2)
     memory = models.DecimalField(
@@ -29,4 +32,38 @@ class CostsScheme(models.Model):
         return self.storage / 1024
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.platform})"
+
+
+class GeneratedReport(models.Model):
+
+    class Status(models.TextChoices):
+        PENDING = "pending", "Pending"
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
+    filename = models.CharField(max_length=255)
+    file = models.FileField(upload_to="reports/", blank=True)
+    status = models.CharField(
+        max_length=10,
+        choices=Status.choices,
+        default=Status.PENDING,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+    )
+    error_message = models.TextField(blank=True)
+    customers = ArrayField(
+        models.CharField(max_length=255)
+    )
+    costs_schemes = models.ManyToManyField(
+        CostsScheme
+    )
+    start_date = models.DateField()
+    end_date = models.DateField()
+
+
+    def __str__(self):
+        return f"{self.filename} ({self.status})"

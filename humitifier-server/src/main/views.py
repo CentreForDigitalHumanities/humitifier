@@ -34,6 +34,7 @@ from hosts.models import Host
 from main.filters import (
     AccessProfileFilters,
     PeriodicTaskFilters,
+    StatsFilters,
     TaskResultFilters,
     UserFilters,
 )
@@ -52,7 +53,6 @@ from main.stats import (
     get_easter_stats,
     get_host_count_by_otap,
     get_hosts_by_datasource,
-    get_hypervisor_stats,
     get_os_stats,
 )
 from main.tables import (
@@ -205,7 +205,7 @@ class HomeRedirectView(LoginRequiredMixin, RedirectView):
 class DashboardView(LoginRequiredMixin, FilteredListView):
     model = Alert
     filterset_class = AlertFilters
-    paginate_by = 20
+    paginate_by = 50
     template_name = "main/dashboard.html"
     ordering = "host"
     ordering_fields = {
@@ -235,14 +235,27 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["os_stats"] = get_os_stats(self.request.user)
-        context["hypervisor_stats"] = get_hypervisor_stats(self.request.user)
-        context["customer_stats"] = get_customer_stats(self.request.user)
+        host_qs = Host.objects.get_for_user(self.request.user).filter(archived=False)
+        self.stats_filterset = StatsFilters(self.request.GET, queryset=host_qs)
+        host_qs = self.stats_filterset.qs
 
-        num_critical, num_warning, num_info, num_fine = get_alert_stats()
-        context["alert_message_counts"] = get_alert_count_by_message(self.request.user)
-        context["otap_counts"] = get_host_count_by_otap(self.request.user)
-        context["datasource_counts"] = get_hosts_by_datasource(self.request.user)
+        context["stats_filterset"] = self.stats_filterset
+
+        context["os_stats"] = get_os_stats(self.request.user, host_qs=host_qs)
+        context["customer_stats"] = get_customer_stats(self.request.user, host_qs=host_qs)
+
+        num_critical, num_warning, num_info, num_fine = get_alert_stats(
+            self.request.user, host_qs=host_qs
+        )
+        context["alert_message_counts"] = get_alert_count_by_message(
+            self.request.user, host_qs=host_qs
+        )
+        context["otap_counts"] = get_host_count_by_otap(
+            self.request.user, host_qs=host_qs
+        )
+        context["datasource_counts"] = get_hosts_by_datasource(
+            self.request.user, host_qs=host_qs
+        )
 
         context["num_critical"] = num_critical
         context["num_warning"] = num_warning

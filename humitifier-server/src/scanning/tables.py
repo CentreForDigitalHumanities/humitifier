@@ -35,7 +35,7 @@ class ScanSpecTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                button_class="btn btn-primary mr-2",
                 url=lambda obj: reverse("scanning:edit_scan_spec", args=[obj.pk]),
             ),
             ButtonColumn(

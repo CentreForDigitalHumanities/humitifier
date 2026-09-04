@@ -1,8 +1,10 @@
+from django.db.models import Q
 from django.urls import reverse
 
-from hosts.models import Host, DataSource, SavedSearch
+from hosts.models import Host, DataSource, OperatingSystem, SavedSearch
 from main.easy_tables import (
     BaseTable,
+    BooleanColumn,
     ButtonColumn,
     CompoundColumn,
     DateTimeColumn,
@@ -33,7 +35,7 @@ class DataSourcesTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                button_class="btn btn-primary mr-2",
                 url=lambda obj: reverse("hosts:edit_data_source", args=[obj.pk]),
             ),
         ],
@@ -44,13 +46,54 @@ class DataSourcesTable(BaseTable):
         return obj.hosts.count()
 
 
+class OperatingSystemsTable(BaseTable):
+    class Meta:
+        model = OperatingSystem
+        columns = [
+            "name",
+            "outdated",
+            "num_hosts",
+            "actions",
+        ]
+        column_type_overrides = {
+            "outdated": BooleanColumn(
+                header="Outdated",
+                value_attr="outdated",
+            ),
+        }
+        no_data_message = "No operating systems configured yet."
+
+    num_hosts = MethodColumn("Number of hosts", method_name="get_num_hosts")
+
+    actions = CompoundColumn(
+        "Actions",
+        columns=[
+            ButtonColumn(
+                text="Edit",
+                button_class="btn btn-primary mr-2",
+                url=lambda obj: reverse("hosts:edit_operating_system", args=[obj.pk]),
+            ),
+            ButtonColumn(
+                text="Delete",
+                button_class="btn btn-danger",
+                url=lambda obj: reverse("hosts:delete_operating_system", args=[obj.pk]),
+                is_form_submit=True,
+                confirm_message="Are you sure you want to delete this operating system?",
+            ),
+        ],
+    )
+
+    @staticmethod
+    def get_num_hosts(obj: OperatingSystem):
+        return Host.objects.filter(Q(os=obj.name) | Q(os=f'"{obj.name}"'), archived=False).count()
+
+
 class HostsTable(BaseTable):
     class Meta:
         model = Host
         columns = [
             "fqdn",
             "os",
-            "hypervisor",
             "last_scan_date",
             "created_at",
             "customer",
@@ -125,18 +168,18 @@ class SavedSearchesTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Load",
-                button_class="btn btn-sm btn-outline mr-2",
+                button_class="btn btn-sm btn-secondary mr-2",
                 url=lambda obj: reverse("hosts:saved_search_load", args=[obj.pk]),
             ),
             ButtonColumn(
                 text="Edit",
-                button_class="btn btn-sm btn-outline mr-2",
+                button_class="btn btn-sm btn-secondary mr-2",
                 url=lambda obj: reverse("hosts:saved_search_edit", args=[obj.pk]),
                 condition=lambda obj, request: obj.creator == request.user or obj.is_public,
             ),
             ButtonColumn(
                 text="Delete",
-                button_class="btn btn-sm btn-outline text-red-600 dark:text-red-400",
+                button_class="btn btn-sm btn-secondary text-red-600 dark:text-red-400",
                 url=lambda obj: reverse("hosts:saved_search_delete", args=[obj.pk]),
                 is_form_submit=True,
                 confirm_message="Are you sure you want to delete this saved search?",

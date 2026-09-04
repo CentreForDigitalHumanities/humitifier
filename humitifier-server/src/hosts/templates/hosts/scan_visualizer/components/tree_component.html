@@ -1,0 +1,71 @@
+{% extends 'hosts/scan_visualizer/components/base_component.html' %}
+
+{% block header %}
+    {% if show_search %}
+        <input
+            placeholder="{{ search_placeholder }}"
+            class="input w-1/2 py-1 ml-auto"
+            x-model="search"
+            @click.stop
+        >
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    {# Master-detail: a compact tree on top, a single detail panel below. #}
+    {# Selecting a row never moves the tree around; details always appear #}
+    {# in the same place. #}
+    <div
+        x-data="{
+            selected: null,
+            defaultDepth: {{ initially_expanded_depth }},
+            expansion: {},
+            haystack: '{{ search_haystack|escapejs }}',
+            query() {
+                return this.search.trim().toLowerCase();
+            },
+            isExpanded(key, depth) {
+                return this.expansion[key] ?? depth <= this.defaultDepth;
+            },
+            toggle(key, depth) {
+                this.expansion[key] = !this.isExpanded(key, depth);
+            },
+            select(key, hasChildren) {
+                this.selected = this.selected === key ? null : key;
+                if (hasChildren) this.expansion[key] = true;
+            }
+        }"
+    >
+        <div class="max-h-[40vh] overflow-y-auto" role="tree">
+            {% for node in data %}
+                {% include 'hosts/scan_visualizer/components/tree_node.html' with node=node depth=0 %}
+            {% empty %}
+                <div class="text-gray-600 dark:text-gray-400">Nothing to show</div>
+            {% endfor %}
+
+            {% if data %}
+                <div
+                    class="py-3 text-center text-gray-600 dark:text-gray-400"
+                    x-show="query() !== '' && !haystack.includes(query())"
+                    style="display: none"
+                >
+                    Nothing matches your search
+                </div>
+            {% endif %}
+        </div>
+
+        {% if data %}
+            <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                <div
+                    class="text-xs text-gray-500 dark:text-gray-400"
+                    x-show="selected === null"
+                >
+                    Select an item to see its details
+                </div>
+                {% for node in data %}
+                    {% include 'hosts/scan_visualizer/components/tree_node_details.html' with node=node %}
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

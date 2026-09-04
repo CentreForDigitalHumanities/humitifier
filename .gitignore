@@ -16,6 +16,8 @@ humitifier-scanner/build
 humitifier-scanner/dist
 humitifier-scanner/*.spec
 humitifier-server/src/static
+humitifier-server/src/files
+humitifier-server/files
 
 # Supabase
 .branches

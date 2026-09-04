@@ -1,12 +1,12 @@
 [tool.poetry]
 name = "humitifier-common"
-version = "4.14.2"
+version = "5.0.0"
 description = ""
 authors = ["Mees, T.D. (Ty) <t.d.mees@uu.nl>"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = "^3.11"
+python = "^3.14"
 pydantic = "~2"
 
 

@@ -1,29 +1,51 @@
 {% extends 'base/base_page_template.html' %}
 
 {% block content %}
-    <div class="h-full--header w-full bg-default px-7 py-5 ">
+    <div class="h-full--header w-full bg-default px-7 py-5 text-sm">
         {% if object.archived %}
-            <h1 class="text-3xl font-bold">Un-archive host</h1>
-            <p class="mt-6">
-                Are you sure you want to un-archive host '<strong>{{ object.fqdn }}</strong>'?
-            </p>
-        {% else %}
-            <h1 class="text-3xl font-bold">Archive host</h1>
-            <p class="mt-6">
-                Are you sure you want to archive host '<strong>{{ object.fqdn }}</strong>'?
-            </p>
-        {% endif %}
-        <form method="post">
-            {% csrf_token %}
-            {{ form }}
-            <div class="flex gap-2 mt-6">
-                <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-outline">
-                    Cancel
-                </a>
-                <button type="submit" class="btn light:btn-primary dark:btn-outline">
-                    Confirm
-                </button>
+            <h1 class="text-2xl font-bold mb-6">Un-archive host</h1>
+            <div class="max-w-xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+                <div class="p-6">
+                    <div class="flex items-center gap-2.5 px-3 py-2 mb-6 rounded-md border-l-4 border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200">
+                        {% include 'icons/info.html' %}
+                        <div>Are you sure you want to un-archive host '<strong>{{ object.fqdn }}</strong>'?</div>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form }}
+                        <div class="flex gap-2 mt-6">
+                            <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-sm btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-sm btn-primary">
+                                Confirm
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
-        </form>
+        {% else %}
+            <h1 class="text-2xl font-bold mb-6">Archive host</h1>
+            <div class="max-w-xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+                <div class="p-6">
+                    <div class="flex items-center gap-2.5 px-3 py-2 mb-6 rounded-md border-l-4 border-orange-500 bg-orange-100 text-orange-900 dark:bg-orange-950/60 dark:text-orange-200">
+                        {% include 'icons/warning.html' %}
+                        <div>Are you sure you want to archive host '<strong>{{ object.fqdn }}</strong>'?</div>
+                    </div>
+                    <form method="post">
+                        {% csrf_token %}
+                        {{ form }}
+                        <div class="flex gap-2 mt-6">
+                            <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-sm btn-secondary">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-sm btn-danger">
+                                Archive
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        {% endif %}
     </div>
 {% endblock %}

@@ -26,7 +26,7 @@ class CostCalculatorForm(forms.Form):
 
     memory = forms.DecimalField(
         label="Memory in GB",
-        initial=2,
+        initial=4,
     )
 
     storage = forms.DecimalField(
@@ -44,9 +44,10 @@ class CostCalculatorForm(forms.Form):
 
 
 class CostsOverviewForm(forms.Form):
-    costs_scheme = forms.ModelChoiceField(
-        label="Costs Scheme",
+    costs_scheme = forms.ModelMultipleChoiceField(
+        label="Costs Schemes",
         queryset=CostsScheme.objects,
+        widget=MultipleChoiceFilterWidget(attrs={"placeholder": "Select schemes"}),
     )
 
     customer = forms.ChoiceField(
@@ -63,9 +64,10 @@ class CostsReportForm(forms.Form):
         initial="costs_report.xlsx",
     )
 
-    costs_scheme = forms.ModelChoiceField(
-        label="Costs Scheme",
+    costs_scheme = forms.ModelMultipleChoiceField(
+        label="Costs Schemes",
         queryset=CostsScheme.objects,
+        widget=MultipleChoiceFilterWidget(attrs={"placeholder": "Select schemes"}),
     )
 
     customers = forms.MultipleChoiceField(

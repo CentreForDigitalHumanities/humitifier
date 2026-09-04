@@ -1,26 +1,36 @@
 {% extends 'base/base_page_template.html' %}
-{% load humanize %}
 
-{% block page_title %}Server costs report generator | {{ block.super }}{% endblock %}
+{% block page_title %}New server cost report | {{ block.super }}{% endblock %}
 
 {% block content %}
     <div class="h-full--header w-full bg-default py-5">
         <div class="px-7 mb-5">
-            <h1 class="text-3xl font-bold">Server costs report generator</h1>
+            <h1 class="text-2xl font-bold">New server cost report</h1>
 
-            <div class="mt-5 flex gap-6">
+            <div class="mt-8">
                 <div class="lg:w-96">
-                    <form method="post">
-                        {% csrf_token %}
-                        {{ form }}
-
-                        <div class="flex gap-2 mt-6">
-                            <button type="submit"
-                                    class="btn light:btn-primary dark:btn-outline">
-                                Download
-                            </button>
+                    <div class="bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden">
+                        <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                            Report settings
                         </div>
-                    </form>
+                        <div class="p-4 text-sm">
+                            <form method="post">
+                                {% csrf_token %}
+                                {{ form }}
+
+                                <div class="flex gap-2 mt-6">
+                                    <button type="submit"
+                                            class="btn btn-sm btn-primary">
+                                        Generate report
+                                    </button>
+                                    <a href="{% url 'reporting:report_list' %}"
+                                       class="btn btn-sm btn-secondary">
+                                        Cancel
+                                    </a>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

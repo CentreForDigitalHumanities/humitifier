@@ -198,7 +198,7 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
             logger.debug(f"Closing ssh connection to {self.host}")
             self.ssh_client.close()
             self.ssh_client = None
-        if self.bastion_enabled and self.bastion_client:
+        if self.bastion_enabled and getattr(self, "bastion_client", None):
             logger.debug(f"Closing ssh connection to {self.bastion_host}")
             self.bastion_client.close()
             self.bastion_client = None
@@ -307,7 +307,7 @@ class _ExecutorManager:
                     )
                     return cls._get_remote_executor(host, retries - 1)
 
-                logger.error(f"Failed to create new SSH connection to {host}")
+                logger.error(f"Failed to create new SSH connection to {host}: {e}")
                 raise e
 
         connection: RemoteLinuxShellExecutor = cls._connections[host]

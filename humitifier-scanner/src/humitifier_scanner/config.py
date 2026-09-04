@@ -2,6 +2,7 @@ import os
 from pathlib import Path
 from typing import Tuple, Type
 
+from humitifier_common.utils.config_helpers import add_lowercase_env_vars, generate_config_locations
 from pydantic import AmqpDsn, AnyHttpUrl, BaseModel, Field, RedisDsn, Secret
 from pydantic_settings import (
     BaseSettings,
@@ -15,22 +16,12 @@ from humitifier_scanner.logger import logger
 # Pydantic expects environment variables to be in lowercase
 # But that hurts my brain, so let's add a little helper to add a lowercase
 # version of each env var (prefixed with HUMITIFIER_SCANNER_) to the environment
-for env_var, value in os.environ.items():
-    if env_var.startswith("HUMITIFIER_SCANNER_"):
-        os.environ[env_var.lower()] = value
+add_lowercase_env_vars("HUMITIFIER_SCANNER_")
 
 # Get location of this file
 _BASE_DIR = Path(__file__).parent
 
-_CONFIG_LOCATIONS = [
-    _BASE_DIR / Path("../../.local/config.toml"),
-    Path("~/.config/humitifier-scanner/config.toml").expanduser(),
-    Path("~/.humitifier-scanner/config.toml").expanduser(),
-    Path("/etc/humitifier-scanner/config.toml"),
-    Path("/usr/local/etc/humitifier-scanner/config.toml"),
-]
-if config_in_env := os.environ.get("HUMITIFIER_SCANNER_CONFIG"):
-    _CONFIG_LOCATIONS.insert(0, Path(config_in_env))
+_CONFIG_LOCATIONS = generate_config_locations(_BASE_DIR, "scanner", "HUMITIFIER_SCANNER_CONFIG")
 
 _SECRETS_DIR = os.environ.get("HUMITIFIER_SCANNER_SECRETS_DIR", None)
 

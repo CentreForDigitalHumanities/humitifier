@@ -1,6 +1,7 @@
 from alerting.backend.data import AlertData
 from alerting.backend.generator import BaseArtefactAlertGenerator
 from alerting.models import AlertSeverity
+from hosts.models import OperatingSystem
 from humitifier_common.artefacts import *
 
 
@@ -115,18 +116,14 @@ class OutdatedOSAlertGenerator(BaseArtefactAlertGenerator):
     artefact = HostnameCtl
     verbose_name = "Outdated OS"
 
-    OUTDATED_OSes = [
-        "Debian GNU/Linux 11 (bullseye)",
-        "Debian GNU/Linux 10 (buster)",
-        "Debian GNU/Linux 9 (stretch)",
-        "CentOS Linux 7 (Core)",
-    ]
-
     def generate_alerts(self) -> AlertData | list[AlertData] | None:
         if not self.artefact_data:
             return None
 
-        if self.artefact_data.os in self.OUTDATED_OSes:
+        if OperatingSystem.objects.filter(
+            name=self.artefact_data.os,
+            outdated=True,
+        ).exists():
             return AlertData(
                 severity=AlertSeverity.INFO,
                 message="This operating system is no longer supported",

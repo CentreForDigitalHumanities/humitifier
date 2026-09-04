@@ -1,3 +1,4 @@
+from django.utils.timezone import localtime
 from typing import Callable
 
 from django.template.defaultfilters import date
@@ -69,7 +70,11 @@ class MethodColumn(BaseColumn):
         if not method:
             return ""
 
-        return method(obj)
+        output = method(obj)
+
+        if self.mark_safe:
+            return mark_safe(output)
+        return output
 
 
 class ValueColumn(BaseColumn):
@@ -158,7 +163,8 @@ class CompoundColumn(BaseColumn):
 
     def render(self, obj):
         output = [column.render(obj) for column in self.columns]
-        return mark_safe(" ".join(output))
+        output = " ".join(output)
+        return mark_safe(f'<div class="flex text-nowrap">{output}</div>')
 
 
 class DateColumn(ValueColumn):
@@ -177,6 +183,10 @@ class DateColumn(ValueColumn):
 
         if not value:
             return ""
+
+        # Convert date to localtime
+        if hasattr(value, "tzinfo") and value.tzinfo is not None:
+            value = localtime(value)
 
         return date(value, self.date_format)
 
@@ -276,7 +286,7 @@ class ButtonColumn(LinkColumn):
 
     def __init__(
         self,
-        button_class: str = "btn light:btn-primary dark:btn-outline",
+        button_class: str = "btn btn-primary",
         show_check_function: Callable = None,
         *args,
         **kwargs,

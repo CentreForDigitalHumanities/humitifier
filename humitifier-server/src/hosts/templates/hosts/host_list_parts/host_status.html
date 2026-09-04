@@ -1,23 +1,23 @@
-<div class="flex gap-3 font-bold">
+<div class="flex gap-2">
     {% if obj.alerts.count %}
         {% if obj.num_info_alerts %}
-            <div class="text-blue-600 dark:text-blue-300">
-                {% include 'icons/info.html' %} {{ obj.num_info_alerts }}
+            <div class="flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200">
+                {% with icon_size='size-3.5' %}{% include 'icons/info.html' %}{% endwith %} {{ obj.num_info_alerts }}
             </div>
         {% endif %}
         {% if obj.num_warning_alerts %}
-            <div class="text-orange-600 dark:text-orange-500">
-                {% include 'icons/warning.html' %} {{ obj.num_warning_alerts }}
+            <div class="flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs border-orange-500 bg-orange-100 text-orange-900 dark:bg-orange-950/60 dark:text-orange-200">
+                {% with icon_size='size-3.5' %}{% include 'icons/warning.html' %}{% endwith %} {{ obj.num_warning_alerts }}
             </div>
         {% endif %}
         {% if obj.num_critical_alerts %}
-            <div class="text-red-500">
-                {% include 'icons/critical.html' %} {{ obj.num_critical_alerts }}
+            <div class="flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs border-red-500 bg-red-100 text-red-900 dark:bg-red-950/60 dark:text-red-200">
+                {% with icon_size='size-3.5' %}{% include 'icons/critical.html' %}{% endwith %} {{ obj.num_critical_alerts }}
             </div>
         {% endif %}
         {% if obj.num_acknowledged_alerts %}
-            <div class="text-neutral-400">
-                {% include 'icons/snooze.html' %} {{ obj.num_acknowledged_alerts }}
+            <div class="flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs border-gray-300 dark:border-gray-700 text-gray-600 dark:text-gray-400">
+                {% with icon_size='size-3.5' %}{% include 'icons/snooze.html' %}{% endwith %} {{ obj.num_acknowledged_alerts }}
             </div>
         {% endif %}
     {% endif %}
