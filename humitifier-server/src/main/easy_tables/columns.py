@@ -185,7 +185,8 @@ class DateColumn(ValueColumn):
             return ""
 
         # Convert date to localtime
-        value = localtime(value)
+        if hasattr(value, "tzinfo") and value.tzinfo is not None:
+            value = localtime(value)
 
         return date(value, self.date_format)
 
