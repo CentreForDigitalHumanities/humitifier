@@ -26,7 +26,7 @@ class CostCalculatorForm(forms.Form):
 
     memory = forms.DecimalField(
         label="Memory in GB",
-        initial=2,
+        initial=4,
     )
 
     storage = forms.DecimalField(
