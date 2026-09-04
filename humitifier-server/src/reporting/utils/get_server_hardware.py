@@ -50,7 +50,7 @@ def get_hardware_fact(scan_obj: ScanData) -> Server | None:
         hostname_ctl: HostnameCtl = scan_obj.parsed_data.facts[
             HostnameCtl.__artefact_name__
         ]
-        platform = hostname_ctl.virtualization
+        platform = hostname_ctl.virtualization or platform
         if hostname_ctl.os and "windows" in hostname_ctl.os.lower():
             os = "windows"
 
