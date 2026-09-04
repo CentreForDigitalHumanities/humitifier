@@ -123,6 +123,26 @@ WILD_WASTELAND_JOKES = [
     "Powered by caffeine and architectural panic",
     "Powered by caffeine and architectural panic, with a dash of [REDACTED]",
     "Press buttons to see what breaks next",
+    (
+        "You are standing on a planet that's evolving",
+        "The planet revolves at 900 miles per hour",
+        "The earth orbits the sun at nineteen miles a second",
+        "The sun is the source of all our power",
+        "The sun, earth, and all the stars visible from earth, are moving a million "
+        "miles a day",
+        "The solar system moves at forty thousand miles an hour through the Milky Way",
+        "Our galaxy contains a hundred billion stars",
+        "The Milky Way is a hundred thousand light years wide",
+        "The galaxy is sixteen thousand light years thick at the middle",
+        "The galaxy is three thousand light years thick around earth",
+        "Earth is thirty thousand light years from the center of the galaxy",
+        "The solar system orbits the center of the galaxy every two hundred million years",
+        "There are a million of billions of galaxies in the ever-expanding universe",
+        "The universe expands in every direction it can, at the speed of light",
+        "The speed of light is twelve million miles per minute",
+        "The speed of light is the fastest anything can go",
+    ),
+    "Chicken",
     # @formatter:on
 ]
 
