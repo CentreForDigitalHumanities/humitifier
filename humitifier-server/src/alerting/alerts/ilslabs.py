@@ -12,6 +12,9 @@ class PyInfraReportAlertGenerator(BaseArtefactAlertGenerator):
     verbose_name = "PyInfra"
 
     def generate_alerts(self) -> AlertData | list[AlertData] | None:
+        if self.artefact_data is None:
+            return None
+
         alerts = []
 
         if self.artefact_data.success is False:
