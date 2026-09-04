@@ -85,6 +85,7 @@ def datasource_sync(hosts: list[dict], data_source_id: int):
             "has_tofu_config": new_data.get("has_tofu_config"),
             "otap_stage": new_data.get("otap_stage"),
             "billable": new_data.get("billable"),
+            "asset_tag": new_data.get("asset_tag"),
         }
 
         host = Host.objects.create(**data)
