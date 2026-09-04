@@ -168,7 +168,7 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 megawide:grid-cols-5 gigawide:grid-cols-6 gap-5 px-5">
+            <div class="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 megawide:grid-cols-5 gigawide:grid-cols-6 gap-3 px-5">
                 <div class="stat-tile">
                     <canvas id="alertsChart"></canvas>
                 </div>
@@ -179,20 +179,20 @@
                     <canvas id="otapChart"></canvas>
                 </div>
                 <div class="stat-tile">
+                    <canvas id="datasourceChart"></canvas>
+                </div>
+                <div class="stat-tile xl:col-span-2 megawide:col-span-1">
                     <canvas id="osChart"></canvas>
                 </div>
-                <div class="stat-tile">
+                <div class="stat-tile xl:col-span-2 megawide:col-span-1">
                     <canvas id="customerChart"></canvas>
-                </div>
-                <div class="stat-tile">
-                    <canvas id="datasourceChart"></canvas>
                 </div>
                 {% if layout.wild_wasteland %}
                     {# Easter egg stats; these fill in empty spaces in the stats because _someone_ complained about the empty space #}
-                    <div class="stat-tile hidden 2xl:block gigawide:hidden">
+                    <div class="stat-tile hidden megawide:block gigawide:hidden">
                         <canvas id="topExcusesChart"></canvas>
                     </div>
-                    <div class="stat-tile hidden 2xl:block gigawide:hidden">
+                    <div class="stat-tile hidden megawide:block  gigawide:hidden">
                         <canvas id="ducksChart"></canvas>
                     </div>
                     <div class="stat-tile hidden megawide:block gigawide:hidden">
