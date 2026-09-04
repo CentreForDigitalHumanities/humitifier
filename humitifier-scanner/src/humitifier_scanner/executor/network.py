@@ -1,4 +1,5 @@
 import dataclasses
+import re
 import subprocess
 import sys
 
@@ -51,7 +52,8 @@ class NetworkExecutor:
     def _parse_ping_output(self, output: str) -> PingStats:
         lines = output.splitlines()
         transmitted, received, packet_loss, time = 0, 0, 0, 0
-        # 1 packets transmitted, 1 received, 0% packet loss, time 0ms
+        # Unix: 1 packets transmitted, 1 received, 0% packet loss, time 0ms
+        # Windows: Packets: Sent = 4, Received = 4, Lost = 0 (0% loss)
         for line in lines:
             if "packets transmitted" in line:
                 segments = line.split(",")
@@ -64,6 +66,16 @@ class NetworkExecutor:
                         packet_loss = int(segment.strip().split(" ")[0][:-1])
                     elif "time" in segment:
                         time = int(segment.strip().split(" ")[1][:-2])
+            elif "Packets: Sent =" in line:
+                match = re.search(r"Sent = (\d+), Received = (\d+), Lost = (\d+) \((\d+)% loss\)", line)
+                if match:
+                    transmitted = int(match.group(1))
+                    received = int(match.group(2))
+                    packet_loss = int(match.group(4))
+            elif "Average =" in line:
+                match = re.search(r"Average = (\d+)ms", line)
+                if match:
+                    time = int(match.group(1))
 
         return PingStats(transmitted, received, packet_loss, time)
 
