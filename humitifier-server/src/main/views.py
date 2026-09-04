@@ -34,6 +34,7 @@ from hosts.models import Host
 from main.filters import (
     AccessProfileFilters,
     PeriodicTaskFilters,
+    StatsFilters,
     TaskResultFilters,
     UserFilters,
 )
@@ -234,13 +235,27 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
-        context["os_stats"] = get_os_stats(self.request.user)
-        context["customer_stats"] = get_customer_stats(self.request.user)
+        host_qs = Host.objects.get_for_user(self.request.user).filter(archived=False)
+        self.stats_filterset = StatsFilters(self.request.GET, queryset=host_qs)
+        host_qs = self.stats_filterset.qs
 
-        num_critical, num_warning, num_info, num_fine = get_alert_stats()
-        context["alert_message_counts"] = get_alert_count_by_message(self.request.user)
-        context["otap_counts"] = get_host_count_by_otap(self.request.user)
-        context["datasource_counts"] = get_hosts_by_datasource(self.request.user)
+        context["stats_filterset"] = self.stats_filterset
+
+        context["os_stats"] = get_os_stats(self.request.user, host_qs=host_qs)
+        context["customer_stats"] = get_customer_stats(self.request.user, host_qs=host_qs)
+
+        num_critical, num_warning, num_info, num_fine = get_alert_stats(
+            self.request.user, host_qs=host_qs
+        )
+        context["alert_message_counts"] = get_alert_count_by_message(
+            self.request.user, host_qs=host_qs
+        )
+        context["otap_counts"] = get_host_count_by_otap(
+            self.request.user, host_qs=host_qs
+        )
+        context["datasource_counts"] = get_hosts_by_datasource(
+            self.request.user, host_qs=host_qs
+        )
 
         context["num_critical"] = num_critical
         context["num_warning"] = num_warning

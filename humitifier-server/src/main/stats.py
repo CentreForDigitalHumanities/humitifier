@@ -7,34 +7,41 @@ from alerting.models import Alert, AlertSeverity
 from hosts.models import Host
 
 
-def get_os_stats(user):
+def get_os_stats(user, host_qs=None):
+    if host_qs is None:
+        host_qs = Host.objects.get_for_user(user).filter(archived=False)
     return (
-        Host.objects.get_for_user(user)
-        .filter(archived=False)
+        host_qs
         .values("os")
         .annotate(count=Count("os"))
+        .order_by()
     )
 
-def get_customer_stats(user):
+def get_customer_stats(user, host_qs=None):
+    if host_qs is None:
+        host_qs = Host.objects.get_for_user(user).filter(archived=False)
     return (
-        Host.objects.get_for_user(user)
-        .filter(archived=False)
+        host_qs
         .values("customer")
         .annotate(count=Count("customer"))
+        .order_by()
     )
 
 
-def get_alert_stats():
-    num_critical = Host.objects.filter(
+def get_alert_stats(user, host_qs=None):
+    if host_qs is None:
+        host_qs = Host.objects.get_for_user(user).filter(archived=False)
+    else:
+        host_qs = host_qs.filter(archived=False)
+
+    num_critical = host_qs.filter(
         alerts__severity=AlertSeverity.CRITICAL,
         alerts__acknowledgement=None,
-        archived=False,
     ).count()
     num_warning = (
-        Host.objects.filter(
+        host_qs.filter(
             alerts__severity=AlertSeverity.WARNING,
             alerts__acknowledgement=None,
-            archived=False,
         )
         .exclude(
             alerts__severity=AlertSeverity.CRITICAL,
@@ -42,10 +49,9 @@ def get_alert_stats():
         .count()
     )
     num_info = (
-        Host.objects.filter(
+        host_qs.filter(
             alerts__severity=AlertSeverity.INFO,
             alerts__acknowledgement=None,
-            archived=False,
         )
         .exclude(
             alerts__severity__in=[AlertSeverity.WARNING, AlertSeverity.CRITICAL],
@@ -57,19 +63,19 @@ def get_alert_stats():
     # The 'basic' case counts all hosts with 0 alerts
     # The 'advanced' case counts all hosts with no unacknowledged alerts
     num_fine = (
-        Host.objects.filter(archived=False, alerts__isnull=True)
+        host_qs.filter(alerts__isnull=True)
         # This annotate is needed for the union, as that adds this column
         # The value is bogus and ignored
         .annotate(unacknowledged_alerts=Count("id"))
         .union(
-            Host.objects.exclude(alerts__isnull=True)
+            host_qs.exclude(alerts__isnull=True)
             .annotate(
                 unacknowledged_alerts=Count(
                     "alerts",
                     filter=Q(alerts__acknowledgement=None),
                 )
             )
-            .filter(unacknowledged_alerts=0, archived=False)
+            .filter(unacknowledged_alerts=0)
         )
         .count()
     )
@@ -77,30 +83,39 @@ def get_alert_stats():
     return num_critical, num_warning, num_info, num_fine
 
 
-def get_alert_count_by_message(user):
+def get_alert_count_by_message(user, host_qs=None):
+    qs = Alert.objects.get_for_user(user).filter(acknowledgement=None)
+
+    if host_qs is not None:
+        qs = qs.filter(host__in=host_qs)
+
     return (
-        Alert.objects.get_for_user(user)
-        .filter(acknowledgement=None)
+        qs
         .values("short_message")
         .annotate(count=Count("id"))
+        .order_by()
     )
 
 
-def get_host_count_by_otap(user):
+def get_host_count_by_otap(user, host_qs=None):
+    if host_qs is None:
+        host_qs = Host.objects.get_for_user(user).filter(archived=False)
     return (
-        Host.objects.get_for_user(user)
-        .filter(archived=False)
+        host_qs
         .values("otap_stage")
         .annotate(count=Count("id"))
+        .order_by()
     )
 
 
-def get_hosts_by_datasource(user):
+def get_hosts_by_datasource(user, host_qs=None):
+    if host_qs is None:
+        host_qs = Host.objects.get_for_user(user).filter(archived=False)
     return (
-        Host.objects.get_for_user(user)
-        .filter(archived=False)
+        host_qs
         .values("data_source__id", "data_source__name")
         .annotate(count=Count("id"))
+        .order_by()
     )
 
 

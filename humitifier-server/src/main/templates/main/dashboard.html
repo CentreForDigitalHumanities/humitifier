@@ -140,6 +140,32 @@
 {% endblock %}
 
 {% block content %}
+    <div class="px-3 pt-3">
+        <div class="section flex flex-row gap-3 items-center justify-between" x-data="{show_stats_filters: false}">
+            <h2 class="text-xl font-bold px-4">Statistics Filters</h2>
+            <div class="flex gap-2 px-4 relative" @click.outside="show_stats_filters = false">
+                <button class="btn btn-sm btn-secondary" @click="show_stats_filters = !show_stats_filters">
+                    Filters
+                </button>
+                <div class="absolute right-0 top-11 z-20 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-lg w-[calc(100vw-3.5rem)] md:w-80 hidden" x-bind:class="show_stats_filters ? 'block!' : 'hidden'">
+                    <form method="get" class="p-5 flex gap-3 flex-row flex-wrap items-stretch">
+                        {% for key, values in request.GET.lists %}
+                            {% if key not in stats_filterset.form.fields %}
+                                {% for value in values %}
+                                    <input type="hidden" name="{{ key }}" value="{{ value }}">
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                        {{ stats_filterset.form }}
+                        <div class="flex justify-end items-end gap-x-2 ml-auto text-sm">
+                            <a href="{% url 'main:dashboard' %}" class="btn btn-sm btn-secondary">Reset</a>
+                            <button class="btn btn-sm btn-secondary" type="submit">Apply</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="p-3 pb-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 megawide:grid-cols-5 gigawide:grid-cols-6 gap-3">
         <div class="section">
             <canvas id="alertsChart"></canvas>
