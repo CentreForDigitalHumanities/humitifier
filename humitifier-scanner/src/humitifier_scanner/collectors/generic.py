@@ -12,6 +12,8 @@ from humitifier_common.artefacts import (
     Groups,
     Hardware,
     HostnameCtl,
+    Lshw,
+    LshwNode,
     Memory,
     MemoryRange,
     NetworkInterface,
@@ -104,6 +106,123 @@ class HardwareFactCollector(ShellCollector):
             usb_devices=usb_devices.stdout,
             total_memory_gb=total_memory_gb,
         )
+
+
+class LshwFactCollector(ShellCollector):
+    fact = Lshw
+
+    # Keys that are copied over as-is (as a string) from the lshw output
+    STRING_KEYS = (
+        "handle",
+        "description",
+        "product",
+        "vendor",
+        "serial",
+        "version",
+        "physid",
+        "businfo",
+        "dev",
+        "slot",
+        "units",
+    )
+
+    def collect_from_shell(
+        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    ) -> Lshw | None:
+
+        # lshw needs to run as root; without it, it cannot read the DMI tables
+        # and most of the interesting information is simply missing
+        lshw_cmd = shell_executor.execute("sudo lshw -json", fail_silent=True)
+
+        if lshw_cmd.return_code != 0:
+            self.add_error(
+                "Could not run 'sudo lshw -json'; is lshw installed?",
+                metadata=ScanErrorMetadata(
+                    stderr="\n".join(lshw_cmd.stderr),
+                    exit_code=lshw_cmd.return_code,
+                ),
+                fatal=True,
+            )
+
+        try:
+            data = json.loads("\n".join(lshw_cmd.stdout))
+        except json.JSONDecodeError as e:
+            self.add_error(f"Could not parse lshw output: {e}", fatal=True)
+            return None
+
+        # Some lshw versions wrap the system node(s) in a list
+        if isinstance(data, dict):
+            data = [data]
+
+        root_nodes = [node for node in data or [] if isinstance(node, dict)]
+
+        if not root_nodes:
+            self.add_error("lshw did not report a system node", fatal=True)
+            return None
+
+        system_node = root_nodes[0]
+
+        return Lshw(
+            product=self._parse_str(system_node.get("product")),
+            vendor=self._parse_str(system_node.get("vendor")),
+            serial=self._parse_str(system_node.get("serial")),
+            nodes=[self._parse_node(node) for node in root_nodes],
+        )
+
+    def _parse_node(self, node: dict) -> LshwNode:
+        # A node can have either a single logical name or a list of them
+        logical_names = node.get("logicalname") or []
+        if not isinstance(logical_names, list):
+            logical_names = [logical_names]
+
+        strings = {key: self._parse_str(node.get(key)) for key in self.STRING_KEYS}
+
+        # The children are kept nested; that way it stays visible what a
+        # device is attached to
+        children = [
+            self._parse_node(child)
+            for child in node.get("children") or []
+            if isinstance(child, dict)
+        ]
+
+        return LshwNode(
+            id=self._parse_str(node.get("id")) or "unknown",
+            node_class=self._parse_str(node.get("class")) or "unknown",
+            logical_names=[str(name) for name in logical_names],
+            children=children,
+            size=self._parse_int(node.get("size")),
+            capacity=self._parse_int(node.get("capacity")),
+            clock=self._parse_int(node.get("clock")),
+            width=self._parse_int(node.get("width")),
+            claimed=bool(node.get("claimed", False)),
+            disabled=bool(node.get("disabled", False)),
+            configuration=self._parse_dict(node.get("configuration")),
+            capabilities=self._parse_dict(node.get("capabilities")),
+            **strings,
+        )
+
+    @staticmethod
+    def _parse_str(value) -> str | None:
+        if value is None:
+            return None
+
+        return str(value)
+
+    @staticmethod
+    def _parse_int(value) -> int | None:
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return None
+
+    @staticmethod
+    def _parse_dict(value) -> dict[str, str]:
+        if not isinstance(value, dict):
+            return {}
+
+        # lshw reports items without a description (mostly capabilities) as
+        # `true`, which would end up as a useless 'True' string
+        return {key: "" if item is True else str(item) for key, item in value.items()}
 
 
 class BlocksMetricCollector(ShellCollector):
@@ -444,8 +563,10 @@ class SystemDFactCollector(ShellCollector):
         # And I really cannot be bothered to write compatible code,
         # as it's hard to parse and those OS's should be phased out anyway.
         host_info: HostnameCtl = info.required_facts[HostnameCtl]
-        if (host_info.cpe_os_name == "cpe:/o:centos:centos:7"
-            or host_info.os == "Debian GNU/Linux 10 (buster)"):
+        if (
+            host_info.cpe_os_name == "cpe:/o:centos:centos:7"
+            or host_info.os == "Debian GNU/Linux 10 (buster)"
+        ):
             return None
 
         result = shell_executor.execute("systemctl list-units --output json")

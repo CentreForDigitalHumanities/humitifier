@@ -16,7 +16,9 @@
         {{ filterset.form.media }}
     {% endif %}
 
-    {% if layout.wild_wasteland %}
+    {% if debug %}
+        <link rel="icon" type="image/x-icon" href="{% static 'main/img/debug_favicon.ico' %}">
+    {% elif layout.wild_wasteland %}
         <link rel="icon" type="image/x-icon" href="{% static 'main/img/wild_wasteland_favicon.ico' %}">
     {% else %}
         <link rel="icon" type="image/x-icon" href="{% static 'main/img/favicon.ico' %}">
@@ -38,11 +40,12 @@
                 'dark',
                 localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
             )
+            document.dispatchEvent(new Event('themeChanged'));
         }
         setTheme();
     </script>
 </head>
-<body class="bg-gray-100 text-gray-900 dark:bg-gray-950 dark:text-gray-50 transition ease-in-out duration-150" x-data="{show_sidebar:false}">
+<body class="text-gray-800 bg-default dark:text-gray-100 selection:bg-primary selection:text-black transition ease-in-out duration-150" x-data="{show_sidebar:false}">
 {% block body %}{% endblock %}
 
 {% block footer_scripts %}

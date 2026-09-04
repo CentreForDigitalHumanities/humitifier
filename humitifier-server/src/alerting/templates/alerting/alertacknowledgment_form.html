@@ -2,43 +2,46 @@
 
 {% block content %}
     <div class="h-full--header w-full bg-default px-7 py-5">
-        <h1 class="text-3xl font-bold mb-8">Acknowledge alert</h1>
+        <h1 class="text-2xl font-bold mb-6">Acknowledge alert</h1>
 
-        <div class="mb-2">
-            <div class="font-bold">Host</div>
-            <div class="my-2">
-                {{ alert.host }}
+        <div class="max-w-2xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+            <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                Acknowledge Alert
+            </div>
+
+            <div class="p-4 text-sm">
+                <div class="mb-4 space-y-3">
+                    <div>
+                        <div class="font-semibold text-gray-600 dark:text-gray-300">Host</div>
+                        <div class="mt-1">{{ alert.host }}</div>
+                    </div>
+
+                    <div>
+                        <div class="font-semibold text-gray-600 dark:text-gray-300">Alert type</div>
+                        <div class="mt-1">{{ alert.short_message }}</div>
+                    </div>
+
+                    <div>
+                        <div class="font-semibold text-gray-600 dark:text-gray-300">Alert</div>
+                        <div class="mt-1">{{ alert.message }}</div>
+                    </div>
+                </div>
+
+                <form method="post" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-800">
+                    {% csrf_token %}
+                    {{ form }}
+
+                    <div class="flex gap-2 mt-6">
+                        <button type="submit" class="btn btn-primary">
+                            Acknowledge
+                        </button>
+                        <a href="{% url 'hosts:data_sources' %}"
+                           class="btn btn-sm btn-secondary">
+                            Cancel
+                        </a>
+                    </div>
+                </form>
             </div>
         </div>
-
-        <div class="mb-2">
-            <div class="font-bold">Alert type</div>
-            <div class="my-2">
-                {{ alert.short_message }}
-            </div>
-        </div>
-
-        <div class="mb-2">
-            <div class="font-bold">Alert</div>
-            <div class="my-2">
-                {{ alert.message }}
-            </div>
-        </div>
-
-        <form method="post" class="max-w-xl">
-            {% csrf_token %}
-            {{ form }}
-
-            <div class="flex gap-2 mt-6">
-                <a href="{% url 'hosts:data_sources' %}"
-                   class="btn btn-outline">
-                    Cancel
-                </a>
-                <button type="submit"
-                        class="btn light:btn-primary dark:btn-outline">
-                    Acknowledge
-                </button>
-            </div>
-        </form>
     </div>
 {% endblock %}

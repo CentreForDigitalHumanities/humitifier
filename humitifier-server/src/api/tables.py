@@ -35,7 +35,7 @@ class OAuth2ApplicationsTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn light:btn-primary dark:btn-outline mr-2",
+                button_class="btn btn-primary mr-2",
                 url=lambda obj: reverse("api:edit_oauth_application", args=[obj.pk]),
             ),
             ButtonColumn(

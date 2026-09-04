@@ -9,6 +9,10 @@ from .views import (
     HostExportView,
     HostScanSpecUpdateView, HostUpdateView, HostsListView,
     HostsRawDownloadView,
+    OperatingSystemCreateView,
+    OperatingSystemDeleteView,
+    OperatingSystemEditView,
+    OperatingSystemsView,
     AdvancedSearchView,
     SavedSearchListView,
     SavedSearchCreateView,
@@ -42,5 +46,21 @@ urlpatterns = [
     ),
     path(
         "data-sources/<pk>/edit/", DataSourceEditView.as_view(), name="edit_data_source"
+    ),
+    path("operating-systems/", OperatingSystemsView.as_view(), name="operating_systems"),
+    path(
+        "operating-systems/create/",
+        OperatingSystemCreateView.as_view(),
+        name="create_operating_system",
+    ),
+    path(
+        "operating-systems/<int:pk>/edit/",
+        OperatingSystemEditView.as_view(),
+        name="edit_operating_system",
+    ),
+    path(
+        "operating-systems/<int:pk>/delete/",
+        OperatingSystemDeleteView.as_view(),
+        name="delete_operating_system",
     ),
 ]

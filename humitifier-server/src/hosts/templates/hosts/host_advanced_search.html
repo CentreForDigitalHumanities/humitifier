@@ -8,7 +8,7 @@
 {% block content %}
     <div class="h-full--header w-full bg-default transition ease-in-out duration-150" x-data="{ showHelp: false }">
         <div class="px-7 py-5 flex justify-between items-center">
-            <h1 class="text-3xl font-bold">
+            <h1 class="text-2xl font-bold">
                 {% if layout.wild_wasteland %}
                     Vibe Search
                 {% else %}
@@ -16,34 +16,42 @@
                 {% endif %}
             </h1>
             <div class="flex gap-2">
-                <a href="{% url 'hosts:saved_searches' %}" class="btn btn-sm btn-outline">
+                <a href="{% url 'hosts:saved_searches' %}" class="btn btn-sm btn-secondary">
                     Saved Searches
                 </a>
-                <button type="button" @click="showHelp = !showHelp" class="btn btn-sm btn-outline">
+                <button type="button" @click="showHelp = !showHelp" class="btn btn-sm btn-secondary">
                     <span x-show="!showHelp">Show Help</span>
                     <span x-show="showHelp">Hide Help</span>
                 </button>
             </div>
         </div>
 
-        <div class="mx-7 p-3 py-2 mb-5 flex flex-col gap-3 bg-orange-300 dark:bg-orange-600">
-            {% if layout.wild_wasteland %}
-                Here be dragons! Vibe search was vibe coded and may generate near-lovecraftian-horror SQL queries. It also has a 10% chance of causing your computer to spontaneously combust.<br/>
-                ...<br/>
-                Okay that last part was a joke; but really, complex queries may cause errors, unexpected results and/or sudden computer combustion.
-            {% else %}
-                Advanced Search is an experimental feature; complex queries may result in unexpected results.
-            {% endif %}
-        </div>
+        {% if layout.wild_wasteland %}
+            <div class="flex items-center gap-2.5 px-3 py-2 mx-7 mb-5 text-sm rounded-md border-l-4 border-orange-500 bg-orange-100 text-orange-900 dark:bg-orange-950/60 dark:text-orange-200">
+                {% include 'icons/warning.html' %}
+                <div>
+                    Here be dragons! Vibe search was vibe coded and may generate near-lovecraftian-horror SQL queries. It also has a 10% chance of causing your computer to spontaneously combust.<br/>
+                    ...<br/>
+                    Okay that last part was a joke; but really, complex queries may cause errors, unexpected results and/or sudden computer combustion.
+                </div>
+            </div>
+        {% else %}
+            <div class="flex items-center gap-2.5 px-3 py-2 mx-7 mb-5 text-sm rounded-md border-l-4 border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200">
+                {% include 'icons/info.html' %}
+                <div>Advanced Search is an experimental feature; complex queries may result in unexpected results.</div>
+            </div>
+        {% endif %}
 
-        <div x-show="showHelp" x-transition class="mx-7 p-4 mb-5 bg-blue-50 dark:bg-blue-900 border border-blue-200 dark:border-blue-700 rounded">
-            <h2 class="text-xl font-semibold mb-3">Query Syntax Help</h2>
+        <div x-show="showHelp" x-transition class="mx-7 mb-5 bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+            <div class="flex justify-between items-center px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                Query Syntax Help
+            </div>
 
-            <div class="space-y-4 text-sm">
+            <div class="p-6 space-y-4 text-sm">
                 <div>
                     <h3 class="font-semibold mb-1">Basic Structure</h3>
                     <p class="mb-2">Queries consist of field comparisons combined with logical operators.</p>
-                    <code class="block bg-white dark:bg-gray-800 p-2 rounded">field_name operator value</code>
+                    <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">field_name operator value</code>
                 </div>
 
                 <div>
@@ -81,7 +89,7 @@
                 <div>
                     <h3 class="font-semibold mb-1">Grouping with Brackets</h3>
                     <p class="mb-2">Use brackets <code>{</code> and <code>}</code> to control evaluation order.</p>
-                    <code class="block bg-white dark:bg-gray-800 p-2 rounded">{ condition1 OR condition2 } AND condition3</code>
+                    <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">{ condition1 OR condition2 } AND condition3</code>
                 </div>
 
                 <div>
@@ -112,48 +120,49 @@
                     <div class="space-y-2">
                         <div>
                             <p class="font-medium">Find Ubuntu hosts:</p>
-                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu"</code>
+                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu"</code>
                         </div>
                         <div>
                             <p class="font-medium">Find hosts with 4 or more CPUs:</p>
-                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.cpu.count &gt;= 4</code>
+                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">facts.cpu.count &gt;= 4</code>
                         </div>
                         <div>
                             <p class="font-medium">Find Ubuntu hosts with 4+ CPUs:</p>
-                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu" AND facts.cpu.count &gt;= 4</code>
+                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu" AND facts.cpu.count &gt;= 4</code>
                         </div>
                         <div>
                             <p class="font-medium">Find either Ubuntu or Debian hosts:</p>
-                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu" OR facts.os.name = "Debian"</code>
+                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">facts.os.name = "Ubuntu" OR facts.os.name = "Debian"</code>
                         </div>
                         <div>
                             <p class="font-medium">Find Linux hosts with "web" in hostname:</p>
-                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">{ facts.os.name = "Ubuntu" OR facts.os.name = "Debian" } AND facts.hostname contains "web"</code>
+                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">{ facts.os.name = "Ubuntu" OR facts.os.name = "Debian" } AND facts.hostname contains "web"</code>
                         </div>
                         <div>
                             <p class="font-medium">Find hosts with more than 100 packages:</p>
-                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">count(facts.packages[].name) &gt; 100</code>
+                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">count(facts.packages[].name) &gt; 100</code>
                         </div>
                         <div>
                             <p class="font-medium">Find hosts with max memory size greater than 8GB:</p>
-                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">max(facts.memory[].size) &gt;= 8192</code>
+                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">max(facts.memory[].size) &gt;= 8192</code>
                         </div>
                         <div>
                             <p class="font-medium">Count hosts with more than 2 network interfaces:</p>
-                            <code class="block bg-white dark:bg-gray-800 p-2 rounded">count(filter(facts.generic.NetworkInterfaces[].link_type , "ether")) &gt; 2</code>
+                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">count(filter(facts.generic.NetworkInterfaces[].link_type , "ether")) &gt; 2</code>
                         </div>
                     </div>
                 </div>
 
-                <div class="mt-4 p-3 bg-blue-100 dark:bg-blue-800 rounded">
+                <div class="mt-4 p-3 bg-blue-100 dark:bg-blue-900/40 rounded border-l-4 border-blue-500 text-blue-900 dark:text-blue-200">
                     <p class="font-semibold">💡 Tip:</p>
-                    <p>Use the autocomplete suggestions as you type. Press <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">Tab</kbd> or <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">Enter</kbd> to accept suggestions, and <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">↑</kbd> <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border">↓</kbd> to navigate.</p>
+                    <p>Use the autocomplete suggestions as you type. Press <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">Tab</kbd> or <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">Enter</kbd> to accept suggestions, and <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">↑</kbd> <kbd class="px-2 py-1 bg-white dark:bg-gray-700 rounded border border-gray-200 dark:border-gray-600">↓</kbd> to navigate.</p>
                 </div>
             </div>
         </div>
         {% if query_parse_error %}
-        <div class="mx-7 p-3 py-2 mb-5 flex flex-col gap-3 bg-red-300 dark:bg-red-600">
-            <strong>Query Parse Error:</strong> {{ query_parse_error }}
+        <div class="flex items-center gap-2.5 px-3 py-2 mx-7 mb-5 text-sm rounded-md border-l-4 border-red-500 bg-red-100 text-red-900 dark:bg-red-950/60 dark:text-red-200">
+            {% include 'icons/critical.html' %}
+            <div><strong>Query Parse Error:</strong> {{ query_parse_error }}</div>
         </div>
         {% endif %}
         <form method="post" class="px-7 flex flex-col gap-3" x-data="window.advancedSearchQueryWithData ? window.advancedSearchQueryWithData() : advancedSearchQuery()" x-init="init()" @keydown.window.escape="closeSuggestions(); closeColumnSuggestions()">
@@ -183,7 +192,7 @@
                     ></textarea>
 
                     <template x-if="open && suggestions.length">
-                        <ul class="absolute z-50 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
+                        <ul class="absolute z-40 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
                             <template x-for="(s, idx) in suggestions" :key="s.id">
                                 <li
                                     class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
@@ -232,7 +241,7 @@
 
                     <!-- Suggestions dropdown -->
                     <template x-if="colOpen && colSuggestions.length">
-                        <ul class="absolute z-50 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
+                        <ul class="absolute z-40 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full">
                             <template x-for="(s, idx) in colSuggestions" :key="s.id">
                                 <li
                                     class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
@@ -255,11 +264,11 @@
                     </div>
                 </div>
                 <div class="flex gap-2">
-                    <button type="button" class="btn btn-sm btn-outline" @click="saveCurrentSearch()">
+                    <button type="button" class="btn btn-sm btn-secondary" @click="saveCurrentSearch()">
                         Save Search
                     </button>
                     <div class="relative" x-data="{ exportOpen: false }">
-                        <button type="button" class="btn btn-sm btn-outline flex items-center gap-1" @click="exportOpen = !exportOpen" @click.outside="exportOpen = false">
+                        <button type="button" class="btn btn-sm btn-secondary flex items-center gap-1" @click="exportOpen = !exportOpen" @click.outside="exportOpen = false">
                             Export
                             {% with icon_size='size-4' %}
                                 <template x-if="exportOpen">
@@ -270,7 +279,7 @@
                                 </template>
                             {% endwith %}
                         </button>
-                        <div x-show="exportOpen" x-transition class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-lg z-50">
+                        <div x-show="exportOpen" x-transition class="absolute right-0 mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-sm shadow-lg z-40">
                             <button type="submit" name="export-csv" @click="normalizeForSubmit(); exportOpen = false" class="w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 transition cursor-pointer">
                                 CSV
                             </button>
@@ -282,49 +291,51 @@
                             </button>
                         </div>
                     </div>
-                    <button class="btn btn-sm light:btn-primary dark:btn-outline" type="submit" name="search" @click="normalizeForSubmit()">
+                    <button class="btn btn-sm btn-primary" type="submit" name="search" @click="normalizeForSubmit()">
                         Search
                     </button>
                 </div>
             </div>
         </form>
 
-        <div class="px-7 py-3">
+        <div class="px-7 py-3 text-sm text-gray-500 dark:text-gray-400">
             Results: {{ data|length }}
         </div>
 
-         <table class="w-full table-auto">
-             <thead>
-                <tr class="text-left">
-                    <th class="pl-7 py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150">
-                        Host
-                    </th>
-                    {% for column in requested_columns %}
-                        <th class="py-3 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150">
-                            {{ column }}
+        <div class="overflow-x-auto">
+            <table class="w-full table-auto text-sm">
+                <thead class="text-left bg-gray-50 dark:bg-gray-900 outline-1 outline-gray-200 dark:outline-gray-700">
+                    <tr>
+                        <th class="pl-7 pt-3 pb-2.5 font-semibold">
+                            Host
                         </th>
-                    {% endfor %}
-                    <th class="pr-7 bg-gray-200 dark:bg-gray-700 transition ease-in-out duration-150"></th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for datum in data %}
-                    <tr class="border-b border-gray-200 hover:bg-neutral-100 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
-                        <td class="pl-7 py-5">
-                            <a href="{% url 'hosts:detail' datum.object.fqdn %}" class="underline">
-                                {{ datum.object.fqdn }}
-                            </a>
-                        </td>
-                        {% for label, value in datum.fields.items %}
-                            <td class="py-5">
-                                {{ value|default:"" }}
-                            </td>
+                        {% for column in requested_columns %}
+                            <th class="pt-3 pb-2.5 font-semibold">
+                                {{ column }}
+                            </th>
                         {% endfor %}
-                        <td class="pr-7"></td>
+                        <th class="pr-7 pt-3 pb-2.5"></th>
                     </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                </thead>
+                <tbody>
+                    {% for datum in data %}
+                        <tr class="border-b border-gray-200 hover:bg-gray-50 dark:border-gray-800 dark:hover:bg-gray-800/40 transition duration-150">
+                            <td class="pl-7 py-4">
+                                <a href="{% url 'hosts:detail' datum.object.fqdn %}" class="font-medium underline">
+                                    {{ datum.object.fqdn }}
+                                </a>
+                            </td>
+                            {% for label, value in datum.fields.items %}
+                                <td class="py-4">
+                                    {{ value|default:"" }}
+                                </td>
+                            {% endfor %}
+                            <td class="pr-7 py-4"></td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 {% endblock %}
 

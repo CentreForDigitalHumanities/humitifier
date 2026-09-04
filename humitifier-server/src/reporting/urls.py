@@ -8,6 +8,10 @@ from .views import (
     CostsSchemeDeleteView,
     CostsSchemeListView,
     CostsSchemeUpdateView,
+    ReportDeleteView,
+    ReportDownloadView,
+    ReportListView,
+    ReportRerunView,
 )
 
 app_name = "reporting"
@@ -21,5 +25,21 @@ urlpatterns = [
     ),
     path("cost_calculator/", CostCalculatorView.as_view(), name="cost_calculator"),
     path("server_costs/", CostsOverviewView.as_view(), name="server_cost_overview"),
-    path("server_costs/report/", CostsReportView.as_view(), name="server_cost_report"),
+    path("server_costs/reports/", ReportListView.as_view(), name="report_list"),
+    path("server_costs/reports/new/", CostsReportView.as_view(), name="server_cost_report"),
+    path(
+        "server_costs/reports/<int:pk>/download/",
+        ReportDownloadView.as_view(),
+        name="report_download",
+    ),
+    path(
+        "server_costs/reports/<int:pk>/delete/",
+        ReportDeleteView.as_view(),
+        name="report_delete",
+    ),
+    path(
+        "server_costs/reports/<int:pk>/rerun/",
+        ReportRerunView.as_view(),
+        name="report_rerun",
+    ),
 ]

@@ -4,10 +4,10 @@ from django.contrib.messages import INFO, SUCCESS, WARNING, ERROR
 register = template.Library()
 
 MESSAGE_COLORS = {
-    INFO: "bg-blue-200 text-blue-800 border border-blue-300",
-    SUCCESS: "bg-green-200 text-green-800 border border-green-300",
-    WARNING: "bg-orange-200 text-orange-800 border border-orange-300",
-    ERROR: "bg-red-200 text-red-800 border border-red-300",
+    INFO: "border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200",
+    SUCCESS: "border-green-500 bg-green-100 text-green-900 dark:bg-green-950/60 dark:text-green-200",
+    WARNING: "border-orange-500 bg-orange-100 text-orange-900 dark:bg-orange-950/60 dark:text-orange-200",
+    ERROR: "border-red-500 bg-red-100 text-red-900 dark:bg-red-950/60 dark:text-red-200",
 }
 
 

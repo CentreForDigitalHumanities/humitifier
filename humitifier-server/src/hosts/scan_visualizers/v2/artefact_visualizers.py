@@ -6,6 +6,7 @@ from cron_descriptor import (
     Options,
     get_description as get_cron_description,
 )
+from django.template.defaultfilters import filesizeformat
 from django.template.loader import render_to_string
 from django.utils.safestring import mark_safe
 
@@ -16,6 +17,8 @@ from hosts.scan_visualizers.base_components import (
     Card,
     ItemizedArtefactVisualizer,
     SearchableCardsVisualizer,
+    TreeNode,
+    TreeVisualizer,
 )
 
 from hosts.templatetags.host_tags import size_from_mb, uptime
@@ -28,10 +31,12 @@ from humitifier_common.artefacts import (
     HostMeta,
     HostnameCtl,
     IsWordpress,
+    Lshw,
     Memory,
     NetworkInterfaces,
     PackageList,
     PuppetAgent,
+    PyInfraReport,
     RebootPolicy,
     SELinux,
     Uptime,
@@ -71,17 +76,17 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
 
     @staticmethod
     def get_update_policy_display(value):
-        output = "<div class='flex gap-2'>"
+        output = "<div class='flex gap-2 justify-start font-semibold'>"
 
         if value["enable"]:
-            output += f"<span class='text-green-500'>Enabled</span>"
+            output += f"<span class='px-3 py-1 rounded-sm bg-green-500 text-white'>Enabled</span>"
         else:
-            output += f"<span class='text-red'>Disabled</span>"
+            output += f"<span class='px-3 py-1 rounded-sm bg-red-500 text-white'>Disabled</span>"
 
         if value["apply_updates"]:
-            output += f"<span class='text-green-500'>Applied</span>"
+            output += f"<span class='px-3 py-1 rounded-sm bg-green-500 text-white'>Applied</span>"
         else:
-            output += f"<span class='text-red'>Not applied</span>"
+            output += f"<span class='px-3 py-1 rounded-sm bg-red-500 text-white'>Not applied</span>"
 
         output += "</div>"
 
@@ -372,6 +377,25 @@ class PuppetAgentVisualizer(ArtefactVisualizer):
         return context
 
 
+class PyInfraReportVisualizer(ArtefactVisualizer):
+    title = "PyInfra"
+    artefact = PyInfraReport
+
+    template = "hosts/scan_visualizer/components/pyinfra_component.html"
+
+    def get_context(self, **kwargs) -> dict:
+        context = super().get_context(**kwargs)
+
+        last_run = None
+        if self.artefact_data.start_time:
+            last_run = datetime.fromisoformat(self.artefact_data.start_time)
+
+        context["pyinfra"] = self.artefact_data
+        context["last_run"] = last_run
+
+        return context
+
+
 class IsWordpressVisualizer(ArtefactVisualizer):
     title = "Is Wordpress?"
     artefact = IsWordpress
@@ -389,7 +413,7 @@ class IsWordpressVisualizer(ArtefactVisualizer):
 
 
 class HardwareVisualizer(ArtefactVisualizer):
-    title = "Hardware"
+    title = "Hardware (overview)"
     artefact = Hardware
     template = "hosts/scan_visualizer/components/hardware_component.html"
 
@@ -402,6 +426,110 @@ class HardwareVisualizer(ArtefactVisualizer):
         context["total_memory"] = total_memory
 
         return context
+
+
+class LshwVisualizer(TreeVisualizer):
+    title = "Hardware (detailed)"
+    artefact = Lshw
+    search_placeholder = "Search devices"
+    # The system node and whatever is bolted onto it directly (usually the
+    # motherboard) are opened; the rest is a click away
+    initially_expanded_depth = 1
+
+    # Attributes of a node that are worth showing, if they are set
+    node_attributes = {
+        "product": "Product",
+        "vendor": "Vendor",
+        "serial": "Serial",
+        "version": "Version",
+        "businfo": "Bus info",
+        "slot": "Slot",
+    }
+
+    def show(self):
+        return super().show() and bool(self.artefact_data.nodes)
+
+    def get_nodes(self) -> list[TreeNode]:
+        # The hardware tree is rendered as the tree it is; every device sits
+        # below the device it is attached to
+        return [self.get_tree_node(node, node.id) for node in self.artefact_data.nodes]
+
+    def get_tree_node(self, node, path: str) -> TreeNode:
+        return TreeNode(
+            title=node.description or node.product or node.id,
+            badge=node.node_class,
+            aside=self.get_aside(node),
+            content_items=self.get_content_items(node, path),
+            search_value=self.get_search_value(node, path),
+            children=[
+                self.get_tree_node(child, f"{path}/{child.id}")
+                for child in node.children
+            ],
+        )
+
+    @classmethod
+    def get_aside(cls, node) -> str | None:
+        # A short at-a-glance value, so the tree can be scanned without
+        # opening every node
+        if node.size:
+            return cls.get_size_display(node)
+        if node.logical_names:
+            return node.logical_names[0]
+
+        return None
+
+    def get_content_items(self, node, path: str) -> dict[str, str]:
+        content_items = {
+            label: getattr(node, attribute)
+            for attribute, label in self.node_attributes.items()
+            if getattr(node, attribute)
+        }
+
+        if node.size:
+            content_items["Size"] = self.get_size_display(node)
+        if node.logical_names:
+            content_items["Logical names"] = ", ".join(node.logical_names)
+        if node.configuration:
+            content_items["Configuration"] = ", ".join(
+                f"{key}={value}" for key, value in node.configuration.items()
+            )
+        if node.capabilities:
+            content_items["Capabilities"] = self.get_capabilities_display(node)
+
+        content_items["Path"] = path
+
+        return content_items
+
+    @staticmethod
+    def get_size_display(node) -> str:
+        # Convert bytes to human-readable format
+        if node.units == "bytes":
+            return filesizeformat(node.size)
+
+        # CPU speed is given in Hz; which nobody uses so convert it to GHz
+        if node.units == "Hz":
+            return f"{node.size / 1000000000:.2f} GHz"
+
+        return f"{node.size} {node.units}" if node.units else str(node.size)
+
+    def get_capabilities_display(self, node) -> str:
+        capabilities = list(node.capabilities.keys())
+
+        return ", ".join(capabilities)
+
+    @staticmethod
+    def get_search_value(node, path: str) -> str:
+        searchables = [
+            path,
+            node.node_class,
+            node.description,
+            node.product,
+            node.vendor,
+            node.serial,
+            *node.logical_names,
+        ]
+
+        return " ".join([searchable for searchable in searchables if searchable])
 
 
 class NetworkInterfacesVisualizer(SearchableCardsVisualizer):
@@ -506,13 +634,11 @@ class SELinuxVisualizer(ItemizedArtefactVisualizer):
             return self._get_button_str(value, "orange")
 
     def _get_button_str(self, value, color):
-        return mark_safe(
-            f"""
+        return mark_safe(f"""
             <div class="px-3 py-1 inline-block mr-auto rounded-sm bg-{color}-500 text-white">
                 {value.capitalize()}
             </div>
-            """
-        )
+            """)
 
 
 class SystemdUnitsVisualizer(SearchableCardsVisualizer):
@@ -537,4 +663,3 @@ class SystemdUnitsVisualizer(SearchableCardsVisualizer):
             )
 
         return items
-

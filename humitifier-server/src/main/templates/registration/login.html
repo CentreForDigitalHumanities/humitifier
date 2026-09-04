@@ -8,7 +8,7 @@
 {% block body %}
     <div class="w-dvw h-dvh flex flex-col items-center lg:justify-center">
 
-        <section class="flex flex-col lg:flex-row gap-8 items-center lg:justify-between w-full lg:w-[60rem] h-full lg:h-auto bg-gray-50 dark:bg-gray-800 p-8 rounded-sm">
+        <section class="flex flex-col lg:flex-row gap-8 items-center lg:justify-between w-full lg:w-[60rem] h-full lg:h-auto bg-white dark:bg-gray-800 p-8 rounded-md border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
             <div class="flex items-center justify-center gap-3">
                 <img
                     src="{% static 'main/img/cm_hs_avatar_corporate.png' %}"
@@ -39,11 +39,11 @@
                 {% endif %}
 
                 {% if form.errors %}
-                    <p class="text-red-500 mb-4">Your username and password didn't match. Please try again.</p>
+                    <p class="text-sm text-red-600 dark:text-red-400 mb-4">Your username and password didn't match. Please try again.</p>
                 {% endif %}
 
                 {% if layout.oidc_enabled %}
-                    <a href="{% url 'oidc_authentication_init' %}?{% param_replace %}" class="btn block btn-primary  text-center">
+                    <a href="{% url 'oidc_authentication_init' %}?{% param_replace %}" class="btn block btn-primary text-center">
                         Login with Solis-ID
                     </a>
 
@@ -54,13 +54,13 @@
                     </div>
                 {% endif %}
 
-                <button class="btn block btn-outline dark:bg-gray-700 text-center w-full" x-show="!show_manual_login" @click="show_manual_login = true">
+                <button class="btn block btn-secondary text-center w-full" x-show="!show_manual_login" @click="show_manual_login = true">
                     Login with local account
                 </button>
                 <form method="post" action="{% url 'main:login' %}" class="flex gap-4 flex-col" x-show="show_manual_login">
                     {% csrf_token %}
                     <div class="">
-                        <label class="font-bold block mb-2">
+                        <label class="block text-sm font-semibold mb-1">
                             {{ form.username.label_tag }}
                         </label>
                         <div class="">
@@ -68,7 +68,7 @@
                         </div>
                     </div>
                     <div class="">
-                        <label class="font-bold block mb-2">
+                        <label class="block text-sm font-semibold mb-1">
                             {{ form.password.label_tag }}
                         </label>
                         <div class="">
@@ -76,7 +76,7 @@
                         </div>
                     </div>
                     <input type="hidden" name="next" value="{{ next }}">
-                    <button class="btn light:btn-primary dark:btn-outline dark:bg-gray-700 mt-4" type="submit">
+                    <button class="btn btn-primary mt-4" type="submit">
                         Login
                     </button>
                 </form>

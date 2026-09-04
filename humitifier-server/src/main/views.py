@@ -52,7 +52,6 @@ from main.stats import (
     get_easter_stats,
     get_host_count_by_otap,
     get_hosts_by_datasource,
-    get_hypervisor_stats,
     get_os_stats,
 )
 from main.tables import (
@@ -205,7 +204,7 @@ class HomeRedirectView(LoginRequiredMixin, RedirectView):
 class DashboardView(LoginRequiredMixin, FilteredListView):
     model = Alert
     filterset_class = AlertFilters
-    paginate_by = 20
+    paginate_by = 50
     template_name = "main/dashboard.html"
     ordering = "host"
     ordering_fields = {
@@ -236,7 +235,6 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
         context = super().get_context_data(**kwargs)
 
         context["os_stats"] = get_os_stats(self.request.user)
-        context["hypervisor_stats"] = get_hypervisor_stats(self.request.user)
         context["customer_stats"] = get_customer_stats(self.request.user)
 
         num_critical, num_warning, num_info, num_fine = get_alert_stats()

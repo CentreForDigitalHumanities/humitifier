@@ -8,6 +8,7 @@ from rest_framework.views import APIView
 
 from api.permissions import TokenHasApplication
 from api.serializers import DataSourceSyncSerializer, ScanSpecSerializer
+from api.tasks import datasource_sync
 from hosts.models import DataSource, DataSourceType, Host
 from humitifier_common.scan_data import ScanOutput
 from humitifier_server.logger import logger
@@ -115,7 +116,7 @@ class DatastoreSyncView(APIView):
         operation_id="inventory_sync",
         request=DataSourceSyncSerializer,
         responses={
-            200: OpenApiTypes.INT,
+            200: OpenApiTypes.BOOL,
             400: DataSourceSyncSerializer.errors,
             500: OpenApiTypes.STR,
         },
@@ -131,7 +132,9 @@ class DatastoreSyncView(APIView):
         if validation_errors:
             return validation_errors
 
-        return self.sync(serializer, data_source)
+        datasource_sync.delay(serializer.data["hosts"], data_source.pk)
+
+        return Response(True)
 
     def validate(
         self, serializer: DataSourceSyncSerializer
@@ -207,87 +210,3 @@ class DatastoreSyncView(APIView):
 
         # The initial serializer validation failed, send back the found errors
         return None, Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-    def sync(
-        self, serializer: DataSourceSyncSerializer, data_source: DataSource
-    ) -> Response:
-        hosts = serializer.data["hosts"]
-        # Transform the list of hosts into a dict with the fqdn as key. Simplifies logic later on
-        hosts_dict = {host["fqdn"]: host for host in hosts}
-
-        # Get all hosts that we already know about and are either owned by this data source or currently unowned
-        existing_hosts = Host.objects.filter(
-            fqdn__in=hosts_dict.keys(),
-        ).filter(Q(data_source=data_source) | Q(data_source=None))
-
-        # Find any hosts that are not in our database yet
-        new_hosts = [
-            fqdn
-            for fqdn in hosts_dict.keys()
-            if fqdn not in existing_hosts.values_list("fqdn", flat=True)
-        ]
-
-        # Find any hosts that we know of, but are not provided by our API client
-        # These hosts should be archived
-        removed_hosts = Host.objects.filter(
-            data_source=data_source,
-        ).exclude(
-            fqdn__in=hosts_dict.keys(),
-        )
-
-        archived_hosts = []
-        for removed_host in removed_hosts:
-            if not removed_host.archived:
-                removed_host.archive()
-                archived_hosts.append(removed_host.fqdn)
-
-        # Then, let's update our existing hosts
-        for host in existing_hosts:
-            new_data = hosts_dict.get(host.fqdn)
-
-            # Update our ownership info
-            host.department = new_data.get("department", host.department)
-            host.customer = new_data.get("customer", host.customer)
-            host.contact = new_data.get("contact", host.contact)
-
-            # Update other static info
-            host.has_tofu_config = new_data.get("has_tofu_config", host.has_tofu_config)
-            host.otap_stage = new_data.get("otap_stage", host.otap_stage)
-            host.billable = new_data.get("billable", host.billable)
-            host.asset_tag = new_data.get("asset_tag", host.asset_tag)
-
-            # If this host is unclaimed, we set the data_source attr to claim it
-            if host.data_source is None:
-                host.data_source = data_source
-
-            host.save()
-            host.set_powerstate(offline=new_data.get("offline"))
-
-            if host.archived:
-                host.unarchive()
-
-        # Lastly, create new hosts
-        for fqdn in new_hosts:
-            new_data = hosts_dict.get(fqdn)
-
-            data = {
-                "fqdn": fqdn,
-                "data_source": data_source,
-                "department": new_data.get("department"),
-                "customer": new_data.get("customer"),
-                "contact": new_data.get("contact"),
-                "has_tofu_config": new_data.get("has_tofu_config"),
-                "otap_stage": new_data.get("otap_stage"),
-                "billable": new_data.get("billable"),
-            }
-
-            host = Host.objects.create(**data)
-            host.set_powerstate(offline=new_data.get("offline"))
-
-        return Response(
-            {
-                "updated": [host.fqdn for host in existing_hosts],
-                "created": new_hosts,
-                "archived": archived_hosts,
-            }
-        )

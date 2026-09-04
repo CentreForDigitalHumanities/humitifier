@@ -1,31 +1,35 @@
 {% extends 'base/base_page_template.html' %}
 
 {% block content %}
-    <div class="h-full--header w-full bg-default px-7 py-5">
+    <div class="h-full--header w-full bg-default px-7 py-5 text-sm">
         {% if object %}
-            <h1 class="text-3xl font-bold">Edit host</h1>
+            <h1 class="text-2xl font-bold mb-6">Edit host</h1>
         {% else %}
-            <h1 class="text-3xl font-bold">Create new host</h1>
+            <h1 class="text-2xl font-bold mb-6">Create new host</h1>
         {% endif %}
 
-        <form method="post" class="max-w-xl mt-8">
-            {% csrf_token %}
-            {{ form }}
+        <div class="max-w-xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+            <form method="post" class="p-6">
+                {% csrf_token %}
+                <div class="space-y-4">
+                    {{ form }}
+                </div>
 
-            <div class="flex gap-2 mt-6">
-                {% if object %}
-                    <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-outline">
-                        Cancel
-                    </a>
-                {% else %}
-                    <a href="{% url 'hosts:list' %}" class="btn btn-outline">
-                        Cancel
-                    </a>
-                {% endif %}
-                <button type="submit" class="btn light:btn-primary dark:btn-outline">
-                    Confirm
-                </button>
-            </div>
-        </form>
+                <div class="flex gap-2 mt-6">
+                    {% if object %}
+                        <a href="{% url 'hosts:detail' object.fqdn %}" class="btn btn-sm btn-secondary">
+                            Cancel
+                        </a>
+                    {% else %}
+                        <a href="{% url 'hosts:list' %}" class="btn btn-sm btn-secondary">
+                            Cancel
+                        </a>
+                    {% endif %}
+                    <button type="submit" class="btn btn-primary">
+                        Confirm
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 {% endblock %}

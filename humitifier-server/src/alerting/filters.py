@@ -35,6 +35,19 @@ class AlertFilters(django_filters.FilterSet):
         fields = ["severity"]
         form = FiltersForm
 
+    message = django_filters.CharFilter(
+        label="Filter by message",
+        field_name="message",
+        lookup_expr="icontains",
+    )
+
+    exclude_message = django_filters.CharFilter(
+        label="Exclude by message",
+        field_name="message",
+        lookup_expr="icontains",
+        exclude=True,
+    )
+
     severity = django_filters.ChoiceFilter(
         label="Alert severity",
         field_name="severity",

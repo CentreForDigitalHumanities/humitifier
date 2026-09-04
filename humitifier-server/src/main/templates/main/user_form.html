@@ -3,37 +3,49 @@
 {% block content %}
     <div class="h-full--header w-full bg-default px-7 py-5">
         {% if object %}
-            <h1 class="text-3xl font-bold">Edit {% if is_solis %}solis-{% endif %}user</h1>
+            <h1 class="text-2xl font-bold">Edit {% if is_solis %}solis-{% endif %}user</h1>
         {% else %}
-            <h1 class="text-3xl font-bold">Create new {% if is_solis %}solis-{% endif %}user</h1>
+            <h1 class="text-2xl font-bold">Create new {% if is_solis %}solis-{% endif %}user</h1>
         {% endif %}
 
         {% if object and not object.is_local_account %}
-            <div class="mt-8 flex gap-2 items-center text-blue">
-                {% include 'icons/warning.html' %}
-                You are editing a Solis user. Some fields are provided by OIDC and cannot be changed.
+            <div class="mt-6 flex items-center gap-2.5 px-3 py-2 text-sm rounded-md border-l-4 border-blue-500 bg-blue-100 text-blue-900 dark:bg-blue-950/60 dark:text-blue-200">
+                {% include 'icons/info.html' %}
+                <div>You are editing a Solis user. Some fields are provided by OIDC and cannot be changed.</div>
             </div>
         {% endif %}
 
-        <form method="post" class="max-w-xl mt-8">
-            {% csrf_token %}
-            {{ form }}
-
-            {% if object %}
-                <div class="font-bold mb-3 mt-5">Date joined</div>
-                <div class="text-gray-500">{{ form_user.date_joined }}</div>
-                <div class="font-bold mb-3 mt-5">Last login</div>
-                <div class="text-gray-500">{{ form_user.last_login }}</div>
-            {% endif %}
-
-            <div class="flex gap-2 mt-6">
-                <a href="{% url 'main:users' %}" class="btn btn-outline">
-                    Cancel
-                </a>
-                <button type="submit" class="btn light:btn-primary dark:btn-outline">
-                    Confirm
-                </button>
+        <div class="mt-8 max-w-2xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
+            <div class="px-4 py-2.5 bg-gray-50 dark:bg-gray-800/60 border-b border-gray-200 dark:border-gray-800 font-semibold text-sm">
+                User details
             </div>
-        </form>
+            <div class="p-6 text-sm">
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="space-y-4">
+                        {{ form }}
+                    </div>
+
+                    {% if object %}
+                        <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-y-1.5 gap-x-3 text-sm mt-6 border-t border-gray-100 dark:border-gray-800 pt-6">
+                            <div class="font-semibold text-gray-600 dark:text-gray-300">Date joined</div>
+                            <div class="text-gray-500">{{ form_user.date_joined }}</div>
+
+                            <div class="font-semibold text-gray-600 dark:text-gray-300">Last login</div>
+                            <div class="text-gray-500">{{ form_user.last_login }}</div>
+                        </div>
+                    {% endif %}
+
+                    <div class="flex gap-2 mt-8">
+                        <a href="{% url 'main:users' %}" class="btn btn-sm btn-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-sm btn-primary">
+                            Confirm
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 {% endblock %}

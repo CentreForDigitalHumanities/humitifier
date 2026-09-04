@@ -5,7 +5,7 @@ from drf_spectacular.types import OpenApiTypes
 
 from alerting.backend.registry import alert_generator_registry
 from alerting.models import AlertSeverity
-from hosts.models import DataSource, Host, SavedSearch
+from hosts.models import DataSource, Host, OperatingSystem, SavedSearch
 from main.filters import (
     BooleanChoiceFilter,
     FiltersForm,
@@ -24,6 +24,27 @@ class DataSourceFilters(django_filters.FilterSet):
         model = DataSource
         fields = ["source_type"]
         form = FiltersForm
+
+
+#
+# OperatingSystem filters
+#
+
+
+class OperatingSystemFilters(django_filters.FilterSet):
+    class Meta:
+        model = OperatingSystem
+        fields = ["outdated"]
+        form = FiltersForm
+
+    outdated = BooleanChoiceFilter(
+        empty_label="Is outdated",
+        field_name="outdated",
+        choices=[
+            (True, "Yes"),
+            (False, "No"),
+        ],
+    )
 
 
 #
@@ -116,7 +137,7 @@ class HostAlertSeverityFilter(ChoiceFilter):
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__severity=value)
+            return qs.filter(alerts__severity=value, alerts__acknowledgement=None).distinct()
         return qs
 
 
@@ -130,7 +151,7 @@ class HostAlertTypeFilter(ChoiceFilter):
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__short_message=value)
+            return qs.filter(alerts__short_message=value, alerts__acknowledgement=None).distinct()
         return qs
 
 

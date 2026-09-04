@@ -4,6 +4,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --font-sans: "Open Sans", ui-sans-serif, system-ui, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+
   --color-*: initial;
   --color-transparent: transparent;
   --color-current: currentColor;
@@ -122,7 +124,7 @@
 }
 
 @utility section {
-  @apply bg-default p-7 pt-5 rounded-sm border border-gray-300 dark:border-gray-700;
+  @apply bg-white dark:bg-gray-900 p-7 pt-5 rounded-md border border-gray-200 dark:border-gray-700 transition duration-150;
 }
 
 @utility text-green {
@@ -130,7 +132,7 @@
 }
 
 @utility input {
-  @apply w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm focus-visible:outline-hidden focus-visible:border-gray-400 dark:focus-visible:border-gray-600 transition duration-150 ease-in-out;
+  @apply w-full px-3 py-2 bg-white dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-300 dark:border-gray-600 rounded-sm focus-visible:outline-hidden focus-visible:border-gray-400 dark:focus-visible:border-gray-600 transition duration-150 ease-in-out;
 
   &:disabled {
     @apply bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 cursor-not-allowed;
@@ -144,7 +146,7 @@
   background-position: right 0.75rem center;
   background-size: 0.75rem 0.75rem;
   &:focus {
-    @apply border-gray-400;
+    @apply border-gray-300;
     background-image: url('data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="rgb(10, 10, 10)" class="size-3"%3E%3Cpath stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /%3E%3C/svg%3E');
   }
 
@@ -164,7 +166,8 @@
 }
 
 @utility btn {
-  @apply px-3 py-2 font-bold rounded-sm transition duration-150 ease-in-out border border-primary cursor-pointer;
+  @apply px-3 py-2 font-bold rounded-sm transition duration-150 ease-in-out border border-primary cursor-pointer text-nowrap;
+  @apply flex items-center;
 }
 
 @utility btn-sm {
@@ -175,20 +178,19 @@
   @apply px-2 py-1 text-sm;
 }
 
-@utility btn-outline {
-  @apply border border-gray-300 dark:border-gray-700 text-gray-700 dark:text-gray-50 hover:bg-gray-50 dark:hover:bg-gray-700;
-}
-
 @utility btn-secondary {
-  @apply bg-black text-white hover:bg-gray-800;
+  @apply bg-white border-gray-300 text-gray-800 hover:bg-gray-200;
+  @apply dark:bg-gray-900 dark:border-gray-700 dark:text-white dark:hover:bg-gray-600;
 }
 
 @utility btn-primary {
-  @apply bg-primary text-black hover:bg-yellow-500 hover:text-black dark:bg-yellow-500 dark:text-black dark:hover:bg-yellow-400 dark:hover:border-yellow-400 dark:hover:text-black;
+  @apply bg-primary text-black border-primary hover:bg-yellow-500 hover:border-yellow-500;
+  @apply dark:bg-yellow-500/10 dark:text-primary dark:border-primary dark:hover:bg-yellow-400/40 dark:hover:text-white;
 }
 
 @utility btn-danger {
-  @apply bg-red-500 text-white hover:bg-red-600 border-red-500 hover:border-red-600 dark:border-red-700 dark:bg-red-700 dark:hover:bg-red-500 dark:hover:border-red-500;
+  @apply bg-red-500 text-white border-red-500 hover:bg-red-600 hover:border-red-600;
+  @apply dark:bg-red-500/10 dark:text-red-500 dark:border-red-500 dark:hover:bg-red-400/40 dark:hover:text-white;
 }
 
 @utility text-blue {

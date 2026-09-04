@@ -1,5 +1,5 @@
 # Dockerfile
-FROM ghcr.io/centrefordigitalhumanities/build-containers/ubuntu2004-py3.13-pyinstaller:main
+FROM ghcr.io/centrefordigitalhumanities/build-containers/ubuntu2004-py3.14-pyinstaller:main
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set the working directory for the build process

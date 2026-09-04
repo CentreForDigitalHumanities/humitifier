@@ -1,0 +1,50 @@
+{# Renders the detail panel block of a single TreeNode and, recursively, #}
+{# those of its children. Only the block of the selected node is visible. #}
+<div x-show="selected === '{{ node.key }}'" style="display: none">
+    <div class="flex items-center gap-2 mb-2">
+        <div class="font-semibold truncate">{{ node.title }}</div>
+
+        {% if node.badge %}
+            <div class="shrink-0 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/60 px-1.5 text-xs text-gray-500 dark:text-gray-400">
+                {{ node.badge }}
+            </div>
+        {% endif %}
+
+        <button
+            type="button"
+            class="ml-auto shrink-0 text-gray-400 dark:text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 cursor-pointer transition duration-150"
+            aria-label="Close details"
+            @click="selected = null"
+        >
+            {% include 'icons/clear.html' %}
+        </button>
+    </div>
+
+    <div class="max-h-[30vh] overflow-y-auto text-gray-700 dark:text-gray-300">
+        {% if node.content %}
+            {{ node.content }}
+        {% elif node.content_items %}
+            <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-1 gap-3">
+                {% for label, value in node.content_items.items %}
+                    <div class="font-semibold">{{ label }}</div>
+                    <div>
+                        {% if value %}
+                            {{ value }}
+                        {% else %}
+                            <div class="text-gray-600 dark:text-gray-400">
+                                Unknown
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="text-gray-600 dark:text-gray-400">
+                No further details
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% for child in node.children %}
+    {% include 'hosts/scan_visualizer/components/tree_node_details.html' with node=child %}
+{% endfor %}

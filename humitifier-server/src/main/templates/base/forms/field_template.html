@@ -2,18 +2,18 @@
 
 <div class="mb-2">
     {% if field.field.widget|is_checkbox %}
-        <label class="flex gap-2 font-bold">
+        <label class="flex gap-2 items-center text-sm font-semibold">
             {{ field }}
             <span>{{ field.label }}</span>
         </label>
-        <div class="text-gray-500 mb-3">
+        <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
             {{ field.help_text }}
         </div>
     {% else %}
         {% if field.label %}
-            <label class="block font-bold">{{ field.label }}</label>
+            <label class="block text-sm font-semibold mb-1">{{ field.label }}</label>
         {% endif %}
-        <div class="text-gray-500 mb-3">
+        <div class="text-xs text-gray-500 dark:text-gray-400 mb-2">
             {{ field.help_text }}
         </div>
         <div>

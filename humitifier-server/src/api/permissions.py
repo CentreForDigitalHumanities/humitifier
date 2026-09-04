@@ -8,9 +8,13 @@ class TokenHasApplication(permissions.BasePermission):
         if not token:
             return False
 
-        try:
-            access_token = AccessToken.objects.get(token=token)
-            request.application = access_token.application
-            return True
-        except AccessToken.DoesNotExist:
-            return False
+        if isinstance(token, str):
+            try:
+                access_token = AccessToken.objects.get(token=token)
+            except AccessToken.DoesNotExist:
+                return False
+        else:
+            access_token = token
+
+        request.application = access_token.application
+        return True

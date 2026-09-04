@@ -2,14 +2,14 @@
 {% load humanize %}
 {% load simple_menu %}
 
-<aside class="fixed top-0 left-0 z-40 w-72 h-screen transition-transform -translate-x-full md:translate-x-0 bg-black text-white overflow-y-auto" x-bind:class="show_sidebar ? 'translate-x-0' : ''">
-    <div class="md:hidden cursor-pointer p-4 flex justify-end" @click="show_sidebar = false">
+<aside class="fixed top-0 left-0 z-40 w-80 h-screen transition-transform -translate-x-full md:translate-x-0 bg-black text-white text-sm overflow-y-auto border-r border-gray-800 flex flex-col" x-bind:class="show_sidebar ? 'translate-x-0' : ''">
+    <div class="md:hidden cursor-pointer p-4 flex justify-end text-gray-400 hover:text-white transition duration-150" @click="show_sidebar = false">
         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="size-6">
           <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
         </svg>
     </div>
 
-    <section class="w-full p-4 flex items-center gap-4">
+    <section class="w-full p-4 mb-3 flex items-center gap-4">
         {% if layout.wild_wasteland %}
             <a href="https://commons.wikimedia.org/wiki/File:Cat_python.png" target="_blank" class="flex-shrink-0">
                 <img
@@ -24,12 +24,12 @@
         {% endif %}
         <div>
             <div class="text-2xl font-bold">Humitifier</div>
-            <div class="text-sm italic">{{ layout.tag_line }}</div>
+            <div class="text-md italic text-gray-300">{{ layout.tag_line }}</div>
         </div>
     </section>
 
-    <div class="flex justify-between px-4 font-semibold">
-        <a class="flex items-center gap-2 py-1.5 text-primary" href="{% url 'hosts:list' %}">
+    <div class="mx-3 mb-3 px-2 py-1 flex justify-between items-stretch font-semibold rounded-md border border-gray-800 bg-gray-900">
+        <a class="flex items-center gap-2 py-1.5 px-2 rounded-md text-primary hover:bg-gray-800 transition duration-150" href="{% url 'hosts:list' %}">
             {% with stroke="stroke-2" %}
                 {% include 'icons/host.html' %}
             {% endwith %}
@@ -37,17 +37,17 @@
         </a>
         {# Visual separator #}
         <div class="py-1.5">
-            <div class="border-l border-gray-700 h-full"></div>
+            <div class="border-l border-gray-800 h-full"></div>
         </div>
-        <a class="text-blue-300 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_severity=info">
+        <a class="text-blue-300 flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-800 transition duration-150" href="{% url 'main:dashboard' %}?severity=info#alerts">
             {% include 'icons/info.html' %}
             {{ layout.num_info_alerts|intcomma }}
         </a>
-        <a class="text-orange-500 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_severity=warning">
+        <a class="text-orange-500 flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-800 transition duration-150" href="{% url 'main:dashboard' %}?severity=warning#alerts">
             {% include 'icons/warning.html' %}
             {{ layout.num_warning_alerts|intcomma }}
         </a>
-        <a class="text-red-500 flex items-center gap-2 py-1.5" href="{% url 'hosts:list' %}?alert_severity=critical">
+        <a class="text-red-500 flex items-center gap-2 py-1.5 px-2 rounded-md hover:bg-gray-800 transition duration-150" href="{% url 'main:dashboard' %}?severity=critical#alerts">
             {% include 'icons/critical.html' %}
             {{ layout.num_critical_alerts|intcomma }}
         </a>
@@ -60,9 +60,15 @@
             {% endwith %}
         {% endblock %}
     </section>
-    <div class="p-3 mt-4 text-center text-gray-400">
-        <a href="{% url 'main:version' %}">
+    <div class="p-3 mt-auto text-center text-xs text-gray-500">
+        <a href="{% url 'main:version' %}" class="hover:text-primary transition duration-150">
             Humitifier {{ layout.humitifier_version }}{% if debug %}-dev{% endif %}
         </a>
     </div>
+
+    {% if debug %}
+        <div class="grow-0 bg-red-700 px-3 py-2 text-center text-white font-bold">
+            DEBUG MODE
+        </div>
+    {% endif %}
 </aside>

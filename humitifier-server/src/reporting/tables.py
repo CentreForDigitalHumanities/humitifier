@@ -7,12 +7,80 @@ from main.easy_tables import (
     BaseTable,
     ButtonColumn,
     CompoundColumn,
+    DateColumn,
     DateTimeColumn,
     MethodColumn,
     ValueColumn,
 )
-from reporting.models import CostsScheme
+from reporting.models import CostsScheme, GeneratedReport
 from reporting.utils import CostsBreakdown
+
+
+class GeneratedReportTable(BaseTable):
+    class Meta:
+        model = GeneratedReport
+        columns = [
+            "filename",
+            "status_display",
+            "created_at",
+            "customers_display",
+            "costs_schemes",
+            "start_date",
+            "end_date",
+            "actions",
+        ]
+
+    status_display = MethodColumn("Status", method_name="get_status_display")
+
+    customers_display = MethodColumn("Customers", method_name="get_customers_display")
+
+    created_at = DateTimeColumn(header="Created", value_attr="created_at")
+    start_date = DateColumn(header="Start Date", value_attr="start_date")
+    end_date = DateColumn(header="End Date", value_attr="end_date")
+
+    costs_schemes = MethodColumn("Costs Schemes", method_name="get_costs_schemes")
+
+    actions = CompoundColumn(
+        "Actions",
+        columns=[
+            ButtonColumn(
+                text="Download",
+                button_class="btn btn-primary",
+                url=lambda obj: reverse("reporting:report_download", args=[obj.pk]),
+                show_check_function=lambda obj: obj.status == GeneratedReport.Status.COMPLETED,
+            ),
+            ButtonColumn(
+                text="Rerun",
+                button_class="btn btn-secondary",
+                url=lambda obj: reverse("reporting:report_rerun", args=[obj.pk]),
+            ),
+            ButtonColumn(
+                text="Delete",
+                button_class="btn btn-danger",
+                url=lambda obj: reverse("reporting:report_delete", args=[obj.pk]),
+            ),
+        ],
+    )
+
+    @staticmethod
+    def get_status_display(obj: GeneratedReport):
+        if obj.status == GeneratedReport.Status.PENDING:
+            return "⏳ Generating…"
+        elif obj.status == GeneratedReport.Status.COMPLETED:
+            return "✓ Ready"
+        elif obj.status == GeneratedReport.Status.FAILED:
+            return "✗ Failed"
+        return obj.status
+
+    @staticmethod
+    def get_customers_display(obj: GeneratedReport):
+        if len(obj.customers) == 0:
+            return "All"
+        return ", ".join([customer for customer in obj.customers])
+
+    @staticmethod
+    def get_costs_schemes(obj: GeneratedReport):
+        return ", ".join([str(scheme) for scheme in obj.costs_schemes.all()])
 
 
 class CostsSchemeTable(BaseTable):
@@ -20,6 +88,7 @@ class CostsSchemeTable(BaseTable):
         model = CostsScheme
         columns = [
             "name",
+            "platform",
             "cpu",
             "memory",
             "storage",
@@ -35,7 +104,7 @@ class CostsSchemeTable(BaseTable):
         columns=[
             ButtonColumn(
                 text="Edit",
-                button_class="btn btn-outline",
+                button_class="btn btn-secondary",
                 url=lambda obj: reverse("reporting:costs_update", args=[obj.pk]),
             ),
             ButtonColumn(
@@ -51,6 +120,7 @@ class CostsOverviewTable(BaseTable):
     @dataclass
     class Data:
         fqdn: str
+        platform: str
         costs_breakdown: CostsBreakdown
         scan_date: datetime
 
@@ -58,6 +128,8 @@ class CostsOverviewTable(BaseTable):
         columns = []
 
     fqdn = ValueColumn(header="Host", value_attr="fqdn")
+
+    platform = ValueColumn(header="Platform", value_attr="platform")
 
     date = DateTimeColumn(header="Date", value_attr="scan_date")
 

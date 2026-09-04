@@ -11,6 +11,7 @@ from humitifier_scanner.exceptions import (
     MissingRequiredFactError,
 )
 from humitifier_scanner.executor import Executors, get_executor, release_executor
+from humitifier_scanner.executor.network import NetworkError
 from humitifier_scanner.logger import logger
 from humitifier_common.scan_data import (
     ErrorTypeEnum,
@@ -185,16 +186,16 @@ def _check_host_online(hostname):
     if _check_host_is_localhost(hostname):
         return True
 
-    # Why are we building in support for Windows? Reasons!
-    ping_count_arg = "-n" if sys.platform.lower() == "win32" else "-c"
-
     try:
-        result = subprocess.run(
-            ["ping", ping_count_arg, "1", hostname],
-            capture_output=True,
-            text=True,
-        )
-        is_online = result.returncode == 0
+        network_executor = get_executor(Executors.NETWORK, hostname)
+
+        try:
+            # One ping only, Vasily
+            result = network_executor.ping(hostname, count=1)
+
+            is_online = result.received == 1
+        except NetworkError:
+            is_online = False
 
         if is_online:
             logger.debug("Host is online")

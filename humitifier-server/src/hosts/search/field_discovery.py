@@ -13,6 +13,11 @@ from .types import ArtefactSection, SearchableField
 
 PrimitivePydanticTypes = (str, int, bool)
 
+# How often a single model may appear in one recursion chain. Self-referencing
+# models (like the lshw hardware tree, where a node contains its children)
+# would otherwise be traversed endlessly. Every extra level adds another array
+# expansion to the generated queries, so the number is kept modest.
+MaxModelRecursionDepth = 3
 
 def _iter_artefacts() -> Iterable[tuple[ArtefactSection, Any, str]]:
     """Yield (section, artefact_cls, artefact_key) for all registered artefacts."""
@@ -109,6 +114,17 @@ def _field_type_to_value_type(ann: Any) -> str | None:
                 return "boolean"
         return None
     return None
+
+
+def _recursion_exhausted(
+    model: type[BaseModel], model_chain: tuple[type[BaseModel], ...]
+) -> bool:
+    """Whether `model` may still be traversed within the current chain.
+
+    Self-referencing models are traversed up to MaxModelRecursionDepth levels
+    deep; without a limit the traversal would never end.
+    """
+    return model_chain.count(model) >= MaxModelRecursionDepth
 
 
 def _iter_base_model_fields(model: type[BaseModel]) -> Iterable[tuple[str, str]]:
@@ -246,51 +262,14 @@ def _create_array_field(
     )
 
 
-def _collect_nested_array_fields(
-    section: str,
-    artefact_key: str,
-    nested_model: type[BaseModel],
-    parent_array_path: tuple[str, ...],
-    nested_base_path: tuple[str, ...] = ()
-) -> list[SearchableField]:
-    """Collect searchable primitive fields from a nested array element model.
-
-    Args:
-        section: The artefact section
-        artefact_key: The key identifying the artefact type
-        nested_model: The Pydantic model for nested array elements
-        parent_array_path: Array path from parent context
-        nested_base_path: Base path within nested elements
-
-    Returns:
-        List of SearchableField descriptors for primitive fields
-    """
-    fields: list[SearchableField] = []
-
-    for field_name, field_info in nested_model.model_fields.items():
-        annotation = _unwrap_optional(field_info.annotation)
-        value_type = _field_type_to_value_type(annotation)
-
-        if value_type:
-            field = _create_array_field(
-                section,
-                artefact_key,
-                parent_array_path,
-                nested_base_path + (field_name,),
-                value_type
-            )
-            fields.append(field)
-
-    return fields
-
-
 def _collect_list_element_fields(
     section: str,
     artefact_key: str,
     element_model: type[BaseModel],
     base_path: tuple[str, ...],
     field_name: str,
-    element_base_path: tuple[str, ...] = ()
+    element_base_path: tuple[str, ...] = (),
+    model_chain: tuple[type[BaseModel], ...] = ()
 ) -> list[SearchableField]:
     """Collect searchable fields from list element models recursively.
 
@@ -304,10 +283,15 @@ def _collect_list_element_fields(
         base_path: Path to the parent field containing the list
         field_name: Name of the list field
         element_base_path: Base path within element models for nested fields
+        model_chain: Models already visited in the current recursion chain
 
     Returns:
         List of SearchableField descriptors
     """
+    if _recursion_exhausted(element_model, model_chain):
+        return []
+
+    model_chain = model_chain + (element_model,)
     fields: list[SearchableField] = []
 
     for element_field_name, element_field_info in element_model.model_fields.items():
@@ -336,7 +320,8 @@ def _collect_list_element_fields(
                 annotation,
                 base_path + (field_name, "[]"),
                 element_field_name,
-                element_base_path
+                element_base_path,
+                model_chain
             )
             fields.extend(nested_fields)
             continue
@@ -351,12 +336,13 @@ def _collect_list_element_fields(
 
             # Nested list of BaseModel
             if isinstance(nested_element_type, type) and issubclass(nested_element_type, BaseModel):
-                nested_array_path = base_path + (field_name, "[]", element_field_name, "[]")
-                nested_fields = _collect_nested_array_fields(
+                nested_fields = _collect_list_element_fields(
                     section,
                     artefact_key,
                     nested_element_type,
-                    nested_array_path
+                    base_path + (field_name, "[]"),
+                    element_field_name,
+                    model_chain=model_chain
                 )
                 fields.extend(nested_fields)
             else:
@@ -379,7 +365,8 @@ def _collect_model_fields(
     section: str,
     artefact_key: str,
     model: type[BaseModel],
-    base_path: tuple[str, ...] = ()
+    base_path: tuple[str, ...] = (),
+    model_chain: tuple[type[BaseModel], ...] = ()
 ) -> list[SearchableField]:
     """Recursively collect all searchable fields from a Pydantic BaseModel.
 
@@ -394,10 +381,15 @@ def _collect_model_fields(
         artefact_key: The key identifying the artefact type
         model: The Pydantic BaseModel class to introspect
         base_path: Current path context for nested fields
+        model_chain: Models already visited in the current recursion chain
 
     Returns:
         List of SearchableField descriptors for all discoverable fields
     """
+    if _recursion_exhausted(model, model_chain):
+        return []
+
+    model_chain = model_chain + (model,)
     fields: list[SearchableField] = []
 
     for field_name, field_info in model.model_fields.items():
@@ -423,7 +415,8 @@ def _collect_model_fields(
                 section,
                 artefact_key,
                 annotation,
-                base_path + (field_name,)
+                base_path + (field_name,),
+                model_chain
             )
             fields.extend(nested_fields)
             continue
@@ -443,7 +436,8 @@ def _collect_model_fields(
                     artefact_key,
                     element_type,
                     base_path,
-                    field_name
+                    field_name,
+                    model_chain=model_chain
                 )
                 fields.extend(element_fields)
             else:

@@ -154,6 +154,28 @@ class DataSource(models.Model):
         return self.name
 
 
+class OperatingSystem(models.Model):
+    class Meta:
+        ordering = ["name"]
+        verbose_name = "Operating system"
+        verbose_name_plural = "Operating systems"
+
+    name = models.CharField(
+        max_length=255,
+        unique=True,
+        help_text="Should match the OS name as reported by the scanner exactly.",
+    )
+
+    outdated = models.BooleanField(
+        default=False,
+        help_text="Hosts running an outdated operating system will get an "
+        "'Outdated OS' alert.",
+    )
+
+    def __str__(self):
+        return self.name
+
+
 class HostManager(models.Manager):
 
     def get_for_user(self, user: User):
