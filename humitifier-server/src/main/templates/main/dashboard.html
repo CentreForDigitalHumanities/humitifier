@@ -208,14 +208,14 @@
         {# Alerts #}
         <div class="border-t border-gray-300 dark:border-gray-700 transition ease-in-out duration-150">
             <div class="sticky top-header z-10 backdrop-blur-sm bg-white/30 dark:bg-black/30 border-b border-gray-300 dark:border-gray-700 px-5 py-2 flex justify-between items-center">
-                <h2 class="text-lg font-semibold" id="alerts">Alerts</h2>
+                <h2 class="text-lg font-semibold">Alerts</h2>
 
                 {% with hide_totals=True %}
                     {% include 'base/page_parts/paginator_top.html' %}
                 {% endwith %}
             </div>
 
-            <table class="w-full table-auto">
+            <table class="w-full table-auto scroll-mt-28" id="alerts">
                 <thead class="text-left sticky top-[calc(7rem-1px)] backdrop-blur-sm bg-white/30 dark:bg-black/30 border-b-0 border-gray-200 dark:border-gray-700 outline-1 outline-gray-200 dark:outline-gray-700">
                     <tr>
                         <th class="pl-7 pr-2 pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 transition ease-in-out duration-150">
