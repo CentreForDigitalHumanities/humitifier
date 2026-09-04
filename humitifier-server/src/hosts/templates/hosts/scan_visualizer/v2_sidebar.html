@@ -37,6 +37,33 @@
     {% endfor %}
 </div>
 
+{% if layout.wild_wasteland and horoscope %}
+    <div class="flex items-center gap-3 mb-3 mt-8">
+        <h3 class="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
+            Horoscope
+        </h3>
+        <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
+    </div>
+    <div class="text-sm transition duration-150">
+        <div class="flex items-center gap-3 mb-3">
+            <div class="text-3xl leading-none" aria-hidden="true">{{ horoscope.symbol }}</div>
+            <div>
+                <div class="font-bold">{{ horoscope.sign }}</div>
+                <div class="text-xs text-gray-500 dark:text-gray-400">Daily forecast for {{ host.fqdn }}</div>
+            </div>
+        </div>
+        <p class="italic text-gray-700 dark:text-gray-300 mb-3">
+            "{{ horoscope.prediction }}"
+        </p>
+        <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-1.5 gap-x-3">
+            <div class="font-bold text-gray-600 dark:text-gray-300">Lucky port</div>
+            <div>{{ horoscope.lucky_port }}</div>
+            <div class="font-bold text-gray-600 dark:text-gray-300">Compatible with</div>
+            <div>{{ horoscope.compatibility }} hosts</div>
+        </div>
+    </div>
+{% endif %}
+
 <div class="flex items-center gap-3 mb-3 mt-8">
     <h3 class="text-sm font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400">
         Actions
