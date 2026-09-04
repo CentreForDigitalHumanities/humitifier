@@ -7,6 +7,125 @@ from django.utils.safestring import mark_safe
 from alerting.models import Alert, AlertSeverity
 from hosts.models import Host
 
+WILD_WASTELAND_JOKES = [
+    # @formatter:disable
+    "Performs best on a 386",
+    "Now with 100% more bugs!",
+    "Performance edition",
+    "I like trains",
+    "Prrrrrrrrrr",
+    "May contain traces of nuts",
+    "Caution: Do not eat",
+    "Don't look at me!",
+    "Who watches the watchmen?",
+    "How are you?",
+    (
+        "CAUTION: This email originated from outside of Utrecht University. Do not click links or open attachments unless you recognize the sender and know the content is safe.",
+        "CAUTION: This site originated from inside of Utrecht University. Do click links or open attachments unless you recognize the sender or know the content is unsafe.",
+    ),
+    "Needs more cowbell",
+    "Hum-IT CMDB",
+    "Humanities-IT Services Systems Team Labs ICT Configuration Management Database Status Viewer Application",
+    "Made for Itanium™",
+    "I'm on a horse",
+    "Keep calm and reboot",
+    "Is it plugged in?",
+    "Running on hope and caffeine",
+    "Results may vary",
+    "As seen on TV",
+    "Not a flamethrower",
+    "Some assembly required",
+    "100% Functional Guarantee until it breaks",
+    (
+        "Do not use if seal is broken",
+        "Do not use if seal is unbroken",
+    ),
+    "Objects in mirror may be closer than they appear",
+    "Your wish is our segfault",
+    "Not a humidifier",
+    "We've been trying to contact you about your servers extended warranty",
+    "Do you hear wolves?",
+    "Я просто пташка",
+    mark_safe("- What is my purpose?<br/>- You pass butter"),
+    "Have a break, have a Humitifier",  # Credits: some weird shopify tool
+    "E",
+    "Are you even reading this?",
+    "Finland has the most heavy metal bands per capita",
+    "A cat's ear contains 32 muscles",
+    "Ravens know when someone is spying on them",
+    "Flamingos can only eat with their heads upside down",
+    (
+        "A group of crows is a 'murder'",
+        "Two crows together is an attempted murder",
+    ),
+    "In the 1870s, cats were being trained in Belgium to deliver mail to replace homing pigeons",
+    "Antarctica’s international telephone dialling code is +672",
+    "Thousands of rabbits once attacked Napoleon. The rabbits won.",
+    "There’s a tiny home in Virginia called the “Spite House” because that’s why it was built",
+    "Playing dance music can help ward off mosquitoes",
+    "“Avoid potential systems fans loop logs” - GPT-4o, 2025",
+    "Trotse winnaar van de SPrins 'Gouden API' award 🏆",
+    "We don’t know who invented the fire hydrant, as those papers were lost when the US Patent Office... burned down.",
+    "Lego is the largest tyre manufacturer in the world",
+    "Orca are considered a natural predator of moose",
+    "In the UK, for every 1 degree Celsius the temperature drops, Heinz soup sales increase 3.4%",
+    "In 1999, hackers revealed a security flaw in Hotmail that permitted anybody to log in to any Hotmail account using the password 'eh'",
+    "The banana tree is not a tree and is in fact the worlds largest herb",
+    "The factual accuracy of these lines have been rated to be equal to or better than the accuracy of LLMs",
+    "Everything in the universe is either a banana or not a banana",
+    "A group of owls is called a parliament",
+    "Dolly Parton entered a Dolly Parton look-alike contest. And lost.",
+    "Flamingos are born white and their food dyes them pink",
+    mark_safe(
+        "You don't often get e-mail from the pope. "
+        "<a href='https://www.youtube.com/watch?v=YrV_P9xjHc8'>"
+        "Learn why this is important</a>"
+    ),
+    "99 little bugs in the code, 99 bugs in the code. Take one down, patch it around, 127 little bugs in the code.",
+    "When things work perfectly, check again. Something’s about to break.",
+    "Remember, downtime is just uptime waiting to happen.",
+    "Choo choo",
+    "AI-generated. Results may scare you",
+    "Error 503: Joke not available",
+    "Task failed successfully",
+    (
+        "First line of defense: blame DNS",
+        "Second line of defense: blame DNS again",
+    ),
+    "Now powered by webdisassembly!",
+    "",
+    "I am Humitifier Virtual Assistant. I am a real person. It is awesome to "
+    "see you again! Is there something specific you're searching for?",
+    "Hardware error: DVD-Rambo drive not found",
+    "Powered by hamster wheels and magic smoke",
+    "70% of the time, it works every time",
+    "Everything is a DNS problem until proven otherwise",
+    "Have you tried turning it off and on again?",
+    "Keyboard not found... Press F1 to continue",
+    "This space intentionally left blank",
+    "Your server has performed an illegal operation and will be arrested",
+    "All your server are belong to us",
+    "Release the ravens!",
+    "Would you like to hear about the thirty-minute meeting regarding the new filing cabinet labels?",
+    mark_safe(
+        ">>> import ctypes;ctypes.cast(id(1), ctypes.POINTER(IntObject))[0].int = 2;<br/>>>> 1 + 2<br/>4"
+    ),
+    "Send in the orcas!",
+    "Warning: frog detector has failed!",
+    "Warning: frog has been detected!",
+    "Warning: frog has been detected! Please evacuate the premises immediately!",
+    "Polar bears are almost all left-handed",
+    "Snails can sleep for three years",
+    "Please don't forget to maintain 'Coder'",
+    "Real-time data from three days ago",
+    "Track everything, understand nothing",
+    "Connecting the dots that shouldn't be connected",
+    "Powered by caffeine and architectural panic",
+    "Powered by caffeine and architectural panic, with a dash of [REDACTED]",
+    "Press buttons to see what breaks next",
+    # @formatter:on
+]
+
 
 def layout_context(request):
     """This function is used to add data to the template-context for all views.
@@ -27,115 +146,22 @@ def layout_context(request):
     gitlab_gag = False
 
     if wild_wasteland:
-        jokes = [
-            # @formatter:disable
-            "Performs best on a 386",
-            "Now with 100% more bugs!",
-            "Performance edition",
-            "I like trains",
-            "Prrrrrrrrrr",
-            "May contain traces of nuts",
-            "Caution: Do not eat",
-            "Don't look at me!",
-            "Who watches the watchmen?",
-            "How are you?",
-            "CAUTION: This email originated from outside of Utrecht University. Do not click links or open attachments unless you recognize the sender and know the content is safe.",
-            "Needs more cowbell",
-            "Hum-IT CMDB",
-            "Humanities-IT Services Systems Team Labs ICT Configuration Management Database Status Viewer Application",
-            "Made for Itanium™",
-            "I'm on a horse",
-            "Keep calm and reboot",
-            "Is it plugged in?",
-            "Running on hope and caffeine",
-            "Results may vary",
-            "As seen on TV",
-            "Not a flamethrower",
-            "Some assembly required",
-            "100% Functional Guarantee until it breaks",
-            "Do not use if seal is broken",
-            "Do not use if seal is unbroken",
-            "Objects in mirror may be closer than they appear",
-            "Your wish is our segfault",
-            "Not a humidifier",
-            "We've been trying to contact you about your servers extended warranty",
-            "CAUTION: This site originated from inside of Utrecht University. Do click links or open attachments unless you recognize the sender or know the content is unsafe.",
-            "Do you hear wolves?",
-            "Я просто пташка",
-            mark_safe("- What is my purpose?<br/>- You pass butter"),
-            "Have a break, have a Humitifier",  # Credits: some weird shopify tool
-            "E",
-            "Are you even reading this?",
-            "Finland has the most heavy metal bands per capita",
-            "A cat's ear contains 32 muscles",
-            "Ravens know when someone is spying on them",
-            "Flamingos can only eat with their heads upside down",
-            "A group of crows is a 'murder'",
-            "Two crows together is an attempted murder",
-            "In the 1870s, cats were being trained in Belgium to deliver mail to replace homing pigeons",
-            "Antarctica’s international telephone dialling code is +672",
-            "Thousands of rabbits once attacked Napoleon. The rabbits won.",
-            "There’s a tiny home in Virginia called the “Spite House” because that’s why it was built",
-            "Playing dance music can help ward off mosquitoes",
-            "“Avoid potential systems fans loop logs” - GPT-4o, 2025",
-            "Trotse winnaar van de SPrins 'Gouden API' award 🏆",
-            "We don’t know who invented the fire hydrant, as those papers were lost when the US Patent Office... burned down.",
-            "Lego is the largest tyre manufacturer in the world",
-            "Orca are considered a natural predator of moose",
-            "In the UK, for every 1 degree Celsius the temperature drops, Heinz soup sales increase 3.4%",
-            "In 1999, hackers revealed a security flaw in Hotmail that permitted anybody to log in to any Hotmail account using the password 'eh'",
-            "The banana tree is not a tree and is in fact the worlds largest herb",
-            "The factual accuracy of these lines have been rated to be equal to or better than the accuracy of LLMs",
-            "Everything in the universe is either a banana or not a banana",
-            "A group of owls is called a parliament",
-            "Dolly Parton entered a Dolly Parton look-alike contest. And lost.",
-            "Flamingos are born white and their food dyes them pink",
-            mark_safe(
-                "You don't often get e-mail from the pope. "
-                "<a href='https://www.youtube.com/watch?v=YrV_P9xjHc8'>"
-                "Learn why this is important</a>"
-            ),
-            "99 little bugs in the code, 99 bugs in the code. Take one down, patch it around, 127 little bugs in the code.",
-            "When things work perfectly, check again. Something’s about to break.",
-            "Remember, downtime is just uptime waiting to happen.",
-            "Choo choo",
-            "AI-generated. Results may scare you",
-            "Error 503: Joke not available",
-            "Task failed successfully",
-            "First line of defense: blame DNS",
-            "Second line of defense: blame DNS again",
-            "Now powered by webdisassembly!",
-            "",
-            "I am Humitifier Virtual Assistant. I am a real person. It is awesome to "
-            "see you again! Is there something specific you're searching for?",
-            "Hardware error: DVD-Rambo drive not found",
-            "Powered by hamster wheels and magic smoke",
-            "70% of the time, it works every time",
-            "Everything is a DNS problem until proven otherwise",
-            "Have you tried turning it off and on again?",
-            "Keyboard not found... Press F1 to continue",
-            "This space intentionally left blank",
-            "Your server has performed an illegal operation and will be arrested",
-            "All your server are belong to us",
-            "Release the ravens!",
-            "Would you like to hear about the thirty-minute meeting regarding the new filing cabinet labels?",
-            mark_safe(">>> import ctypes;ctypes.cast(id(1), ctypes.POINTER(IntObject))[0].int = 2;<br/>>>> 1 + 2<br/>4"),
-            "Send in the orcas!",
-            "Warning: frog detector has failed!",
-            "Warning: frog has been detected!",
-            "Warning: frog has been detected! Please evacuate the premises immediately!",
-            "Polar bears are almost all left-handed",
-            "Snails can sleep for three years",
-            "Please don't forget to maintain 'Coder'",
-            "Real-time data from three days ago",
-            "Track everything, understand nothing",
-            "Connecting the dots that shouldn't be connected",
-            "Powered by caffeine and architectural panic",
-            "Powered by caffeine and architectural panic, with a dash of [REDACTED]",
-            "Press buttons to see what breaks next",
-            # @formatter:on
-        ]
-        tag_line = random.choice(jokes)
+        active_chain = request.session.get("active_joke_chain")
+        next_index = request.session.get("next_joke_index", 0)
+
+        if active_chain and next_index < len(active_chain):
+            tag_line = active_chain[next_index]
+            request.session["next_joke_index"] = next_index + 1
+        else:
+            choice = random.choice(WILD_WASTELAND_JOKES)
+            if isinstance(choice, tuple):
+                tag_line = choice[0]
+                request.session["active_joke_chain"] = choice
+                request.session["next_joke_index"] = 1
+            else:
+                tag_line = choice
+                request.session.pop("active_joke_chain", None)
+                request.session.pop("next_joke_index", None)
 
         if (
             datetime.today().weekday() == 3 and random.randint(1, 100) == 1
