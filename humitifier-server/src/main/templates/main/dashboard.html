@@ -5,7 +5,7 @@
 {% load humanize %}
 {% load param_replace %}
 
-{% block page_title %}Hosts | {{ block.super }}{% endblock %}
+{% block page_title %}Dashboard | {{ block.super }}{% endblock %}
 
 {% block head %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -140,109 +140,140 @@
 {% endblock %}
 
 {% block content %}
-    <div class="p-3 pb-0 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 megawide:grid-cols-5 gigawide:grid-cols-6 gap-3">
-        <div class="section">
-            <canvas id="alertsChart"></canvas>
-        </div>
-        <div class="section">
-            <canvas id="alertTypeChart"></canvas>
-        </div>
-        <div class="section">
-            <canvas id="otapChart"></canvas>
-        </div>
-        <div class="section">
-            <canvas id="osChart"></canvas>
-        </div>
-        <div class="section">
-            <canvas id="customerChart"></canvas>
-        </div>
-        <div class="section">
-            <canvas id="datasourceChart"></canvas>
-        </div>
-        {% if layout.wild_wasteland %}
-            {# Easter egg stats; these fill in empty spaces in the stats because _someone_ complained about the empty space #}
-            <div class="section hidden 2xl:block gigawide:hidden">
-                <canvas id="topExcusesChart"></canvas>
+    <div class="h-full--header w-full bg-default transition ease-in-out duration-150">
+        {# Statistics #}
+        <div class="pb-5">
+            <div class="sticky top-header z-10 backdrop-blur-sm bg-white/30 dark:bg-black/30 border-b border-gray-300 dark:border-gray-700 px-5 py-2 flex justify-between items-center gap-3 mb-4" x-data="{show_stats_filters: false}">
+                <h2 class="text-lg font-semibold">Statistics</h2>
+                <div class="relative" @click.outside="show_stats_filters = false">
+                    <button class="btn btn-sm btn-secondary" @click="show_stats_filters = !show_stats_filters">
+                        Filters
+                    </button>
+                    <div class="absolute right-0 top-11 z-20 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 shadow-lg w-[calc(100vw-3.5rem)] md:w-80 hidden" x-bind:class="show_stats_filters ? 'block!' : 'hidden'">
+                        <form method="get" class="p-5 flex gap-3 flex-row flex-wrap items-stretch">
+                            {% for key, values in request.GET.lists %}
+                                {% if key not in stats_filterset.form.fields %}
+                                    {% for value in values %}
+                                        <input type="hidden" name="{{ key }}" value="{{ value }}">
+                                    {% endfor %}
+                                {% endif %}
+                            {% endfor %}
+                            {{ stats_filterset.form }}
+                            <div class="flex justify-end items-end gap-x-2 ml-auto text-sm">
+                                <a href="{% url 'main:dashboard' %}" class="btn btn-sm btn-secondary">Reset</a>
+                                <button class="btn btn-sm btn-secondary" type="submit">Apply</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <div class="section hidden 2xl:block gigawide:hidden">
-                <canvas id="ducksChart"></canvas>
+
+            <div class="grid grid-cols-1 xl:grid-cols-2 2xl:grid-cols-4 megawide:grid-cols-5 gigawide:grid-cols-6 gap-3 px-5">
+                <div class="stat-tile">
+                    <canvas id="alertsChart"></canvas>
+                </div>
+                <div class="stat-tile">
+                    <canvas id="alertTypeChart"></canvas>
+                </div>
+                <div class="stat-tile">
+                    <canvas id="otapChart"></canvas>
+                </div>
+                <div class="stat-tile">
+                    <canvas id="datasourceChart"></canvas>
+                </div>
+                <div class="stat-tile xl:col-span-2 megawide:col-span-1">
+                    <canvas id="osChart"></canvas>
+                </div>
+                <div class="stat-tile xl:col-span-2 megawide:col-span-1">
+                    <canvas id="customerChart"></canvas>
+                </div>
+                {% if layout.wild_wasteland %}
+                    {# Easter egg stats; these fill in empty spaces in the stats because _someone_ complained about the empty space #}
+                    <div class="stat-tile hidden megawide:block gigawide:hidden">
+                        <canvas id="topExcusesChart"></canvas>
+                    </div>
+                    <div class="stat-tile hidden megawide:block  gigawide:hidden">
+                        <canvas id="ducksChart"></canvas>
+                    </div>
+                    <div class="stat-tile hidden megawide:block gigawide:hidden">
+                        <canvas id="productivityChart"></canvas>
+                    </div>
+                    <div class="stat-tile hidden megawide:block gigawide:hidden">
+                        <canvas id="gremlinsChart"></canvas>
+                    </div>
+                {% endif %}
             </div>
-            <div class="section hidden megawide:block gigawide:hidden">
-                <canvas id="productivityChart"></canvas>
+        </div>
+
+        {# Alerts #}
+        <div class="border-t border-gray-300 dark:border-gray-700 transition ease-in-out duration-150">
+            <div class="sticky top-header z-10 backdrop-blur-sm bg-white/30 dark:bg-black/30 border-b border-gray-300 dark:border-gray-700 px-5 py-2 flex justify-between items-center">
+                <h2 class="text-lg font-semibold">Alerts</h2>
+
+                {% with hide_totals=True %}
+                    {% include 'base/page_parts/paginator_top.html' %}
+                {% endwith %}
             </div>
-            <div class="section hidden megawide:block gigawide:hidden">
-                <canvas id="gremlinsChart"></canvas>
-            </div>
-        {% endif %}
-    </div>
-    <div class="p-3">
-        <div class="section transition ease-in-out duration-150 px-0">
-            <h2 class="text-2xl font-bold px-7" id="alerts">
-                Alerts
-            </h2>
-            <div class="py-4 px-7">
-                {% include 'base/page_parts/paginator_top.html' %}
-            </div>
-            <table class="w-full table-auto">
-                <thead class="text-left sticky  backdrop-blur-sm bg-white/30 dark:bg-black/30 text-gray-600 dark:text-gray-400 top-14 border-b-4 border-gray-200 dark:border-gray-700 outline-1 outline-gray-200 dark:outline-gray-700">
-                    <tr class="text-left">
-                        <th class="pl-7 pr-3 pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 transition ease-in-out duration-150 rounded-tl-md">
+
+            <table class="w-full table-auto scroll-mt-28" id="alerts">
+                <thead class="text-left sticky top-[calc(7rem-1px)] backdrop-blur-sm bg-white/30 dark:bg-black/30 border-b-0 border-gray-200 dark:border-gray-700 outline-1 outline-gray-200 dark:outline-gray-700">
+                    <tr>
+                        <th class="pl-7 pr-2 pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 transition ease-in-out duration-150">
                             Hostname
                         </th>
-                        <th class="pt-3 pb-2.5 pr-3 text-xs font-semibold uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                        <th class="pr-2 pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
                             Severity
                         </th>
-                        <th class="pt-3 pb-2.5 pr-3  text-xs font-semibold uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                        <th class="pr-2 pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
                             Acknowledged
                         </th>
-                        <th class="pt-3 pb-2.5 pr-3 text-xs font-semibold uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
+                        <th class="pr-2 pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 hidden xl:table-cell transition ease-in-out duration-150">
                             Type
                         </th>
-                        <th class="pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider border-b border-gray-200 dark:border-gray-700 hidden lg:table-cell transition ease-in-out duration-150 rounded-tr-md">
+                        <th class="pr-7 pt-3 pb-2.5 text-xs font-semibold uppercase tracking-wider text-gray-600 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700 hidden lg:table-cell transition ease-in-out duration-150">
                             Message
                         </th>
                     </tr>
                 </thead>
                 <tbody>
                 {% for alert in object_list %}
-                    <tr class="text-sm border-b border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800 transition ease-in-out duration-150">
-                        <td class="py-3 pl-7">
+                    <tr class="text-sm border-b bg-black/3 dark:bg-white/3 border-gray-200 hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-900 transition ease-in-out duration-150">
+                        <td class="pl-7 pr-2 py-3.5">
                             <a href="{% url 'hosts:detail' alert.host.fqdn %}" class="underline">
                                 {{ alert.host.fqdn }}
                             </a>
                         </td>
-                        <td class="hidden xl:table-cell">
+                        <td class="pr-2 py-3.5 hidden xl:table-cell">
                             {{ alert.severity }}
                         </td>
-                        <td class="hidden xl:table-cell">
+                        <td class="pr-2 py-3.5 hidden xl:table-cell">
                             {{ alert.acknowledgement|yesno }}
                         </td>
-                        <td class="hidden xl:table-cell">
+                        <td class="pr-2 py-3.5 hidden xl:table-cell">
                             {{ alert.short_message }}
                         </td>
-                        <td class="hidden lg:table-cell">
+                        <td class="pr-7 py-3.5 hidden lg:table-cell">
                             {{ alert.message }}
                         </td>
                     </tr>
                 {% endfor %}
-                {% if object_list.count == 0 %}
-                    <tr>
-                        <td colspan="3" class="text-center py-10 text-sm text-gray-500">
-                            {% if layout.wild_wasteland %}
-                                No hosts found, have you looked under the rug?
-                            {% else %}
-                                No hosts found
-                            {% endif %}
-                        </td>
-                    </tr>
-                {% endif %}
                 </tbody>
             </table>
+
+            {# Not in the table as it's a pain to deal with colspan and responsiveness #}
+            {% if object_list|length == 0 %}
+                <div class="pl-7 py-10 text-center text-sm text-gray-500">
+                    {% if layout.wild_wasteland %}
+                        No alerts found, have you looked under the rug?
+                    {% else %}
+                        No alerts found
+                    {% endif %}
+                </div>
+            {% endif %}
 
             <div class="px-7 py-5">
                 {% include 'base/page_parts/paginator_bottom.html' %}
             </div>
         </div>
     </div>
-
 {% endblock %}

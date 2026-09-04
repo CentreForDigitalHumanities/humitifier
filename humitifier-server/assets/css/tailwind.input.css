@@ -127,6 +127,10 @@
   @apply bg-white dark:bg-gray-900 p-7 pt-5 rounded-md border border-gray-200 dark:border-gray-700 transition duration-150;
 }
 
+@utility stat-tile {
+  @apply h-80 px-8 py-4 rounded-md bg-black/1 dark:bg-white/3 border border-gray-200 dark:border-gray-700 transition duration-150;
+}
+
 @utility text-green {
   @apply text-green-600;
 }

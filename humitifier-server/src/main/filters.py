@@ -8,6 +8,7 @@ from django.forms import (
 )
 from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
+from hosts.models import Host
 
 from main.models import AccessProfile, User
 
@@ -295,4 +296,25 @@ class PeriodicTaskFilters(django_filters.FilterSet):
             (True, "Yes"),
             (False, "No"),
         ],
+    )
+
+
+class StatsFilters(django_filters.FilterSet):
+    class Meta:
+        model = Host
+        fields = []
+        form = FiltersForm
+
+    os = django_filters.MultipleChoiceFilter(
+        label="Operating System",
+        field_name="os",
+        choices=lambda: _get_choices(Host, "os"),
+        widget=MultipleChoiceFilterWidget,
+    )
+
+    customer = django_filters.MultipleChoiceFilter(
+        label="Customer",
+        field_name="customer",
+        choices=lambda: _get_choices(Host, "customer", strip_quotes=False),
+        widget=MultipleChoiceFilterWidget,
     )
