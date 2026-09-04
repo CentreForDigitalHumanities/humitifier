@@ -1,7 +1,9 @@
+import os
 from datetime import date
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
+from django.core.files.base import ContentFile
 from reporting.models import CostsScheme, GeneratedReport
 from decimal import Decimal
 
@@ -65,3 +67,13 @@ class ReportActionsTestCase(TestCase):
         response = self.client.get(rerun_url)
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, "Are you sure you want to rerun the report")
+
+    def test_file_deleted_after_report_deleted(self):
+        # Add a dummy file
+        self.report.file.save('test_file.txt', ContentFile('dummy content'))
+        file_path = self.report.file.path
+        self.assertTrue(os.path.exists(file_path))
+        
+        self.report.delete()
+        
+        self.assertFalse(os.path.exists(file_path), f"File {file_path} still exists after report deletion")
