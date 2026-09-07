@@ -110,6 +110,7 @@ class HardwareFactCollector(ShellCollector):
 
 class LshwFactCollector(ShellCollector):
     fact = Lshw
+    required_facts = [HostnameCtl]
 
     # Keys that are copied over as-is (as a string) from the lshw output
     STRING_KEYS = (
@@ -129,6 +130,13 @@ class LshwFactCollector(ShellCollector):
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
     ) -> Lshw | None:
+
+        # Debian versions older than 12 have a fundamentally broken Lshw JSON output
+        # So we skip it...
+        hostname_ctl_data: HostnameCtl = info.required_facts.get(HostnameCtl)  # NoQA
+        os = hostname_ctl_data.os
+        if "Debian" in os and any(version in os for version in ["10", "11"]):
+            return None
 
         # lshw needs to run as root; without it, it cannot read the DMI tables
         # and most of the interesting information is simply missing
