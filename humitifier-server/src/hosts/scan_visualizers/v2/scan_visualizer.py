@@ -1,3 +1,4 @@
+from hosts.horoscope import get_host_horoscope
 from hosts.scan_visualizers.base_components import ArtefactVisualizer
 
 from hosts.scan_visualizers.base_visualizer import ComponentScanVisualizer
@@ -62,4 +63,19 @@ class V2ScanVisualizer(ComponentScanVisualizer):
                 }
             )
 
+        # Le easter egg
+        context["horoscope"] = None
+        if self._wild_wasteland_enabled():
+            context["horoscope"] = get_host_horoscope(self.host.fqdn)
+
         return context
+
+    def _wild_wasteland_enabled(self) -> bool:
+        if self.request is None:
+            return False
+
+        user = getattr(self.request, "user", None)
+        if user is None or not user.is_authenticated:
+            return False
+
+        return user.wild_wasteland_mode
