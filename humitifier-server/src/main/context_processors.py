@@ -164,6 +164,7 @@ def layout_context(request):
 
     oidc_enabled = hasattr(settings, "OIDC_RP_CLIENT_ID")
     gitlab_gag = False
+    my_servers_gag = False
 
     if wild_wasteland:
         active_chain = request.session.get("active_joke_chain")
@@ -188,6 +189,9 @@ def layout_context(request):
         ):  # 3 is Thursday (Monday=0)
             gitlab_gag = True
 
+        if random.randint(1, 100) == 1:
+            my_servers_gag = True
+
     return {
         "layout": {
             "num_hosts": hosts.count(),
@@ -201,6 +205,7 @@ def layout_context(request):
             "oidc_enabled": oidc_enabled,
             "wild_wasteland": wild_wasteland,
             "gitlab_gag": gitlab_gag,
+            "my_servers_gag": my_servers_gag,
             "tag_line": tag_line,
             "humitifier_version": settings.HUMITIFIER_VERSION,
             "humitifier_version_name": settings.HUMITIFIER_VERSION_NAME,
