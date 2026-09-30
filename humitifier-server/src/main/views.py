@@ -1,14 +1,20 @@
+import json
 from datetime import datetime
+from typing import Any
 from urllib.parse import urlparse
 
 from django.contrib.auth.mixins import AccessMixin, LoginRequiredMixin
 from django.contrib.auth.views import redirect_to_login
 from django.contrib.messages.views import SuccessMessageMixin
-from django.db.models import Count, F, Q
 from django.forms import Form
-from django.http import HttpResponseRedirect
+from django.http import (
+    HttpResponseRedirect,
+    HttpResponse,
+)
 from django.shortcuts import resolve_url
+from django.templatetags.static import static
 from django.urls import reverse
+from django.views import View
 from django.views.generic import (
     DeleteView,
     ListView,
@@ -27,7 +33,7 @@ from django_celery_beat.models import PeriodicTask
 from django_celery_results.models import TaskResult
 from rest_framework.reverse import reverse_lazy
 
-from alerting.models import Alert, AlertSeverity
+from alerting.models import Alert
 from humitifier_server import celery_app
 from alerting.filters import AlertFilters
 from hosts.models import Host
@@ -61,7 +67,6 @@ from main.tables import (
     TaskResultTable,
     UsersTable,
 )
-
 
 ###
 ### Mixins
@@ -242,7 +247,9 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
         context["stats_filterset"] = self.stats_filterset
 
         context["os_stats"] = get_os_stats(self.request.user, host_qs=host_qs)
-        context["customer_stats"] = get_customer_stats(self.request.user, host_qs=host_qs)
+        context["customer_stats"] = get_customer_stats(
+            self.request.user, host_qs=host_qs
+        )
 
         num_critical, num_warning, num_info, num_fine = get_alert_stats(
             self.request.user, host_qs=host_qs
@@ -281,6 +288,36 @@ class DashboardView(LoginRequiredMixin, FilteredListView):
 
 class VersionView(LoginRequiredMixin, TemplateView):
     template_name = "main/version.html"
+
+
+class WebManifestView(View):
+
+    def get(self, request, *args, **kwargs):
+        return HttpResponse(
+            json.dumps(
+                {
+                    "name": "Humitifier",
+                    "short_name": "Humitifier",
+                    "start_url": "/",
+                    "display": "standalone",
+                    "background_color": "#000000",
+                    "theme_color": "#FFCD00",
+                    "icons": [
+                        {
+                            "src": static("main/img/cm_hs_avatar_corporate.png"),
+                            "sizes": "192x192",
+                            "type": "image/png",
+                        },
+                        {
+                            "src": static("main/img/cm_hs_avatar_corporate.png"),
+                            "sizes": "512x512",
+                            "type": "image/png",
+                        },
+                    ],
+                }
+            ),
+            content_type="application/manifest+json",
+        )
 
 
 #

@@ -11,6 +11,8 @@
         <script src="{% static 'main/js/wild_wasteland.js' %}" defer></script>
     {% endif %}
 
+    <link rel="manifest" href="{% url 'main:manifest' %}">
+
     {% if form %}
         {{ form.media }}
     {% endif %}
