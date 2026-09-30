@@ -143,6 +143,13 @@ WILD_WASTELAND_JOKES = [
         "The speed of light is the fastest anything can go",
     ),
     "Chicken",
+    (
+        "Have you changed your password yet?",
+        "No, really, have you changed your password yet?",
+        "No, really, really, have you changed your password yet?",
+        "Please don't wait till the last day to change your password, again....",
+        "I will be very sad if you don't change your password on time",
+    ),
     # @formatter:on
 ]
 
