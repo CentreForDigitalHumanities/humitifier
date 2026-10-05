@@ -35,6 +35,7 @@ from typing import Any, Iterable
 
 from django.db.models import QuerySet
 
+from humitifier_common.artefacts import registry as artefact_registry
 from ..models import Host
 from .field_discovery import get_searchable_fields
 from .types import SearchableField
@@ -47,18 +48,23 @@ def _get_scan_data(host: Host) -> dict | None:
         host: A Host model instance.
 
     Returns:
-        The cache dictionary if available, otherwise None.
+        The cache dictionary if available and of the latest format version, otherwise None.
 
     Example:
-        >>> host = Host(last_scan_cache={"facts": {}})
+        >>> host = Host(last_scan_cache={"facts": {}, "version": 2})
         >>> _get_scan_data(host)
-        {"facts": {}}
+        {"facts": {}, "version": 2}
 
         >>> host_without_cache = Host(last_scan_cache=None)
         >>> _get_scan_data(host_without_cache)
         None
     """
-    return host.last_scan_cache
+    data = host.last_scan_cache
+    if not isinstance(data, dict):
+        return None
+    if data.get("version") != artefact_registry.latest_version:
+        return None
+    return data
 
 
 def _get_artefact_data(

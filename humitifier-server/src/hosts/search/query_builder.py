@@ -7,9 +7,16 @@ from typing import Any
 from django.db.models import Q, QuerySet
 from django.db.models.expressions import RawSQL
 
+from humitifier_common.artefacts import registry as artefact_registry
 from ..models import Host
 from .field_discovery import get_searchable_fields
-from .types import AggregationFunction, ComplexQuery, ComparisonOperator, SearchableField, SearchCriterion
+from .types import (
+    AggregationFunction,
+    ComplexQuery,
+    ComparisonOperator,
+    SearchableField,
+    SearchCriterion,
+)
 
 
 def _parse_value(value: Any, value_type: str) -> Any:
@@ -196,7 +203,7 @@ def _build_array_expansion_clauses(
         - type_check_clause: Optional WHERE clause to ensure the first expression is an array.
         - type_check_params: Parameters needed for the type_check_clause.
     """
-    base_expression = "\"hosts_host\".\"last_scan_cache\"->%s->%s"
+    base_expression = '"hosts_host"."last_scan_cache"->%s->%s'
     current_expression = base_expression
     from_clauses: list[str] = []
     nesting_level = 0
@@ -214,7 +221,9 @@ def _build_array_expansion_clauses(
                 first_array_expression = current_expression
                 # Save the parameters accumulated so far for the type check
                 params_before_first_array = initial_params.copy()
-            from_clauses.append(f"jsonb_array_elements({current_expression}) AS {element_alias}")
+            from_clauses.append(
+                f"jsonb_array_elements({current_expression}) AS {element_alias}"
+            )
             current_expression = element_alias
             nesting_level += 1
         else:
@@ -227,7 +236,9 @@ def _build_array_expansion_clauses(
         element_alias = f"e{nesting_level}"
         first_array_expression = current_expression
         params_before_first_array = initial_params.copy()
-        from_clauses.append(f"jsonb_array_elements({current_expression}) AS {element_alias}")
+        from_clauses.append(
+            f"jsonb_array_elements({current_expression}) AS {element_alias}"
+        )
         current_expression = element_alias
 
     # Add type check for the first array expression to prevent scalar errors
@@ -235,7 +246,13 @@ def _build_array_expansion_clauses(
         type_check_clause = f"jsonb_typeof({first_array_expression}) = 'array'"
         type_check_params = params_before_first_array
 
-    return from_clauses, current_expression, nesting_level, type_check_clause, type_check_params
+    return (
+        from_clauses,
+        current_expression,
+        nesting_level,
+        type_check_clause,
+        type_check_params,
+    )
 
 
 def _build_element_field_expression(
@@ -458,7 +475,9 @@ def _apply_array_aggregation_filter(
     sql_params: list[Any] = [section_name, artefact_name]
 
     # Build the LATERAL join clauses for array expansion
-    from_clauses, element_expr, _, type_check, type_check_params = _build_array_expansion_clauses(array_path, sql_params)
+    from_clauses, element_expr, _, type_check, type_check_params = (
+        _build_array_expansion_clauses(array_path, sql_params)
+    )
 
     # Prepare list to collect WHERE clause params in order
     where_params: list[Any] = []
@@ -472,7 +491,9 @@ def _apply_array_aggregation_filter(
     if criterion.filter_pattern:
         # Build text expression for filtering (this adds params to a temp list)
         temp_params: list[Any] = []
-        text_expr_for_filter = _build_element_field_expression(element_expr, element_field_path, temp_params)
+        text_expr_for_filter = _build_element_field_expression(
+            element_expr, element_field_path, temp_params
+        )
         where_clauses.append(f"{text_expr_for_filter} ~ %s")
         where_params.extend(temp_params)
         where_params.append(criterion.filter_pattern)
@@ -507,11 +528,13 @@ def _apply_array_aggregation_filter(
     from_sql = " CROSS JOIN LATERAL ".join(from_clauses)
     if where_clauses:
         where_sql = " AND ".join(where_clauses)
-        subquery = f"SELECT 1 FROM {from_sql} WHERE {where_sql} GROUP BY \"hosts_host\".\"id\" HAVING {having_clause} LIMIT 1"
+        subquery = f'SELECT 1 FROM {from_sql} WHERE {where_sql} GROUP BY "hosts_host"."id" HAVING {having_clause} LIMIT 1'
     else:
-        subquery = f"SELECT 1 FROM {from_sql} GROUP BY \"hosts_host\".\"id\" HAVING {having_clause} LIMIT 1"
+        subquery = f'SELECT 1 FROM {from_sql} GROUP BY "hosts_host"."id" HAVING {having_clause} LIMIT 1'
 
-    return queryset.annotate(_match=RawSQL(subquery, final_params)).filter(_match__isnull=False)
+    return queryset.annotate(_match=RawSQL(subquery, final_params)).filter(
+        _match__isnull=False
+    )
 
 
 def _apply_array_filter(
@@ -538,7 +561,9 @@ def _apply_array_filter(
     """
     # Check if this is an aggregation query
     if criterion.aggregation:
-        return _apply_array_aggregation_filter(queryset, criterion, descriptor, parsed_value)
+        return _apply_array_aggregation_filter(
+            queryset, criterion, descriptor, parsed_value
+        )
 
     section_name = descriptor.section
     artefact_name = descriptor.artefact_key
@@ -549,7 +574,9 @@ def _apply_array_filter(
     sql_params: list[Any] = [section_name, artefact_name]
 
     # Build the LATERAL join clauses for array expansion
-    from_clauses, element_expr, _, type_check, type_check_params = _build_array_expansion_clauses(array_path, sql_params)
+    from_clauses, element_expr, _, type_check, type_check_params = (
+        _build_array_expansion_clauses(array_path, sql_params)
+    )
 
     # Prepare list to collect WHERE clause params in order
     where_params: list[Any] = []
@@ -560,7 +587,9 @@ def _apply_array_filter(
 
     # Build expression to access the target field within array elements
     # Pass where_params so text_expr params get added directly
-    text_expr = _build_element_field_expression(element_expr, element_field_path, where_params)
+    text_expr = _build_element_field_expression(
+        element_expr, element_field_path, where_params
+    )
 
     # Build the WHERE clause based on the operator and value type
     # Note: where_clause may use text_expr multiple times (for filter AND for comparison)
@@ -587,7 +616,9 @@ def _apply_array_filter(
     from_sql = " CROSS JOIN LATERAL ".join(from_clauses)
     subquery = f"SELECT 1 FROM {from_sql} WHERE {where_clause} LIMIT 1"
 
-    return queryset.annotate(_match=RawSQL(subquery, final_params)).filter(_match__isnull=False)
+    return queryset.annotate(_match=RawSQL(subquery, final_params)).filter(
+        _match__isnull=False
+    )
 
 
 def _apply_criterion_to_queryset(
@@ -675,7 +706,7 @@ def _apply_or_query(
         child_queryset = _apply_complex_query_to_queryset(
             Host.objects.all(), child_query, fields_by_id
         )
-        matching_ids = list(child_queryset.values_list('id', flat=True))
+        matching_ids = list(child_queryset.values_list("id", flat=True))
         if matching_ids:
             q_objects.append(Q(id__in=matching_ids))
 
@@ -801,4 +832,9 @@ def search_hosts_by_scan_fields(
     # Build a mapping from field ID to descriptor for efficient lookup
     fields_by_id = {field.id: field for field in get_searchable_fields()}
 
-    return _apply_complex_query_to_queryset(queryset, criteria, fields_by_id)
+    # We only support searching against the latest version of the scan-output format
+    version_filter = Q(last_scan_cache__version=artefact_registry.latest_version)
+
+    return _apply_complex_query_to_queryset(queryset, criteria, fields_by_id).filter(
+        version_filter
+    )
