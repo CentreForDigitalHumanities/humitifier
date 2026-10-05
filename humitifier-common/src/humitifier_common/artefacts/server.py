@@ -107,9 +107,13 @@ class DNS(BaseModel):
 ##
 
 
-@metric(group=SERVER)
+@metric(group=SERVER, name="Uptime", max_version=2)
 class Uptime(float):
     pass
+
+@metric(group=SERVER, name="Uptime", min_version=3)
+class UptimeV3(BaseModel):
+    uptime: float
 
 
 ##
