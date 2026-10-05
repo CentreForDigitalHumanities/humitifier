@@ -84,6 +84,10 @@ class ScanSpec(models.Model):
 
             artefacts[artefact.artefact_name] = artefact.scan_options
 
+        # Ensure we only include artefacts present in the newest version
+        latest_artefacts = set(registry.available_facts) | set(registry.available_metrics)
+        artefacts = {k: v for k, v in artefacts.items() if k in latest_artefacts}
+
         return artefacts
 
     def build_scan_input(self, host: "Host") -> ScanInput:

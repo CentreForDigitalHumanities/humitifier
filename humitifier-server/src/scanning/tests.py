@@ -159,3 +159,30 @@ class ScanInputBuildingTestCase(TestCase):
             len(resolved_scan_artefacts.items()),
             len(registry.get_all_in_group("generic")),
         )
+
+    def test_ignore_older_version_only_artefacts(self):
+        """Test that artefacts only present in older versions are ignored."""
+        from pydantic import BaseModel
+
+        class LegacyOnlyArtefact(BaseModel):
+            old: str
+
+        # Register an artefact only for version 1 (or until_version=1 when latest is 2)
+        registry.register(
+            "LegacyArtefact",
+            "testgroup",
+            LegacyOnlyArtefact,
+            until_version=1,
+        )
+
+        spec = ScanSpec.objects.create(name="legacy_spec", artefact_groups=["testgroup"])
+        ArtefactSpec.objects.create(
+            artefact_name="testgroup.LegacyArtefact",
+            scan_spec=spec,
+        )
+
+        resolved = spec._build_artefact_scan_input()
+        self.assertNotIn("testgroup.LegacyArtefact", resolved)
+
+        artefact_spec = ArtefactSpec(artefact_name="testgroup.LegacyArtefact", scan_spec=spec)
+        self.assertFalse(artefact_spec.is_valid_config)

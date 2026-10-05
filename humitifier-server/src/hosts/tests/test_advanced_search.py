@@ -1,10 +1,11 @@
 """Test cases for the advanced search feature."""
 
-from datetime import datetime
 from unittest import mock
 
 from django.test import TestCase
 from django.utils import timezone
+
+from humitifier_common.artefacts import registry as artefact_registry
 
 from hosts.models import Host, Scan
 from hosts.search.query_builder import search_hosts_by_scan_fields
@@ -31,7 +32,7 @@ class AdvancedSearchTestCase(TestCase):
         self._create_scan(
             self.host1,
             {
-                "version": 2,
+                "version": artefact_registry.latest_version,
                 "scan_date": self.now.isoformat(),
                 "hostname": "web01.example.com",
                 "original_input": {
@@ -206,7 +207,7 @@ class AdvancedSearchTestCase(TestCase):
         self._create_scan(
             self.host2,
             {
-                "version": 2,
+                "version": artefact_registry.latest_version,
                 "scan_date": self.now.isoformat(),
                 "hostname": "db01.example.com",
                 "original_input": {
@@ -368,7 +369,7 @@ class AdvancedSearchTestCase(TestCase):
         self._create_scan(
             self.host3,
             {
-                "version": 2,
+                "version": artefact_registry.latest_version,
                 "scan_date": self.now.isoformat(),
                 "hostname": "legacy01.example.com",
                 "original_input": {
@@ -494,7 +495,7 @@ class AdvancedSearchTestCase(TestCase):
         self._create_scan(
             self.host4,
             {
-                "version": 2,
+                "version": artefact_registry.latest_version,
                 "scan_date": self.now.isoformat(),
                 "hostname": "storage01.example.com",
                 "original_input": {
@@ -1098,3 +1099,34 @@ class EdgeCaseTests(AdvancedSearchTestCase):
         """Test that malformed queries raise ValueError."""
         with self.assertRaises(ValueError):
             parse_query("meta.fqdn = ")
+
+    def test_search_ignores_older_format_version_scans(self):
+        """Test that scan field searches ignore hosts with older format version scans."""
+        old_host = Host.objects.create(
+            fqdn="oldversion.example.com",
+            department="Engineering",
+            customer="internal",
+        )
+        self._create_scan(
+            old_host,
+            {
+                "version": 2,
+                "scan_date": self.now.isoformat(),
+                "hostname": "oldversion.example.com",
+                "facts": {
+                    "generic.HostnameCtl": {
+                        "hostname": "oldversion",
+                        "os": "Ubuntu 22.04.3 LTS",
+                        "cpe_os_name": "cpe:/o:canonical:ubuntu_linux:22.04",
+                        "kernel": "Linux 5.15.0-89-generic",
+                        "virtualization": "kvm",
+                    }
+                },
+            },
+        )
+        query_string = 'facts.generic.HostnameCtl.os contains "Ubuntu"'
+        parsed_query = parse_query(query_string)
+        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+        # Should not include oldversion.example.com
+        fqdns = {h.fqdn for h in result}
+        self.assertNotIn("oldversion.example.com", fqdns)

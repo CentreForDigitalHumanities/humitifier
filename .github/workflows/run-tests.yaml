@@ -26,7 +26,65 @@ env:
   RABBITMQ_PASSWORD: humitifier
 
 jobs:
-  run-tests:
+  run-common-tests:
+    runs-on: "ubuntu-latest"
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: "humitifier-common"
+
+    steps:
+      #
+      # Setup
+      #
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      - uses: actions/setup-python@v7
+        with:
+           python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install Poetry
+        uses: snok/install-poetry@v1
+        with:
+          virtualenvs-create: true
+          virtualenvs-in-project: true
+          virtualenvs-path: .venv
+          installer-parallel: true
+
+      - name: Load cached venv
+        if: matrix.os != 'windows-latest'
+        id: cached-poetry-dependencies
+        uses: actions/cache@v6
+        with:
+          path: humitifier-scanner/.venv
+          key: venv-tests-${{ steps.setup-python.outputs.python-version }}-${{ hashFiles('humitifier-server/poetry.lock') }}
+
+      - name: Install dependencies
+        if: steps.cached-poetry-dependencies.outputs.cache-hit != 'true'
+        run: poetry install --only=main,dev --compile --no-interaction
+
+
+      #
+      # Run tests
+      #
+
+      - name: Run Tests
+        env:
+          HUMITIFIER_SERVER_DATABASE__DATABASE_NAME: ${{ env.POSTGRES_DB }}
+          HUMITIFIER_SERVER_DATABASE__USERNAME: ${{ env.POSTGRES_USER }}
+          HUMITIFIER_SERVER_DATABASE__PASSWORD: ${{ env.POSTGRES_PASSWORD }}
+          HUMITIFIER_SERVER_DATABASE__HOST: ${{ env.POSTGRES_HOST }}
+          HUMITIFIER_SERVER_DATABASE__PORT: ${{ env.POSTGRES_PORT }}
+          HUMITIFIER_SERVER_CELERY__RABBIT_MQ_URL: ${{ env.RABBITMQ_URL }}
+          HUMITIFIER_SERVER_STATIC_FILES__ENABLE_WHITENOISE: false
+        run: |
+          source $VENV
+          cd src
+          python -m unittest discover humutifier_common.tests
+
+  run-server-tests:
     runs-on: "ubuntu-latest"
 
     defaults:
