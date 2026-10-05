@@ -5,9 +5,10 @@ Used by agent/server to retrieve the facts dynamically.
 
 from dataclasses import dataclass
 from enum import Enum
+from functools import cached_property
+from typing import Any
 
 from humitifier_common.utils.pydantic import insert_pydantic_schema_proxy
-
 
 ##
 ## Registry
@@ -27,21 +28,39 @@ class ArtefactType(Enum):
     METRIC = "metric"
 
 
+@dataclass
+class ArtefactEntry:
+    name: str
+    group: str
+    artefact: Any
+    artefact_type: ArtefactType
+    metadata: ArtefactMetadata
+    min_version: int = 2
+    max_version: int | None = None
+
+    def matches_version(self, version: int) -> bool:
+        return version in self._versions
+
+    @cached_property
+    def _versions(self) -> set[int]:
+        max_v = self.max_version if self.max_version is not None else 1000
+        return set(range(self.min_version, max_v + 1))
+
+    def overlaps_with(self, other: "ArtefactEntry") -> bool:
+        return bool(self._versions & other._versions)
+
+
 class _ArtefactRegistry:
     """
     Class to manage the registration and retrieval of facts and metrics (artefacts).
 
-    This class serves as a registry to store, organize, and manage facts and metrics.
-    Facts and metrics can be categorized by group, and the class provides
-    utility functions to retrieve, list, and filter them based on their type or group.
-
-    :ivar _registry: Internal storage for registered facts and metrics. It maps
-        tuples of (name, group) to their respective fact or metric objects.
-    :type _registry: dict[tuple[str, str], Any]
+    This class serves as a registry to store, organize, and manage facts and metrics across
+    different format versions. Facts and metrics can be categorized by group, and the class provides
+    utility functions to retrieve, list, and filter them based on their type, group, and version.
     """
 
     def __init__(self):
-        self._registry = {}
+        self._entries: list[ArtefactEntry] = []
 
     def register(
         self,
@@ -50,257 +69,206 @@ class _ArtefactRegistry:
         artefact,
         artefact_type: ArtefactType = ArtefactType.FACT,
         metadata: ArtefactMetadata | None = None,
+        min_version: int = 2,
+        max_version: int | None = None,
     ):
         """
-        Registers a fact in the internal registry for a given group and name. Ensures that
-        each fact is uniquely identified within the group. If a fact with the provided name
-        and group is already registered, raises an error. This method also appends metadata
-        to the fact object, including its fully qualified name and fact type. The method aims
-        to manage fact type objects systematically.
+        Registers a fact or metric in the internal registry for a given group, name, and version range.
 
-        :param name: The name of the fact to register. A unique identifier within the group.
-        :type name: str
-        :param group: The group under which the fact is registered. Facilitates grouping.
-        :type group: str
-        :param artefact: The fact object to be associated with the registry entry.
-        :type artefact: Any
-        :param artefact_type: The type classification of the fact, defaulting to FactType.FACT.
-        :type artefact_type: ArtefactType
-        :param metadata:
-        :type metadata: ArtefactMetadata
-        :return: None
-        :raises ValueError: If a fact with the given name and group is already registered.
+        :param name: The name of the artefact to register.
+        :param group: The group under which the artefact is registered.
+        :param artefact: The artefact object / model to associate with the entry.
+        :param artefact_type: The type classification (FACT or METRIC).
+        :param metadata: ArtefactMetadata instance.
+        :param min_version: Lowest format version where this artefact is supported (default 2).
+        :param max_version: Highest format version where this artefact is supported (inclusive), or None if unbounded.
+        :raises ValueError: If an artefact with the given name and group is already registered with overlapping versions.
         """
-        key = (name, group)
-        if key in self._registry:
-            raise ValueError(f"Fact {name} already registered in group {group}")
 
-        self._registry[key] = artefact
+        entry = ArtefactEntry(
+            name=name,
+            group=group,
+            artefact=artefact,
+            artefact_type=artefact_type,
+            metadata=metadata or ArtefactMetadata(),
+            min_version=min_version,
+            max_version=max_version,
+        )
 
-        # add meta-variable to the artefact class
+        for existing in self._entries:
+            if (
+                existing.name == name
+                and existing.group == group
+                and existing.overlaps_with(entry)
+            ):
+                raise ValueError(
+                    f"Artefact {name} already registered in group {group} for overlapping version range"
+                )
+
+        self._entries.append(entry)
+
+        # add meta-variables to the artefact class
         artefact.__artefact_name__ = f"{group}.{name}"
         artefact.__artefact_type__ = artefact_type
         artefact.__artefact_metadata__ = metadata or ArtefactMetadata()
+        artefact.__artefact_min_version__ = min_version
+        artefact.__artefact_max_version__ = max_version
+
+    @cached_property
+    def latest_version(self) -> int:
+        """Return the highest version supported across all registered artefacts (defaults to 2)."""
+        max_found = 2
+        for entry in self._entries:
+            if entry.min_version is not None and entry.min_version > max_found:
+                max_found = entry.min_version
+        return max_found
+
+    @property
+    def supported_versions(self) -> list[int]:
+        """Return a sorted list of supported format versions from 2 up to latest_version."""
+        return list(range(2, self.latest_version + 1))
 
     def get(
         self,
         name: str,
         group: str | None = None,
         artefact_type: ArtefactType | None = None,
+        version: int | None = None,
     ):
         """
-        Retrieve an item from the registry based on the provided name, group, and fact type.
-        This function searches for a matching item in the registry. If the group is not
-        specified and the name contains a ".", it tries to split it into name and group.
-        The function also ensures that the returned item matches the provided fact type,
-        if specified. If no matching item is found, it returns None.
-
-        Usage:
-        registry.get('ExampleFact', group='chicken')
-        or:
-        registry.get('chicken.ExampleFact')
-
-        :param name: Name of the item to be retrieved.
-        :type name: str
-        :param group: Optional. Group the item belongs to. If None, the function attempts
-                      to determine the group by processing the name.
-        :type group: Union[str, None]
-        :param artefact_type: Optional. Type of fact the item should match. If None, the
-                          fact type is not checked.
-        :type artefact_type: Union[FactType, None]
-        :return: The item from the registry if a match is found, otherwise None.
-        :rtype: Optional[Any]
+        Retrieve an artefact from the registry matching name, optional group, type, and format version.
+        Defaults to the latest version if version is not specified.
         """
+        if version is None:
+            version = self.latest_version
+
         if group is None:
             if "." in name:
                 group, name = name.split(".", 1)
-                return self.get(name, group, artefact_type)
+                return self.get(name, group, artefact_type, version=version)
 
-            for key in self._registry:
-                if key[0] == name:
-                    item = self._registry[key]
-
-                    # check if the artefact type matches
-                    # if not, the user requested the wrong type
+            for entry in self._entries:
+                if entry.name == name and entry.matches_version(version):
                     if (
                         artefact_type is not None
-                        and item.__artefact_type__ != artefact_type
+                        and entry.artefact_type != artefact_type
                     ):
-                        break
-
-                    return item
+                        continue
+                    return entry.artefact
         else:
-            key = (name, group)
-            item = self._registry.get(key)
-
-            # check if the fact type matches
-            # if not, the user requested the wrong type
-            if artefact_type is None or item.__fact_type__ == artefact_type:
-                return item
+            for entry in self._entries:
+                if (
+                    entry.name == name
+                    and entry.group == group
+                    and entry.matches_version(version)
+                ):
+                    if artefact_type is None or entry.artefact_type == artefact_type:
+                        return entry.artefact
 
         return None
 
-    def all(self, artefact_type: ArtefactType | None = None):
+    def all(
+        self, artefact_type: ArtefactType | None = None, version: int | None = None
+    ):
         """
-        Retrieve all artefacts from the registry. If a specific artefact type is provided,
-        filters the results based on the artefact type.
-
-        :param artefact_type: The specific type of facts to filter by. If None, returns all
-            registered facts.
-        :returns: A list of facts filtered by the provided type if specified, otherwise
-            all facts from the registry.
+        Retrieve all artefacts for the given format version (defaults to latest),
+        optionally filtered by artefact_type.
         """
-        if artefact_type is not None:
-            return [
-                artefact
-                for artefact in self._registry.values()
-                if artefact.__artefact_type__ == artefact_type
-            ]
+        if version is None:
+            version = self.latest_version
 
-        return self._registry.values()
-
-    def all_facts(self):
-        """
-        Retrieves all the facts from the registry.
-
-        This method queries the internal data store and collects all items marked as
-        `FactType.FACT`, returning them as a list.
-
-        :return: A list of all stored facts marked as `FactType.FACT`.
-        :rtype: list
-        """
-        return self.all(ArtefactType.FACT)
-
-    def all_metrics(self):
-        """
-        Retrieves all the metrics from the registry.
-
-        This method gathers and returns all entries that are categorized under the FactType
-        of METRIC from the respective underlying data structure.
-
-        :return: A collection of all facts identified as METRIC.
-        :rtype: list or generator
-        """
-        return self.all(ArtefactType.METRIC)
-
-    def get_all_in_group(self, group: str, artefact_type: ArtefactType | None = None):
-        """
-        Retrieve all items in a given group, optionally filtered by fact type.
-
-        This method searches within the internal registry for all items matching
-        the provided group. If a specific fact type is provided, the method
-        further filters the items to return those with the specified fact type.
-
-        :param group: The name of the group to retrieve items from.
-        :type group: str
-        :param artefact_type: Optional; specifies the fact type to filter the results.
-        :type artefact_type: ArtefactType | None
-        :return: A list of items belonging to the specified group, potentially
-            filtered by the provided fact type.
-        :rtype: list
-        """
-        items = [
-            self._registry[(name, _group)]
-            for name, _group in self._registry.keys()
-            if _group == group
-        ]
-
-        if artefact_type is None:
-            return items
-
-        return [item for item in items if item.__artefact_type__ == artefact_type]
-
-    def get_all_facts_in_group(self, group: str):
-        """
-        Gets all facts in the specified group.
-
-        This method retrieves all entries categorized as facts from
-        the given group. It internally utilizes the `get_all_in_group`
-        function to filter and return entries of type `FactType.FACT`.
-        The function aims to simplify fact extraction operations by
-        group input.
-
-        :param group: The name of the group whose facts are to be retrieved.
-        :type group: str
-        :return: A list of facts found within the specified group.
-        :rtype: list
-        """
-        return self.get_all_in_group(group, ArtefactType.FACT)
-
-    def get_all_metrics_in_group(self, group: str):
-        """
-        Retrieves all metrics associated with a specified group.
-
-        This function is responsible for fetching all metrics that are
-        categorized under the provided group. It ensures that only metrics
-        are retrieved by enforcing the group and type parameters internally.
-
-        :param group: A string representing the identifier of the group
-                      whose metrics are to be retrieved.
-        :type group: str
-        :return: A list of metrics belonging to the specified group,
-                 filtered by the metric type.
-        :rtype: List
-        """
-        return self.get_all_in_group(group, ArtefactType.METRIC)
-
-    @property
-    def available_groups(self):
-        """
-        Provides the set of all available groups from the registry.
-
-        This property scans the internal registry and retrieves all unique groups
-        present in the registry.
-
-        :return: A set containing the unique groups available in the registry.
-        :rtype: set
-        """
-        return {group for (_, group) in self._registry.keys()}
-
-    @property
-    def all_available(self):
-        """
-        Provides a property to get a list of all available registered items
-        in the registry. The items are returned in '{group}.{name}' format.
-
-        :return: A list of strings where each string represents an item in the
-            format 'group.name'.
-        :rtype: list
-        """
-        return [f"{group}.{name}" for name, group in self._registry.keys()]
-
-    @property
-    def available_facts(self):
-        """
-        Provides a property to retrieve a list of all available facts from the internal
-        registry. The property traverses through the registry, identifies entries marked
-        as `FactType.FACT`, and formats them as `"<group>.<name>"`.
-
-        :return: A list of available fact identifiers formatted as strings in the
-            pattern "<group>.<name>" for all registered fact entries of type `FactType.FACT`.
-        :rtype: list[str]
-        """
         return [
-            f"{group}.{name}"
-            for (name, group), _fact in self._registry.items()
-            if _fact.__artefact_type__ == ArtefactType.FACT
+            entry.artefact
+            for entry in self._entries
+            if entry.matches_version(version)
+            and (artefact_type is None or entry.artefact_type == artefact_type)
+        ]
+
+    def all_facts(self, version: int | None = None):
+        """Retrieves all facts for the given format version (defaults to latest)."""
+        return self.all(ArtefactType.FACT, version=version)
+
+    def all_metrics(self, version: int | None = None):
+        """Retrieves all metrics for the given format version (defaults to latest)."""
+        return self.all(ArtefactType.METRIC, version=version)
+
+    def get_all_in_group(
+        self,
+        group: str,
+        artefact_type: ArtefactType | None = None,
+        version: int | None = None,
+    ):
+        """Retrieve all artefacts in a group for the given format version (defaults to latest)."""
+        if version is None:
+            version = self.latest_version
+
+        return [
+            entry.artefact
+            for entry in self._entries
+            if entry.group == group
+            and entry.matches_version(version)
+            and (artefact_type is None or entry.artefact_type == artefact_type)
+        ]
+
+    def get_all_facts_in_group(self, group: str, version: int | None = None):
+        """Gets all facts in a group for the given format version (defaults to latest)."""
+        return self.get_all_in_group(group, ArtefactType.FACT, version=version)
+
+    def get_all_metrics_in_group(self, group: str, version: int | None = None):
+        """Gets all metrics in a group for the given format version (defaults to latest)."""
+        return self.get_all_in_group(group, ArtefactType.METRIC, version=version)
+
+    @property
+    def available_groups(self) -> set[str]:
+        """Provides the set of available groups for the latest version."""
+        return {
+            entry.group
+            for entry in self._entries
+            if entry.matches_version(self.latest_version)
+        }
+
+    @property
+    def all_available(self) -> list[str]:
+        """Provides a list of all registered items for the latest version in 'group.name' format."""
+        return [
+            f"{entry.group}.{entry.name}"
+            for entry in self._entries
+            if entry.matches_version(self.latest_version)
         ]
 
     @property
-    def available_metrics(self):
-        """
-        Provides a property that returns a list of all available metric names in the
-        format "group.name". This list is constructed by iterating over a registry
-        of fact objects and filtering by those that are of FactType.METRIC.
-
-        :return: List of metric names in the format "group.name".
-        :rtype: list of str
-        """
+    def available_facts(self) -> list[str]:
+        """Provides a list of all available fact identifiers for the latest version."""
         return [
-            f"{group}.{name}"
-            for (name, group), _fact in self._registry.items()
-            if _fact.__artefact_type__ == ArtefactType.METRIC
+            f"{entry.group}.{entry.name}"
+            for entry in self._entries
+            if entry.matches_version(self.latest_version)
+            and entry.artefact_type == ArtefactType.FACT
         ]
+
+    @property
+    def available_metrics(self) -> list[str]:
+        """Provides a list of all available metric identifiers for the latest version."""
+        return [
+            f"{entry.group}.{entry.name}"
+            for entry in self._entries
+            if entry.matches_version(self.latest_version)
+            and entry.artefact_type == ArtefactType.METRIC
+        ]
+
+    def get_facts(self, version: int | None = None) -> dict[str, Any]:
+        """Dictionary mapping artefact names to their classes for the given version."""
+        return {
+            artefact.__artefact_name__: artefact
+            for artefact in self.all_facts(version=version)
+        }
+
+    def get_metrics(self, version: int | None = None) -> dict[str, Any]:
+        """Dictionary mapping metric names to their classes for the given version."""
+        return {
+            artefact.__artefact_name__: artefact
+            for artefact in self.all_metrics(version=version)
+        }
 
 
 registry = _ArtefactRegistry()
@@ -311,24 +279,15 @@ registry = _ArtefactRegistry()
 
 
 def fact(
-    *, group: str, name: str | None = None, metadata: ArtefactMetadata | None = None
+    *,
+    group: str,
+    name: str | None = None,
+    metadata: ArtefactMetadata | None = None,
+    min_version: int = 2,
+    max_version: int | None = None,
 ):
     """
-    Python decorator to register a fact class in the specified group. The function
-    takes a fact class as input and registers it in a central registry for future
-    use. Users can optionally provide a custom name for the fact; otherwise,
-    the class name is used as the default.
-
-    :param group: The category or group the fact belongs to.
-    :type group: str
-    :param name: Optional specific name to associate with the fact. Defaults to the
-        class name of the fact if not provided.
-    :type name: str | None
-    :param metadata:
-    :type metadata: ArtefactMetadata | None
-    :return: A decorator function that registers the given class as a fact with the
-        specified group and name in the fact registry.
-    :rtype: Callable[[Type[object]], Type[object]]
+    Python decorator to register a fact class in the specified group and format version range.
     """
 
     def decorator(fact_cls):
@@ -342,6 +301,8 @@ def fact(
             fact_cls,
             artefact_type=ArtefactType.FACT,
             metadata=metadata,
+            min_version=min_version,
+            max_version=max_version,
         )
         return fact_cls
 
@@ -349,25 +310,15 @@ def fact(
 
 
 def metric(
-    *, group: str, name: str | None = None, metadata: ArtefactMetadata | None = None
+    *,
+    group: str,
+    name: str | None = None,
+    metadata: ArtefactMetadata | None = None,
+    min_version: int = 2,
+    max_version: int | None = None,
 ):
     """
-    Python decorator to register a metric class in the specified group. The function
-    takes a metric class as input and registers it in a central registry for future
-    use. Users can optionally provide a custom name for the metric; otherwise,
-    the class name is used as the default.
-
-    :param group: The group under which the metric class should be registered.
-      This helps in categorizing and organizing the metrics.
-    :type group: str
-    :param name: An optional custom name for the metric. If not provided, the
-      metric class name will be used as the default.
-    :type name: str | None
-    :param metadata:
-    :type metadata: ArtefactMetadata | None
-    :return: A decorator function that registers the given metric class when
-      called. It ensures the metric class is associated with its group and name.
-    :rtype: Callable[[Type], Type]
+    Python decorator to register a metric class in the specified group and format version range.
     """
 
     def decorator(metric_cls):
@@ -381,6 +332,8 @@ def metric(
             metric_cls,
             artefact_type=ArtefactType.METRIC,
             metadata=metadata,
+            min_version=min_version,
+            max_version=max_version,
         )
         return metric_cls
 

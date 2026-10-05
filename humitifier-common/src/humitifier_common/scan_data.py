@@ -1,8 +1,9 @@
+import json
 from datetime import datetime
 from enum import Enum
-from typing import get_args
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from humitifier_common.artefacts import registry as artefact_registry
 from humitifier_common.utils.pydantic import create_typed_dict
@@ -107,7 +108,7 @@ class ScanError(BaseModel):
     :ivar message: The error message describing the nature of the scan error.
     :type message: str
     :ivar artefact: Optional additional information or context related to the scan
-        error, if available.
+    error, if available.
     :type artefact: str | None
     :ivar collector_implementation: The name of the collector implementation
         where the error occurred, if applicable.
@@ -133,6 +134,47 @@ class ScanError(BaseModel):
 FactTypedDict = create_typed_dict("FactTypedDict", artefact_registry.all_facts)
 MetricTypedDict = create_typed_dict("MetricTypedDict", artefact_registry.all_metrics)
 
+_SCAN_OUTPUT_CLASSES: dict[int, type["ScanOutput"]] = {}
+
+
+def get_fact_typed_dict(version: int):
+    return create_typed_dict(
+        f"FactTypedDictV{version}",
+        lambda v=version: artefact_registry.all_facts(version=v),
+    )
+
+
+def get_metric_typed_dict(version: int):
+    return create_typed_dict(
+        f"MetricTypedDictV{version}",
+        lambda v=version: artefact_registry.all_metrics(version=v),
+    )
+
+
+def get_scan_output_class(version: int) -> type["ScanOutput"]:
+    if version in _SCAN_OUTPUT_CLASSES:
+        return _SCAN_OUTPUT_CLASSES[version]
+
+    fact_typed_dict = get_fact_typed_dict(version)
+    metric_typed_dict = get_metric_typed_dict(version)
+    target_version = version
+
+    class _VersionedScanOutput(ScanOutput):
+        model_config = ConfigDict(arbitrary_types_allowed=True)
+
+        original_input: ScanInput
+        scan_date: datetime
+        hostname: str
+        facts: fact_typed_dict = Field(default_factory=dict)
+        metrics: metric_typed_dict = Field(default_factory=dict)
+        errors: list[ScanError] = Field(default_factory=list)
+        version: int = target_version
+
+    _VersionedScanOutput.__name__ = f"ScanOutputV{version}"
+    _VersionedScanOutput.__qualname__ = f"ScanOutputV{version}"
+    _SCAN_OUTPUT_CLASSES[version] = _VersionedScanOutput
+    return _VersionedScanOutput
+
 
 class ScanOutput(BaseModel):
     """
@@ -141,7 +183,7 @@ class ScanOutput(BaseModel):
     This class serves as a data model for the results obtained from a scan operation.
     It contains information about the original input used for the scan, details about
     the scanned system, various metrics collected during the scan, any errors encountered,
-    and the current version of the output format.
+    and the format version of the output.
 
     :ivar original_input: The input data used to initiate the scanning operation.
     :type original_input: ScanInput
@@ -154,17 +196,58 @@ class ScanOutput(BaseModel):
     :type metrics: dict[str, Any]
     :ivar errors: A list of errors encountered during the scan operation.
     :type errors: list[ScanError]
-    :ivar version: The version of the scan output format. Defaults to 2.
+    :ivar version: The version of the scan output format.
     :type version: int
     """
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
     original_input: ScanInput
     scan_date: datetime
     hostname: str
-    facts: FactTypedDict
-    metrics: MetricTypedDict
-    errors: list[ScanError]
+    facts: FactTypedDict = Field(default_factory=dict)
+    metrics: MetricTypedDict = Field(default_factory=dict)
+    errors: list[ScanError] = Field(default_factory=list)
     version: int = 2
+
+    def __new__(cls, *args, **kwargs):
+        # Dynamic instantiation magic; given the data, we try to find the right
+        # sub-class for the scan output based on the version number.
+
+        # Only try to resolve the actual class if it's the base class that's
+        # being instantiated
+        if cls is ScanOutput:
+            version = kwargs.get("version", artefact_registry.latest_version)
+            subcls = get_scan_output_class(version)
+            # If we found a sub-class, return an instance of that instead
+            if subcls is not ScanOutput:
+                return subcls(*args, **kwargs)
+
+        # Otherwise, just keep chaining.
+        return super().__new__(cls)
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _validate_versioned(cls, data: Any, handler):
+        # Similar deal; if Pydantic is doing stuff, make sure we use the right
+        # sub-class if we can.
+
+        if cls is ScanOutput:
+            if isinstance(data, (str, bytes)):
+                data = json.loads(data)
+
+            if isinstance(data, dict):
+                version = data.get("version", artefact_registry.latest_version)
+            elif hasattr(data, "version"):
+                version = getattr(data, "version", artefact_registry.latest_version)
+            else:
+                version = artefact_registry.latest_version
+
+            subcls = get_scan_output_class(version)
+            if subcls is not ScanOutput:
+                return subcls.model_validate(data)
+
+        return handler(data)
 
     def get_artefact_data(self, artefact):
         if not isinstance(artefact, str):
