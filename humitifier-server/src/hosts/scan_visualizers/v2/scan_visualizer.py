@@ -9,6 +9,8 @@ import hosts.scan_visualizers.v2.artefact_visualizers as visualizers
 class V2ScanVisualizer(ComponentScanVisualizer):
     template = "hosts/scan_visualizer/v2.html"
 
+    VERSION = 2
+
     visualizers: list[type[ArtefactVisualizer]] = [
         visualizers.UptimeVisualizer,
         visualizers.BlocksVisualizer,
@@ -48,6 +50,10 @@ class V2ScanVisualizer(ComponentScanVisualizer):
 
     def get_context(self, **kwargs):
         context = super().get_context(**kwargs)
+
+        context['visualizer_version'] = self.VERSION
+        context['scan_format_version'] = self.scan_data.version
+
         context["static_data"] = []
 
         for attr, label in self.static_data.items():
