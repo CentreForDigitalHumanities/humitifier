@@ -23,7 +23,7 @@ from humitifier_common.artefacts import (
     PackageList,
     PuppetAgent,
     RebootPolicy,
-    Uptime,
+    UptimeV3,
     Webhost,
     Webserver,
 )
@@ -252,17 +252,17 @@ class DNSFactCollector(Collector):
 
 
 class UptimeMetricCollector(ShellCollector):
-    metric = Uptime
+    metric = UptimeV3
 
     def collect_from_shell(
         self, shell_executor: LinuxShellExecutor, info: CollectInfo
-    ) -> Uptime:
+    ) -> UptimeV3:
         result = shell_executor.execute("uptime -s")
 
         dt = datetime.fromisoformat(result.stdout[0].strip())
         now = datetime.now()
 
-        return Uptime((now - dt).total_seconds())
+        return UptimeV3(uptime=(now - dt).total_seconds())
 
 
 class PuppetAgentFactCollector(ShellCollector):
