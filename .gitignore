@@ -18,6 +18,7 @@ humitifier-scanner/*.spec
 humitifier-server/src/static
 humitifier-server/src/files
 humitifier-server/files
+files/
 
 # Supabase
 .branches
