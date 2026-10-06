@@ -2,6 +2,7 @@
 A collection of facts that only make sense to collect on a server.
 """
 
+from datetime import datetime
 from ipaddress import IPv4Address
 from typing import Literal, TypedDict
 
@@ -9,7 +10,6 @@ from pydantic import BaseModel
 
 from humitifier_common.artefacts.groups import SERVER
 from humitifier_common.artefacts.registry import fact, metric
-
 
 ##
 ## Server metadata
@@ -111,9 +111,11 @@ class DNS(BaseModel):
 class Uptime(float):
     pass
 
+
 @metric(group=SERVER, name="Uptime", min_version=3)
-class UptimeV3(BaseModel):
+class V3Uptime(BaseModel):
     uptime: float
+    since: datetime
 
 
 ##

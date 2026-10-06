@@ -8,7 +8,7 @@ from humitifier_common.artefacts import *
 
 class UptimeAlertGenerator(BaseArtefactAlertGenerator):
 
-    artefact = UptimeV3
+    artefact = V3Uptime
     verbose_name = "Uptime warning"
 
     THREE_MONTHS_IN_SECONDS = 60 * 60 * 24 * 92
@@ -17,7 +17,7 @@ class UptimeAlertGenerator(BaseArtefactAlertGenerator):
 
     def generate_alerts(self) -> AlertData | list[AlertData] | None:
 
-        uptime_data: UptimeV3 | None = self.artefact_data
+        uptime_data: V3Uptime | None = self.artefact_data
 
         if uptime_data is None:
             return None
