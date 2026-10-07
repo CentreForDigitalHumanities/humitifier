@@ -82,7 +82,7 @@ jobs:
         run: |
           source $VENV
           cd src
-          python -m unittest discover humutifier_common.tests
+          python -m unittest discover humitifier_common.tests
 
   run-server-tests:
     runs-on: "ubuntu-latest"
