@@ -237,3 +237,24 @@ class SearchableCardsVisualizer(ArtefactVisualizer):
         context["alpinejs_settings"]["search"] = "''"
 
         return context
+
+
+class SearchableCardsWithHeaderVisualizer(SearchableCardsVisualizer):
+    template = (
+        "hosts/scan_visualizer/components/searchable_cards_component_with_header.html"
+    )
+
+    def get_header_content(self) -> list[dict[str, str]] | str:
+        raise NotImplementedError()
+
+    def get_context(self, **kwargs) -> dict:
+        context = super().get_context(**kwargs)
+
+        content = self.get_header_content()
+
+        if isinstance(content, list):
+            context["header_content_items"] = content
+        elif isinstance(content, str):
+            context["header_content"] = content
+
+        return context
