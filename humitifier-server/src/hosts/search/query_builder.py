@@ -367,12 +367,17 @@ def _build_array_where_clause(
                 where_clauses.append(f"{text_expression} {sql_operator} %s")
     else:
         # For integer/boolean fields
+        val_str = (
+            str(parsed_value).lower()
+            if isinstance(parsed_value, bool)
+            else str(parsed_value)
+        )
         if criterion.operator == "contains":
             # Contains doesn't make sense for non-strings, treat as exact match
-            sql_params.append(str(parsed_value))
+            sql_params.append(val_str)
             where_clauses.append(f"{text_expression} = %s")
         else:
-            sql_params.append(str(parsed_value))
+            sql_params.append(val_str)
             sql_operator = _operator_to_sql(criterion.operator)
             where_clauses.append(f"{text_expression} {sql_operator} %s")
 
@@ -520,7 +525,12 @@ def _apply_array_aggregation_filter(
         having_params = agg_params + [f"%{parsed_value}%"]
     else:
         having_clause = f"{agg_expr} {sql_operator} %s"
-        having_params = agg_params + [str(parsed_value)]
+        val_str = (
+            str(parsed_value).lower()
+            if isinstance(parsed_value, bool)
+            else str(parsed_value)
+        )
+        having_params = agg_params + [val_str]
 
     # Construct the complete SQL subquery with GROUP BY and HAVING
     # Final param order: FROM params, WHERE params, HAVING params
