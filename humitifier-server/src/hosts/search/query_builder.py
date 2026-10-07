@@ -37,14 +37,12 @@ def _parse_value(value: Any, value_type: str) -> Any:
             return value
     if value_type == "boolean":
         if isinstance(value, bool):
-            return "true" if value else "false"
-
+            return value
         string_value = str(value).strip().lower()
         if string_value in {"true", "1", "yes", "y", "on"}:
-            return "true"
+            return True
         if string_value in {"false", "0", "no", "n", "off"}:
-            return "false"
-
+            return False
         return value
     # string type
     return str(value)
