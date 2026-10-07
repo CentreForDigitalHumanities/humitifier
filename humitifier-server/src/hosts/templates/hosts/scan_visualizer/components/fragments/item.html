@@ -1,0 +1,8 @@
+<div class="font-semibold">{{ item.label }}</div>
+<div>
+    {% if item.value %}
+        {{ item.value }}
+    {% else %}
+        <div class="text-gray-500">Unknown</div>
+    {% endif %}
+</div>
