@@ -20,12 +20,13 @@ from humitifier_common.artefacts import (
     HostnameCtl,
     IsWordpress,
     NetworkInterfaces,
-    PackageList,
     PuppetAgent,
     RebootPolicy,
     V3Uptime,
     Webhost,
     Webserver,
+    PackageManagerInfo,
+    InstalledPackage,
 )
 from humitifier_scanner.parsers.apache import ApacheConfigParser
 from humitifier_scanner.parsers.nginx import NginxConfigParser
@@ -48,13 +49,16 @@ class HostMetaFactCollector(FileCollector):
 class WebserverFactCollector(FileCollector):
     fact = Webserver
 
-    required_facts = [PackageList, HostnameCtl]
+    required_facts = [PackageManagerInfo, HostnameCtl]
 
     def collect_from_files(
         self, files_executor: LinuxFilesExecutor, info: CollectInfo
     ) -> Webserver | None:
         hostname_ctl: HostnameCtl = info.required_facts.get(HostnameCtl)
-        package_list: PackageList = info.required_facts.get(PackageList)
+        package_manager_info: PackageManagerInfo = info.required_facts.get(
+            PackageManagerInfo
+        )
+        package_list = package_manager_info.installed_packages
 
         webhosts: list[Webhost] = []
 
@@ -76,7 +80,7 @@ class WebserverFactCollector(FileCollector):
     @staticmethod
     def _is_webserver_installed(
         webserver_package: Literal["apache2", "httpd", "nginx"],
-        package_list: PackageList,
+        package_list: list[InstalledPackage],
     ):
         for package in package_list:
             if package.name == webserver_package:

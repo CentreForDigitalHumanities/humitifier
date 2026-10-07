@@ -19,6 +19,7 @@ humitifier-server/src/static
 humitifier-server/src/files
 humitifier-server/files
 files/
+celerybeat-schedule*
 
 # Supabase
 .branches
