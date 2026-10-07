@@ -3,14 +3,7 @@
 {% block content %}
     <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3">
         {% for item in data %}
-            <div class="font-semibold">{{ item.label }}</div>
-            <div>
-                {% if item.value %}
-                    {{ item.value }}
-                {% else %}
-                    <div class="text-gray-500">Unknown</div>
-                {% endif %}
-            </div>
+            {% include "hosts/scan_visualizer/components/fragments/item.html" %}
         {% endfor %}
     </div>
 {% endblock %}

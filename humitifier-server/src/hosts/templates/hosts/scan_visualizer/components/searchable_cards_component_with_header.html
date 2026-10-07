@@ -1,0 +1,36 @@
+{% extends 'hosts/scan_visualizer/components/base_component.html' %}
+
+{% block header %}
+    {% if show_search %}
+        <input
+            placeholder="{{ search_placeholder }}"
+            class="input w-1/2 py-1 ml-auto"
+            x-model="search"
+            @click.stop
+        >
+    {% endif %}
+{% endblock %}
+
+{% block content %}
+    <div>
+        {% if header_content_items or header_content %}
+            <div class="border-b border-gray-200 dark:border-gray-700 mb-3 pb-3">
+                {% if header_content %}
+                    {{ header_content }}
+                {% endif %}
+                {% if header_content_items %}
+                    <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3">
+                        {% for item in header_content_items %}
+                            {% include "hosts/scan_visualizer/components/fragments/item.html" %}
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+        <div class="max-h-[50vh] overflow-y-auto">
+            {% for item in data %}
+                {% include "hosts/scan_visualizer/components/fragments/card.html" %}
+            {% endfor %}
+        </div>
+    </div>
+{% endblock %}
