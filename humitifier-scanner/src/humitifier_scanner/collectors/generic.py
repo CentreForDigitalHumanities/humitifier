@@ -1,8 +1,12 @@
+import configparser
 import json
+import re
+from datetime import datetime
+from pathlib import Path
 
 from humitifier_common.scan_data import ScanErrorMetadata
-from .backend import CollectInfo, ShellCollector, FileCollector
-from humitifier_scanner.executor.linux_shell import LinuxShellExecutor, ShellOutput
+from .backend import CollectInfo, ShellCollector, FileCollector, Collector
+from humitifier_scanner.executor.linux_shell import LinuxShellExecutor
 from humitifier_common.artefacts import (
     AddressInfo,
     Block,
@@ -18,15 +22,18 @@ from humitifier_common.artefacts import (
     MemoryRange,
     NetworkInterface,
     NetworkInterfaces,
-    Package,
-    PackageList,
     SELinux,
     Systemd,
     SystemdUnit,
     User,
     Users,
+    PackageManagerInfo,
+    InstalledPackage,
+    AptRepository,
+    RpmRepository,
 )
 from ..constants import DEB_OS_LIST, RPM_OS_LIST, SELINUX_OS_LIST
+from ..executor import Executors
 from ..executor.linux_files import LinuxFilesExecutor
 from ..utils import os_in_list
 
@@ -421,41 +428,463 @@ class HostnameCtlFactCollector(ShellCollector):
         return create_arg, value.strip()
 
 
-class PackageListFactCollector(ShellCollector):
-    fact = PackageList
+class PackageManagerInfoFactCollector(Collector):
+    fact = PackageManagerInfo
     required_facts = [HostnameCtl]
+    required_executors = [Executors.SHELL, Executors.FILES]
 
-    def collect_from_shell(
-        self, shell_executor: LinuxShellExecutor, info: CollectInfo
-    ) -> PackageList:
+    def collect(self, info: CollectInfo) -> PackageManagerInfo:
+        shell_executor: LinuxShellExecutor = info.executors.get(Executors.SHELL)
+        files_executor: LinuxFilesExecutor = info.executors.get(Executors.FILES)
+
+        if not shell_executor or not files_executor:
+            raise RuntimeError("Required executors not available")
+
         hostname_ctl: HostnameCtl = info.required_facts.get(HostnameCtl)
 
         os = hostname_ctl.os
 
+        output = PackageManagerInfo()
+
         if os_in_list(os, DEB_OS_LIST):
-            result = shell_executor.execute(
-                "dpkg-query -W -f='${Package}\t${Version}\n'"
+            output.installed_packages = self._collect_apt_packages(shell_executor)
+            output.repositories = self._collect_apt_repositories(files_executor)
+
+            if transaction_info := self._get_last_apt_transaction_info(files_executor):
+                output.last_transaction_dt = transaction_info[0]
+                output.last_transaction_changed = transaction_info[1]
+
+        elif os_in_list(os, RPM_OS_LIST):
+            output.installed_packages = self._collect_rpm_packages(shell_executor)
+            output.repositories = self._collect_dnf_repositories(files_executor)
+
+            if transaction_info := self._get_last_dnf_transaction_info(shell_executor):
+                output.last_transaction_dt = transaction_info[0]
+                output.last_transaction_changed = transaction_info[1]
+        else:
+            self.add_error("Unknown OS")
+
+        return output
+
+    ##
+    ## Apt
+    ##
+
+    APT_NEW_VERSION_KEY = "upgradable to:"
+    APT_LIST_FILE = "/etc/apt/sources.list"
+    APT_SOURCE_FILE = "/etc/apt/sources.sources"
+    APT_SOURCES_DIR = "/etc/apt/sources.list.d"
+    APT_HISTORY_FILE = "/var/log/apt/history.log"
+
+    def _collect_apt_packages(
+        self, shell_executor: LinuxShellExecutor
+    ) -> list[InstalledPackage]:
+
+        result = shell_executor.execute("apt list --installed")
+
+        if result.return_code != 0:
+            self.add_error("Failed to collect apt packages")
+            return []
+
+        output = []
+
+        for line in result.stdout:
+            if package := self._parse_apt_package_info(line):
+                output.append(package)
+
+        return output
+
+    def _parse_apt_package_info(self, line: str) -> InstalledPackage | None:
+
+        # Example output to parse:
+        # adduser/stable,now 3.152 all [installed]
+        # alloy/stable,now 1.19.2-1 amd64 [installed,upgradable to: 1.20.1-1]
+        # alsa-topology-conf/stable,now 1.2.5.1-3 all [installed,automatic]
+
+        try:
+            package_identifier, version, arch, meta = line.split(" ", maxsplit=3)
+            package_name, package_sources = package_identifier.split("/")
+
+            # Split into list and filter out "now"; "now" is a synonym for "installed"
+            # in this case....
+            package_sources = [
+                source for source in package_sources.split(",") if source != "now"
+            ]
+
+            upgrade_available = False
+            new_version = None
+
+            # Meta is
+            if meta:
+                # Strip [ and ]
+                meta = meta[1:-1]
+                meta_items = meta.split(",")
+
+                for item in meta_items:
+                    if item.startswith(self.APT_NEW_VERSION_KEY):
+                        upgrade_available = True
+                        new_version = item.split(":")[1]
+                        if new_version:
+                            new_version = new_version.strip()
+                        break
+
+            return InstalledPackage(
+                name=package_name,
+                current_version=version,
+                arch=arch,
+                sources=package_sources,
+                upgrade_available=upgrade_available,
+                new_version=new_version,
             )
-            return self._parse_result(result)
 
-        if os_in_list(os, RPM_OS_LIST):
-            result = shell_executor.execute(
-                "rpm -qa --queryformat '%{NAME}\t%{VERSION}\n'"
+        except ValueError:
+            return None
+
+    def _collect_apt_repositories(
+        self, files_executor: LinuxFilesExecutor
+    ) -> list[AptRepository]:
+
+        files = [Path(self.APT_SOURCE_FILE), Path(self.APT_LIST_FILE)]
+        for file in files_executor.list_dir(self.APT_SOURCES_DIR):
+            if file.name.endswith(".list") or file.name.endswith(".sources"):
+                files.append(file)
+
+        sources = []
+        for file in files:
+            try:
+                if file.name.endswith(".list"):
+                    if repository := self._collect_apt_list_file(file, files_executor):
+                        sources.extend(repository)
+                elif file.name.endswith(".sources"):
+                    if repository := self._collect_apt_source_file(
+                        file, files_executor
+                    ):
+                        sources.extend(repository)
+            except FileNotFoundError:
+                continue
+
+        return sources
+
+    def _collect_apt_list_file(
+        self, file: Path, files_executor: LinuxFilesExecutor
+    ) -> list[AptRepository]:
+        parsed_entries = []
+
+        # Regex to match: [type] [options] [uri] [distribution] [components...]
+        # Example: deb [arch=amd64 signed-by=...] http://deb.debian.org/debian bookworm main contrib
+        APT_LINE_REGEX = re.compile(
+            r"^(?P<type>deb|deb-src)\s+"  # Match type
+            r"(?:\[(?P<options>[^\]]+)\]\s+)?"  # Match optional [...] options
+            r"(?P<uri>\S+)\s+"  # Match URI
+            r"(?P<dist>\S+)\s+"  # Match distribution/suite
+            r"(?P<components>.+)$"  # Match rest as components
+        )
+
+        with files_executor.open(file) as f:
+            for line in f:
+                # files_executor returns bytes always, but can be safely cast to str
+                line = line.decode("utf-8").partition("#")[0].strip()
+                # Ignore empty lines
+                if not line:
+                    continue
+
+                match = APT_LINE_REGEX.match(line)
+                if match:
+                    data = match.groupdict()
+
+                    # Parse options if they exist
+                    options = {}
+                    if data["options"]:
+                        options = dict(
+                            opt.split("=") for opt in data["options"].split()
+                        )
+
+                    parsed_entries.append(
+                        AptRepository(
+                            dist=data["dist"],
+                            source_file=str(file),
+                            uri=data["uri"],
+                            components=data["components"].split(),
+                            options=options,
+                        )
+                    )
+
+        return parsed_entries
+
+    def _collect_apt_source_file(
+        self, file: Path, files_executor: LinuxFilesExecutor
+    ) -> list[AptRepository]:
+        parsed_entries = []
+        paragraphs = []
+        current_paragraph = {}
+        current_key = None
+
+        with files_executor.open(file) as f:
+            for raw_bytes in f:
+                raw_line = raw_bytes.decode("utf-8").rstrip("\r\n")
+                line = raw_line.strip()
+
+                if line.startswith("#"):
+                    continue
+
+                if not line:
+                    if current_paragraph:
+                        paragraphs.append(current_paragraph)
+                        current_paragraph = {}
+                        current_key = None
+                    continue
+
+                if raw_line.startswith((" ", "\t")) and current_key:
+                    current_paragraph[current_key] += " " + line
+                elif ":" in line:
+                    key, _, value = line.partition(":")
+                    current_key = key.strip()
+                    current_paragraph[current_key] = value.strip()
+
+        if current_paragraph:
+            paragraphs.append(current_paragraph)
+
+        for paragraph in paragraphs:
+            field_map = {k.lower(): v for k, v in paragraph.items()}
+
+            uris_val = field_map.get("uris") or field_map.get("uri")
+            suites_val = field_map.get("suites") or field_map.get("suite")
+            components_val = (
+                field_map.get("components") or field_map.get("component") or ""
             )
-            return self._parse_result(result)
 
-        self.add_error("Unknown OS")
-        return PackageList([])
+            if not uris_val or not suites_val:
+                continue
 
-    @staticmethod
-    def _parse_result(result: ShellOutput):
-        packages = []
+            options = {
+                k: v
+                for k, v in paragraph.items()
+                if k.lower()
+                not in ("uris", "uri", "suites", "suite", "components", "component")
+            }
 
-        for output_line in result.stdout:
-            name, _, version = output_line.strip().partition("\t")
-            packages.append(Package(name=name, version=version))
+            components = components_val.split()
 
-        return PackageList(packages)
+            for uri in uris_val.split():
+                for suite in suites_val.split():
+                    parsed_entries.append(
+                        AptRepository(
+                            dist=suite,
+                            source_file=str(file),
+                            uri=uri,
+                            components=components,
+                            options=options,
+                        )
+                    )
+
+        return parsed_entries
+
+    def _get_last_apt_transaction_info(
+        self, files_executor: LinuxFilesExecutor
+    ) -> tuple[datetime, int] | None:
+
+        try:
+            with files_executor.open(self.APT_HISTORY_FILE) as f:
+                lines = f.read().decode("utf-8").splitlines()
+
+                last_transaction_index = -1
+
+                for index, line in enumerate(reversed(lines)):
+                    if line.startswith("Start-Date:"):
+                        last_transaction_index = len(lines) - index - 1
+                        break
+
+                if last_transaction_index == -1:
+                    return None
+
+                last_transaction = lines[last_transaction_index:]
+
+                if last_transaction:
+                    date_part = last_transaction[0].partition(":")[2].strip()
+                    try:
+                        date_parts = date_part.split(None, 1)
+                        if len(date_parts) != 2:
+                            return None
+                        date_str, time_str = date_parts
+                        date = datetime.strptime(date_str, "%Y-%m-%d")
+                        time = datetime.strptime(time_str, "%H:%M:%S").time()
+                        dt = datetime.combine(date, time)
+                    except (ValueError, IndexError):
+                        return None
+
+                    changed_count = 0
+
+                    for line in last_transaction:
+                        if ":" in line:
+                            key, _, value = line.partition(":")
+                            if key.strip() in ["Install", "Upgrade", "Remove"]:
+                                changed_count += len(value.strip().split(","))
+
+                    return dt, changed_count
+                else:
+                    return None
+
+        except FileNotFoundError:
+            return None
+
+    ##
+    ## DNF
+    ##
+
+    DNF_REPO_DIR = "/etc/yum.repos.d"
+
+    def _collect_rpm_packages(
+        self, shell_executor: LinuxShellExecutor
+    ) -> list[InstalledPackage]:
+        list_packages_result = shell_executor.execute("dnf list installed -y")
+
+        if list_packages_result.return_code != 0:
+            self.add_error("Failed to collect RPM packages")
+            return []
+
+        check_update_result = shell_executor.execute(
+            "dnf check-update -y", fail_silent=True
+        )
+
+        upgradable_packages = {}
+
+        # dnf check-update returns 100 when there are updates available, so
+        # we need to 'pass' on that status as well.
+        if (
+            check_update_result.return_code != 0
+            and check_update_result.return_code != 100
+        ):
+            self.add_error("Failed to check for RPM package updates")
+        else:
+            for line in check_update_result.stdout:
+                parts = line.split()
+
+                # Only parse lines with exactly 3 parts; other stuff is irrelevant output
+                if len(parts) != 3:
+                    continue
+
+                package_identifier, version, _ = parts
+
+                upgradable_packages[package_identifier] = version
+
+        output = []
+
+        for line in list_packages_result.stdout:
+            parts = line.split()
+            # Only parse lines with exactly 3 parts; other stuff is irrelevant output
+            if len(parts) != 3:
+                continue
+
+            package_identifier, version, source = parts
+
+            # We do an rsplit to handle package names with dots in them
+            if "." in package_identifier:
+                package_name, package_arch = package_identifier.rsplit(".", maxsplit=1)
+            else:
+                package_name, package_arch = package_identifier, None
+
+            new_version = upgradable_packages.get(package_identifier)
+
+            output.append(
+                InstalledPackage(
+                    name=package_name,
+                    current_version=version,
+                    sources=[source],
+                    arch=package_arch,
+                    upgrade_available=new_version is not None,
+                    new_version=new_version,
+                )
+            )
+
+        return output
+
+    def _collect_dnf_repositories(
+        self, files_executor: LinuxFilesExecutor
+    ) -> list[RpmRepository]:
+        files = [
+            file
+            for file in files_executor.list_dir(self.DNF_REPO_DIR)
+            if file.name.endswith(".repo")
+        ]
+
+        output = []
+
+        for file in files:
+            with files_executor.open(file) as f:
+                config_parser = configparser.ConfigParser()
+                config_parser.read_string(f.read().decode("utf-8"))
+
+                for section in config_parser.sections():
+                    data = {}
+                    for key, value in config_parser[section].items():
+                        data[key] = value
+
+                    options = {
+                        k: v
+                        for k, v in config_parser[section].items()
+                        if k
+                        not in (
+                            "name",
+                            "baseurl",
+                            "mirrorlist",
+                            "metalink",
+                            "enabled",
+                            "gpgcheck",
+                            "gpgkey",
+                        )
+                    }
+
+                    output.append(
+                        RpmRepository(
+                            id=section,
+                            source_file=str(file),
+                            name=data.get("name", section),
+                            base_url=data.get("baseurl"),
+                            mirrorlist=data.get("mirrorlist"),
+                            metalink=data.get("metalink"),
+                            enabled=data.get("enabled", "1") == "1",
+                            gpg_check=data.get("gpgcheck") == "1",
+                            gpg_key=data.get("gpgkey"),
+                            options=options,
+                        )
+                    )
+
+        return output
+
+    def _get_last_dnf_transaction_info(
+        self, shell_executor: LinuxShellExecutor
+    ) -> tuple[datetime, int] | None:
+        output = shell_executor.execute("dnf history list last")
+        if output.return_code != 0:
+            return None
+
+        for line in reversed(output.stdout):
+            line = line.strip()
+            if not line:
+                continue
+
+            parts = [part.strip() for part in line.split("|")]
+            if len(parts) != 5:
+                continue
+
+            _id, command, _datetime, actions, changed = parts
+
+            try:
+                dt = datetime.strptime(_datetime, "%Y-%m-%d %H:%M")
+            except ValueError:
+                continue
+
+            if " " in changed:
+                changed = changed.split(" ")[0]
+
+            try:
+                changed = int(changed)
+            except ValueError:
+                changed = 0
+
+            return dt, changed
+
+        return None
 
 
 class NetworkInterfacesFactCollector(ShellCollector):

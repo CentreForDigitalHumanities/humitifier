@@ -100,13 +100,6 @@ class AdvancedSearchTestCase(TestCase):
                         {"name": "www-data", "gid": 33, "users": ["www-data"]},
                         {"name": "sudo", "gid": 27, "users": ["root", "admin"]},
                     ],
-                    "generic.PackageList": [
-                        {"name": "apache2", "version": "2.4.52-1ubuntu4.7"},
-                        {"name": "php8.1", "version": "8.1.2-1ubuntu2.14"},
-                        {"name": "mysql-server", "version": "8.0.35-0ubuntu0.22.04.1"},
-                        {"name": "openssh-server", "version": "1:8.9p1-3ubuntu0.4"},
-                        {"name": "vim", "version": "2:8.2.3995-1ubuntu2.12"},
-                    ],
                     "generic.NetworkInterfaces": [
                         {
                             "name": "eth0",
@@ -283,13 +276,6 @@ class AdvancedSearchTestCase(TestCase):
                         {"name": "mysql", "gid": 998, "users": ["mysql"]},
                         {"name": "sudo", "gid": 27, "users": ["root"]},
                     ],
-                    "generic.PackageList": [
-                        {"name": "postgresql-15", "version": "15.4-1.pgdg120+1"},
-                        {"name": "mysql-server", "version": "8.0.34-1debian12"},
-                        {"name": "openssh-server", "version": "1:9.2p1-2"},
-                        {"name": "vim", "version": "2:9.0.1378-2"},
-                        {"name": "htop", "version": "3.2.2-1"},
-                    ],
                     "generic.NetworkInterfaces": [
                         {
                             "name": "eth0",
@@ -419,10 +405,6 @@ class AdvancedSearchTestCase(TestCase):
                     ],
                     "generic.Groups": [
                         {"name": "root", "gid": 0, "users": ["root"]},
-                    ],
-                    "generic.PackageList": [
-                        {"name": "httpd", "version": "2.4.6-97.el7.centos.5"},
-                        {"name": "openssh-server", "version": "7.4p1-22.el7_9"},
                     ],
                     "generic.NetworkInterfaces": [
                         {
@@ -557,11 +539,6 @@ class AdvancedSearchTestCase(TestCase):
                     ],
                     "generic.Groups": [
                         {"name": "root", "gid": 0, "users": ["root"]},
-                    ],
-                    "generic.PackageList": [
-                        {"name": "zfsutils-linux", "version": "2.1.5-1ubuntu6~22.04.2"},
-                        {"name": "openssh-server", "version": "1:8.9p1-3ubuntu0.4"},
-                        {"name": "nfs-kernel-server", "version": "1:2.6.1-1ubuntu1.2"},
                     ],
                     "generic.NetworkInterfaces": [
                         {
@@ -989,13 +966,6 @@ class ArrayFieldSearchTests(AdvancedSearchTestCase):
         result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
         self.assertEqual(result.count(), 2)
 
-    def test_count_packages(self):
-        """Test counting packages."""
-        query_string = "count(facts.generic.PackageList[].name) >= 5"
-        parsed_query = parse_query(query_string)
-        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
-        self.assertEqual(result.count(), 2)
-
     def test_count_block_devices(self):
         """Test counting block devices."""
         query_string = "count(facts.generic.Hardware.block_devices[].name) >= 2"
@@ -1021,24 +991,6 @@ class ArrayFieldSearchTests(AdvancedSearchTestCase):
         result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "web01.example.com")
-
-    def test_filter_packages_by_pattern(self):
-        """Test filtering packages by pattern."""
-        query_string = (
-            'filter(facts.generic.PackageList[].name, "apache") contains "apache2"'
-        )
-        parsed_query = parse_query(query_string)
-        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
-        self.assertEqual(result.count(), 1)
-        self.assertEqual(result.first().fqdn, "web01.example.com")
-
-    def test_count_filtered_packages(self):
-        """Test counting filtered packages."""
-        query_string = 'count(filter(facts.generic.PackageList[].name, "ssh")) > 0'
-        parsed_query = parse_query(query_string)
-        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
-        # All hosts should have openssh-server
-        self.assertEqual(result.count(), 4)
 
     def test_array_search_with_other_conditions(self):
         """Test combining array search with other conditions."""

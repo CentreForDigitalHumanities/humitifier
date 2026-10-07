@@ -2,14 +2,14 @@
 A collection of facts that are generic and can be collected on any system.
 """
 
-from typing import Literal
+from datetime import datetime
+from typing import Literal, Annotated, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from humitifier_common.artefacts.groups import GENERIC
 from humitifier_common.artefacts.registry import fact, metric
 from humitifier_common.artefacts.registry.registry import ArtefactMetadata
-
 
 ##
 ## Hardware
@@ -192,9 +192,66 @@ class Package(BaseModel):
     version: str
 
 
-@fact(group=GENERIC)
+# Deprecated, replaced by PackageManagerInfo
+@fact(group=GENERIC, max_version=2)
 class PackageList(list[Package]):
     pass
+
+
+###
+### V6 package manager info
+###
+
+
+class BaseRepository(BaseModel):
+    source_file: str
+    options: dict[str, str] | None = None
+
+
+class AptRepository(BaseRepository):
+    kind: Literal["apt"] = "apt"
+    dist: str
+    uri: str
+    components: list[str]
+
+
+class RpmRepository(BaseRepository):
+    kind: Literal["rpm"] = "rpm"
+
+    id: str
+    name: str
+
+    enabled: bool
+
+    base_url: str | None = None
+    mirrorlist: str | None = None
+    metalink: str | None = None
+
+    gpg_check: bool = False
+    gpg_key: str | None = None
+
+
+class InstalledPackage(BaseModel):
+    name: str
+    current_version: str
+    upgrade_available: bool
+    new_version: str | None = None
+    sources: list[str] | None = None
+    arch: str | None = None
+
+
+Repository = Annotated[
+    Union[AptRepository, RpmRepository],
+    Field(discriminator="kind"),
+]
+
+
+@fact(group=GENERIC, min_version=3)
+class PackageManagerInfo(BaseModel):
+    installed_packages: list[InstalledPackage] = Field(default_factory=list)
+    repositories: list[Repository] = Field(default_factory=list)
+    last_transaction_dt: datetime | None = None
+    last_transaction_changed: int | None = None
 
 
 ##
