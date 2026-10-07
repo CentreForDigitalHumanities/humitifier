@@ -100,6 +100,35 @@ class AdvancedSearchTestCase(TestCase):
                         {"name": "www-data", "gid": 33, "users": ["www-data"]},
                         {"name": "sudo", "gid": 27, "users": ["root", "admin"]},
                     ],
+                    "generic.PackageManagerInfo": {
+                        "installed_packages": [
+                            {
+                                "name": "apache2",
+                                "current_version": "2.4.52-1ubuntu4.7",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "php8.1",
+                                "current_version": "8.1.2-1ubuntu2.14",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "mysql-server",
+                                "current_version": "8.0.35-0ubuntu0.22.04.1",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "openssh-server",
+                                "current_version": "1:8.9p1-3ubuntu0.4",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "vim",
+                                "current_version": "2:8.2.3995-1ubuntu2.12",
+                                "upgrade_available": False,
+                            },
+                        ]
+                    },
                     "generic.NetworkInterfaces": [
                         {
                             "name": "eth0",
@@ -276,6 +305,35 @@ class AdvancedSearchTestCase(TestCase):
                         {"name": "mysql", "gid": 998, "users": ["mysql"]},
                         {"name": "sudo", "gid": 27, "users": ["root"]},
                     ],
+                    "generic.PackageManagerInfo": {
+                        "installed_packages": [
+                            {
+                                "name": "postgresql-15",
+                                "version": "15.4-1.pgdg120+1",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "mysql-server",
+                                "version": "8.0.34-1debian12",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "openssh-server",
+                                "version": "1:9.2p1-2",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "vim",
+                                "version": "2:9.0.1378-2",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "htop",
+                                "version": "3.2.2-1",
+                                "upgrade_available": False,
+                            },
+                        ]
+                    },
                     "generic.NetworkInterfaces": [
                         {
                             "name": "eth0",
@@ -406,6 +464,20 @@ class AdvancedSearchTestCase(TestCase):
                     "generic.Groups": [
                         {"name": "root", "gid": 0, "users": ["root"]},
                     ],
+                    "generic.PackageManagerInfo": {
+                        "installed_packages": [
+                            {
+                                "name": "httpd",
+                                "version": "2.4.6-97.el7.centos.5",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "openssh-server",
+                                "version": "7.4p1-22.el7_9",
+                                "upgrade_available": False,
+                            },
+                        ]
+                    },
                     "generic.NetworkInterfaces": [
                         {
                             "name": "eth0",
@@ -540,6 +612,26 @@ class AdvancedSearchTestCase(TestCase):
                     "generic.Groups": [
                         {"name": "root", "gid": 0, "users": ["root"]},
                     ],
+                    "generic.PackageManagerInfo": {
+                        "installed_packages": [
+                            {
+                                "name": "zfsutils-linux",
+                                "version": "2.1.5-1ubuntu6~22.04.2",
+                                "upgrade_available": True,
+                                "new_version": "2.1.5-1ubuntu6~22.04.3",
+                            },
+                            {
+                                "name": "openssh-server",
+                                "version": "1:8.9p1-3ubuntu0.4",
+                                "upgrade_available": False,
+                            },
+                            {
+                                "name": "nfs-kernel-server",
+                                "version": "1:2.6.1-1ubuntu1.2",
+                                "upgrade_available": False,
+                            },
+                        ]
+                    },
                     "generic.NetworkInterfaces": [
                         {
                             "name": "eth0",
@@ -984,6 +1076,15 @@ class ArrayFieldSearchTests(AdvancedSearchTestCase):
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "db01.example.com")
 
+    def test_count_packages(self):
+        """Test counting packages."""
+        query_string = (
+            "count(facts.generic.PackageManagerInfo.installed_packages[].name) >= 5"
+        )
+        parsed_query = parse_query(query_string)
+        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+        self.assertEqual(result.count(), 2)
+
     def test_count_network_interfaces(self):
         """Test counting network interfaces."""
         query_string = "count(facts.generic.NetworkInterfaces[].name) >= 2"
@@ -991,6 +1092,30 @@ class ArrayFieldSearchTests(AdvancedSearchTestCase):
         result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "web01.example.com")
+
+    def test_search_packages_by_upgrade_status(self):
+        """Test searching packages by boolean upgrade_available status."""
+        query_string = "facts.generic.PackageManagerInfo.installed_packages[].upgrade_available = true"
+        parsed_query = parse_query(query_string)
+        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "storage01.example.com")
+
+    def test_filter_packages_by_pattern(self):
+        """Test filtering packages by pattern."""
+        query_string = 'filter(facts.generic.PackageManagerInfo.installed_packages[].name, "apache") contains "apache2"'
+        parsed_query = parse_query(query_string)
+        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "web01.example.com")
+
+    def test_count_filtered_packages(self):
+        """Test counting filtered packages."""
+        query_string = 'count(filter(facts.generic.PackageManagerInfo.installed_packages[].name, "ssh")) > 0'
+        parsed_query = parse_query(query_string)
+        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+        # All hosts should have openssh-server
+        self.assertEqual(result.count(), 4)
 
     def test_array_search_with_other_conditions(self):
         """Test combining array search with other conditions."""
