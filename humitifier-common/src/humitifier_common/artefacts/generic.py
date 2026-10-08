@@ -336,6 +336,26 @@ class IPTablesChain(BaseModel):
     rules: list[IPTableRules]
 
 
+class IPTablesPortAccess(BaseModel):
+    """Human-friendly summary of who can reach a given port.
+
+    Derived from the ACCEPT/DROP/REJECT rules in the INPUT chain. Sources are
+    the raw source specs of the matching rules (e.g. ``131.211.0.0/16``);
+    ``0.0.0.0/0`` means 'anyone'. A rule bound to a specific input interface
+    is recorded as ``<source>@<interface>`` (e.g. ``0.0.0.0/0@lo``).
+    """
+
+    # None means the rule(s) apply to every port
+    port: str | None
+    protocol: str
+    allowed_from: list[str] = Field(default_factory=list)
+    denied_from: list[str] = Field(default_factory=list)
+    # True if there is an ACCEPT rule for this port from any source on any
+    # interface
+    open_to_all: bool = False
+
+
 @fact(group=GENERIC, min_version=3)
 class IPTables(BaseModel):
     chains: list[IPTablesChain]
+    port_access: list[IPTablesPortAccess] = Field(default_factory=list)
