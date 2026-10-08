@@ -12,7 +12,7 @@ from django.forms import Form
 from django.http import HttpResponse, HttpResponseForbidden, HttpResponseRedirect
 from django.urls import reverse
 from django.views import View
-from django.views.generic import TemplateView, UpdateView
+from django.views.generic import DeleteView, TemplateView, UpdateView
 from django.views.generic.detail import (
     BaseDetailView,
     SingleObjectTemplateResponseMixin,
@@ -567,17 +567,12 @@ class OperatingSystemEditView(LoginRequiredMixin, SuperuserRequiredMixin, Succes
     success_message = "Operating system edited"
 
 
-class OperatingSystemDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, View):
+class OperatingSystemDeleteView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+):
+    model = OperatingSystem
+    success_url = reverse_lazy("hosts:operating_systems")
     success_message = "Operating system deleted"
-
-    def post(self, request, pk):
-        operating_system = OperatingSystem.objects.filter(pk=pk).first()
-
-        if operating_system:
-            operating_system.delete()
-            messages.success(request, self.success_message)
-
-        return HttpResponseRedirect(reverse("hosts:operating_systems"))
 
 
 ##
