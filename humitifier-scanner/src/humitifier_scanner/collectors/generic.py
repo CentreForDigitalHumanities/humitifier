@@ -33,6 +33,8 @@ from humitifier_common.artefacts import (
     InstalledPackage,
     AptRepository,
     RpmRepository,
+    IPTables,
+    IPTablesChain,
 )
 from ..constants import DEB_OS_LIST, RPM_OS_LIST, SELINUX_OS_LIST
 from ..executor import Executors
@@ -994,3 +996,23 @@ class SystemDFactCollector(ShellCollector):
             units.append(SystemdUnit(**datum))
 
         return Systemd(units=units)
+
+
+class IPTableFactCollector(ShellCollector):
+    fact = IPTables
+
+    def collect_from_shell(
+        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    ) -> IPTables | None:
+
+        iptable_cmd = shell_executor.execute("sudo iptables -nvL")
+        iptable_data = jc.parse("iptables", iptable_cmd.stdout_str)
+
+        if not iptable_data:
+            return None
+
+        chains = []
+        for chain_data in iptable_data:
+            chains.append(IPTablesChain(**chain_data))
+
+        return IPTables(chains=chains)

@@ -307,3 +307,35 @@ class SystemdUnit(BaseModel):
 @fact(group=GENERIC, metadata=ArtefactMetadata(null_is_valid=True))
 class Systemd(BaseModel):
     units: list[SystemdUnit]
+
+
+##
+## iptables
+##
+
+
+class IPTableRules(BaseModel):
+    num: int | None = None
+    pkts: int
+    bytes: int
+    target: str | None
+    prot: str
+    opt: str | None
+    in_: str = Field(alias="in")
+    out: str
+    source: str
+    destination: str
+    options: str = ""
+
+
+class IPTablesChain(BaseModel):
+    chain: str
+    default_policy: str | None = None
+    default_packets: int | None = None
+    default_bytes: int | None = None
+    rules: list[IPTableRules]
+
+
+@fact(group=GENERIC, min_version=3)
+class IPTables(BaseModel):
+    chains: list[IPTablesChain]
