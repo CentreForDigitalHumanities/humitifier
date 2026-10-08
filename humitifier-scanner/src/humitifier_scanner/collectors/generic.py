@@ -35,6 +35,7 @@ from humitifier_common.artefacts import (
     RpmRepository,
     IPTables,
     IPTablesChain,
+    IPTablesPortAccess,
 )
 from ..constants import DEB_OS_LIST, RPM_OS_LIST, SELINUX_OS_LIST
 from ..executor import Executors
@@ -1015,4 +1016,95 @@ class IPTableFactCollector(ShellCollector):
         for chain_data in iptable_data:
             chains.append(IPTablesChain(**chain_data))
 
-        return IPTables(chains=chains)
+        return IPTables(
+            chains=chains,
+            port_access=self._summarize_port_access(chains),
+        )
+
+    ALLOW_TARGETS = ("ACCEPT",)
+    DENY_TARGETS = ("DROP", "REJECT")
+    PORT_PROTOCOLS = ("tcp", "udp", "all")
+    ANY_SOURCE = "0.0.0.0/0"
+
+    # Matches '[tcp|udp] dpt:22', 'dpts:1000:2000', 'multiport dports 80,443'
+    _PORT_RE = re.compile(r"\bdpts?:(\S+)|\bdports?\s+(\S+)")
+    _STATE_RE = re.compile(r"\b(?:ct)?state\s+(\S+)")
+
+    @classmethod
+    def _summarize_port_access(
+        cls, chains: list[IPTablesChain]
+    ) -> list[IPTablesPortAccess]:
+        """Build a per-port overview of allowed/denied sources from the
+        INPUT chain. This does not try to fully emulate iptables (rule order,
+        jumps to custom chains, etc.); it only lists which sources have an
+        explicit allow/deny rule for each destination port.
+        """
+        input_chain = next((c for c in chains if c.chain == "INPUT"), None)
+        if input_chain is None:
+            return []
+
+        summaries: dict[tuple[str | None, str], IPTablesPortAccess] = {}
+
+        for rule in input_chain.rules:
+            if rule.target in cls.ALLOW_TARGETS:
+                allowed = True
+            elif rule.target in cls.DENY_TARGETS:
+                allowed = False
+            else:
+                # Jumps to other chains, RETURN, LOG, comments, etc.
+                continue
+
+            if rule.prot not in cls.PORT_PROTOCOLS:
+                continue
+
+            # Rules that only match existing connections do not open ports
+            state_match = cls._STATE_RE.search(rule.options)
+            if state_match and "NEW" not in state_match.group(1).split(","):
+                continue
+
+            source = rule.source
+            if rule.in_ and rule.in_ != "*":
+                source = f"{source}@{rule.in_}"
+
+            ports = cls._extract_ports(rule.options)
+
+            for port in ports:
+                key = (port, rule.prot)
+                summary = summaries.get(key)
+                if summary is None:
+                    summary = IPTablesPortAccess(port=port, protocol=rule.prot)
+                    summaries[key] = summary
+
+                target_list = summary.allowed_from if allowed else summary.denied_from
+                if source not in target_list:
+                    target_list.append(source)
+
+                if allowed and source == cls.ANY_SOURCE:
+                    summary.open_to_all = True
+
+        return sorted(
+            summaries.values(),
+            key=lambda s: (s.port is not None, cls._port_sort_key(s.port), s.protocol),
+        )
+
+    @classmethod
+    def _extract_ports(cls, options: str) -> list[str | None]:
+        """Return the destination ports a rule applies to; [None] if the rule
+        is not restricted to a port.
+        """
+        match = cls._PORT_RE.search(options)
+        if not match:
+            return [None]
+
+        port_spec = match.group(1) or match.group(2)
+        return [port for port in port_spec.split(",") if port]
+
+    @staticmethod
+    def _port_sort_key(port: str | None) -> int:
+        if port is None:
+            return -1
+        try:
+            # Port ranges are formatted as 'start:end'
+            return int(port.split(":")[0])
+        except ValueError:
+            return 0
