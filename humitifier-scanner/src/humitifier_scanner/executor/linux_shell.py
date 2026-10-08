@@ -19,6 +19,14 @@ class ShellOutput:
     stderr: list[str]
     return_code: int
 
+    @property
+    def stdout_str(self) -> str:
+        return "\n".join(self.stdout)
+
+    @property
+    def stderr_str(self) -> str:
+        return "\n".join(self.stderr)
+
 
 class LinuxShellExecutor(abc.ABC):
 
