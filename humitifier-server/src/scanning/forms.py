@@ -14,6 +14,11 @@ class ScanSpecCreateForm(forms.ModelForm):
 
 
 class ScanSpecForm(forms.ModelForm):
+    artefact_groups = forms.MultipleChoiceField(
+        widget=forms.CheckboxSelectMultiple,
+        required=False,
+    )
+
     class Meta:
         model = ScanSpec
         fields = [
@@ -21,18 +26,17 @@ class ScanSpecForm(forms.ModelForm):
             "parent",
             "artefact_groups",
         ]
-        widgets = {
-            "artefact_groups": forms.CheckboxSelectMultiple,
-        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
         # Set the options of artefact_groups to the value of registry.available_groups
-        self.fields["artefact_groups"].widget.choices = [
-            (group, group) for group in registry.available_groups
+        available_groups = set(registry.available_groups)
+        if self.instance and self.instance.artefact_groups:
+            available_groups.update(self.instance.artefact_groups)
+        self.fields["artefact_groups"].choices = [
+            (group, group) for group in sorted(available_groups)
         ]
-        self.fields["artefact_groups"].required = False
 
 
 class ArtefactSpecForm(forms.ModelForm):
