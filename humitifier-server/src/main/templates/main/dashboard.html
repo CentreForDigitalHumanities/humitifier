@@ -19,10 +19,10 @@
                     data: [{{ num_fine }}, {{ num_info }}, {{ num_warning }}, {{ num_critical }}],
                     backgroundColor: ["#44ef44", "#93c5fd", "#f97316", "#ef4444"],
                     links: [
-                        '?#alerts',
-                        '?severity=info#alerts',
-                        '?severity=warning#alerts',
-                        '?severity=critical#alerts'
+                        '?{% param_replace severity="" %}#alerts',
+                        '?{% param_replace severity="info" %}#alerts',
+                        '?{% param_replace severity="warning" %}#alerts',
+                        '?{% param_replace severity="critical" %}#alerts'
                     ]
                 }]
             );
@@ -33,7 +33,7 @@
                     label: 'Alert type',
                     data: [{% for item in alert_message_counts %}{{ item.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for item in alert_message_counts %}'?type={{ item.short_message|urlencode }}#alerts',{% endfor %}]
+                    links: [{% for item in alert_message_counts %}'?{% param_replace type=item.short_message %}#alerts',{% endfor %}]
                 }]
             );
 
@@ -43,7 +43,7 @@
                     label: 'OTAP stage',
                     data: [{% for item in otap_counts %}{{ item.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for item in otap_counts %}'{% url "hosts:list" %}?otap_stage={{ item.otap_stage|urlencode }}',{% endfor %}]
+                    links: [{% for item in otap_counts %}'{% url "hosts:list" %}?{% filter_params stats_filterset otap_stage=item.otap_stage %}',{% endfor %}]
                 }]
             );
 
@@ -53,7 +53,7 @@
                     label: 'Operating Systems',
                     data: [{% for os in os_stats %}{{ os.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for os in os_stats %}'{% url "hosts:list" %}?os={{ os.os|urlencode }}',{% endfor %}]
+                    links: [{% for os in os_stats %}'{% url "hosts:list" %}?{% filter_params stats_filterset os=os.os %}',{% endfor %}]
                 }]
             );
 
@@ -63,7 +63,7 @@
                     label: 'Operating Systems',
                     data: [{% for os in customer_stats %}{{ os.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for os in customer_stats %}'{% url "hosts:list" %}?customer={{ os.customer|urlencode }}',{% endfor %}]
+                    links: [{% for os in customer_stats %}'{% url "hosts:list" %}?{% filter_params stats_filterset customer=os.customer %}',{% endfor %}]
                 }],
                 { plugins: { legend: { position: 'bottom' } } }
             );
@@ -74,7 +74,7 @@
                     label: 'Hosts per data source',
                     data: [{% for ds in datasource_counts %}{{ ds.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for ds in datasource_counts %}'{% url "hosts:list" %}?data_source={{ ds.data_source__id }}',{% endfor %}]
+                    links: [{% for ds in datasource_counts %}'{% url "hosts:list" %}?{% filter_params stats_filterset data_source=ds.data_source__id %}',{% endfor %}]
                 }],
                 { plugins: { legend: { position: 'bottom' } } }
             );
