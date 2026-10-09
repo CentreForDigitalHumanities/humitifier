@@ -79,7 +79,7 @@ class PackageListVisualizer(SearchableCardsWithHeaderVisualizer):
             if package.upgrade_available:
                 search_value += f" {package.new_version} upgrade"
                 content_items["Available version"] = package.new_version or ""
-                aside = '<span class="px-3 py-1 mr-auto rounded-sm bg-red-500 text-white font-bold">Upgrade available</span>'
+                aside = '<span class="px-3 py-1 mr-auto rounded-sm text-xs border border-red-500/40 bg-red-200 dark:bg-red-900 text-red-950 dark:text-red-100 font-bold">Upgrade available</span>'
 
             if package.arch:
                 content_items["Arch"] = package.arch
