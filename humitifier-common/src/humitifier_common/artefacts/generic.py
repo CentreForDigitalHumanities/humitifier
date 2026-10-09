@@ -5,7 +5,7 @@ A collection of facts that are generic and can be collected on any system.
 from datetime import datetime
 from typing import Literal, Annotated, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from humitifier_common.artefacts.groups import GENERIC
 from humitifier_common.artefacts.registry import fact, metric
@@ -340,6 +340,11 @@ class IPTablesChain(BaseModel):
     rules: list[IPTableRules]
 
 
+class IPTablesPortAccessSource(BaseModel):
+    source: str
+    resolved_hostname: str | None = None
+
+
 class IPTablesPortAccess(BaseModel):
     """Human-friendly summary of who can reach a given port.
 
@@ -352,8 +357,8 @@ class IPTablesPortAccess(BaseModel):
     # None means the rule(s) apply to every port
     port: str | None
     protocol: str
-    allowed_from: list[str] = Field(default_factory=list)
-    denied_from: list[str] = Field(default_factory=list)
+    allowed_from: list[IPTablesPortAccessSource] = Field(default_factory=list)
+    denied_from: list[IPTablesPortAccessSource] = Field(default_factory=list)
     # True if there is an ACCEPT rule for this port from any source on any
     # interface
     default_open: bool = False
