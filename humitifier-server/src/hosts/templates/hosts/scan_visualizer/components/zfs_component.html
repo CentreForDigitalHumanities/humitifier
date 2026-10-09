@@ -7,7 +7,7 @@
     <div class="grid grid-cols-[repeat(auto-fit,1fr)] center rounded-sm bg-gray-100 dark:bg-gray-800 p-3 mb-3 border border-gray-300 dark:border-gray-700 ">
         {% for pool in zfs.pools %}
             {% widthratio pool.used_mb pool.size_mb 100 as percentage %}
-            {% with label_1=pool.name used=pool.used_mb|size_from_mb total=pool.size_md|size_from_mb percentage=percentage %}
+            {% with label_1=pool.name used=pool.used_mb|size_from_mb total=pool.size_mb|size_from_mb percentage=percentage %}
                 {% include 'hosts/scan_visualizer/components/fragments/bar.html' %}
             {% endwith %}
         {% endfor %}
