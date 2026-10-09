@@ -19,6 +19,7 @@ class V3ScanVisualizer(V2ScanVisualizer):
         v2_visualizers.LshwVisualizer,
         v2_visualizers.RebootPolicyVisualizer,
         v2_visualizers.NetworkInterfacesVisualizer,
+        v3_visualizers.IPTablesVisualizer,
         v2_visualizers.DNSVisualizer,
         v2_visualizers.HostMetaVisualizer,
         v2_visualizers.WebserverVisualizer,
