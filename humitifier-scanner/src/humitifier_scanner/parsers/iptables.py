@@ -1,11 +1,14 @@
 import ipaddress
 import re
+import socket
+from concurrent.futures import ThreadPoolExecutor
 
 from humitifier_common.artefacts import (
     IPTablesChain,
     IPTablesPortAccess,
     IPTableRules,
 )
+from humitifier_scanner.utils import _resolve_hostname_with_dns
 
 _Network = ipaddress.IPv4Network | ipaddress.IPv6Network
 
@@ -81,7 +84,11 @@ class IPTablesPortAccessSummarizer:
     _STATE_RE = re.compile(r"\b(?:ct)?state\s+(\S+)")
 
     @classmethod
-    def summarize(cls, chains: list[IPTablesChain]) -> list[IPTablesPortAccess]:
+    def summarize(
+        cls,
+        chains: list[IPTablesChain],
+        dns_cache: dict[str, str | None] | None = None,
+    ) -> list[IPTablesPortAccess]:
         """Build a per-port overview of allowed/denied sources from the
         INPUT chain.
 
@@ -131,10 +138,13 @@ class IPTablesPortAccessSummarizer:
 
             summaries.append(summary)
 
-        return sorted(
+        sorted_summaries = sorted(
             summaries,
             key=lambda s: (s.port is not None, cls._port_sort_key(s.port), s.protocol),
         )
+        resolve_iptables_dns(port_access=sorted_summaries, dns_cache=dns_cache)
+
+        return sorted_summaries
 
     @classmethod
     def _collect_port_keys(
@@ -317,6 +327,8 @@ class IPTablesPortAccessSummarizer:
         """
         negated = source.startswith("!")
         source = source.lstrip("!").strip()
+        if "(" in source:
+            source = source.split("(", 1)[0].strip()
 
         _address, _sep, mask = source.partition("/")
         if "." in mask:
@@ -334,7 +346,11 @@ class IPTablesPortAccessSummarizer:
         try:
             network = ipaddress.ip_network(source, strict=False)
         except ValueError:
-            return None
+            try:
+                ip_resolved = socket.gethostbyname(source)
+                network = ipaddress.ip_network(ip_resolved, strict=False)
+            except Exception:
+                return None
 
         if negated:
             return _IPTablesCoverage.subtract([_ANY_NETWORK], [network])
@@ -405,10 +421,128 @@ class IPTablesPortAccessSummarizer:
             return 0
 
 
+def _extract_single_ip(spec: str) -> str | None:
+    if not spec:
+        return None
+    if "@" in spec:
+        spec = spec.split("@", 1)[0]
+    spec = spec.lstrip("!").strip()
+    if "(" in spec:
+        spec = spec.split("(", 1)[0].strip()
+    try:
+        net = ipaddress.ip_network(spec, strict=False)
+    except ValueError:
+        return None
+    if net.num_addresses == 1 and not (
+        net.is_multicast or net.is_reserved or net.is_unspecified
+    ):
+        return str(net.network_address)
+    return None
+
+
+def _annotate_single_ip(spec: str, dns_cache: dict[str, str | None]) -> str:
+    if not spec:
+        return spec
+    interface = None
+    addr_part = spec
+    if "@" in spec:
+        addr_part, interface = spec.split("@", 1)
+
+    negated = addr_part.startswith("!")
+    addr_clean = addr_part.lstrip("!").strip()
+    if "(" in addr_clean:
+        base_ip = addr_clean.split("(", 1)[0].strip()
+    else:
+        base_ip = addr_clean
+
+    try:
+        net = ipaddress.ip_network(base_ip, strict=False)
+    except ValueError:
+        return spec
+
+    if net.num_addresses == 1 and not (
+        net.is_multicast or net.is_reserved or net.is_unspecified
+    ):
+        ip_str = str(net.network_address)
+        if ip_str not in dns_cache:
+            dns_cache[ip_str] = _resolve_hostname_with_dns(ip_str)
+        hostname = dns_cache.get(ip_str)
+        if hostname:
+            prefix = "!" if negated else ""
+            res = f"{prefix}{base_ip} ({hostname})"
+            if interface:
+                res = f"{res}@{interface}"
+            return res
+
+    return spec
+
+
+_replace_single_ip = _annotate_single_ip
+
+
+def resolve_iptables_dns(
+    chains: list[IPTablesChain] | None = None,
+    port_access: list[IPTablesPortAccess] | None = None,
+    dns_cache: dict[str, str | None] | None = None,
+) -> dict[str, str | None]:
+    """Perform reverse-DNS on single IP addresses mentioned in IPTables
+    chains (raw rules info) and/or port_access (summarized-per-port data),
+    annotating each resolved IP with its reverse-DNS hostname.
+    """
+    if dns_cache is None:
+        dns_cache = {}
+
+    unique_ips = set()
+    if chains:
+        for chain in chains:
+            for rule in chain.rules:
+                for spec in (rule.source, rule.destination):
+                    ip = _extract_single_ip(spec)
+                    if ip and ip not in dns_cache:
+                        unique_ips.add(ip)
+
+    if port_access:
+        for access in port_access:
+            for spec in access.allowed_from + access.denied_from:
+                ip = _extract_single_ip(spec)
+                if ip and ip not in dns_cache:
+                    unique_ips.add(ip)
+
+    if unique_ips:
+        max_workers = min(20, len(unique_ips))
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            results = executor.map(
+                lambda ip: (ip, _resolve_hostname_with_dns(ip)), unique_ips
+            )
+            for ip, hostname in results:
+                dns_cache[ip] = hostname
+
+    if chains:
+        for chain in chains:
+            for rule in chain.rules:
+                rule.source = _annotate_single_ip(rule.source, dns_cache)
+                rule.destination = _annotate_single_ip(rule.destination, dns_cache)
+
+    if port_access:
+        for access in port_access:
+            access.allowed_from = [
+                _annotate_single_ip(s, dns_cache) for s in access.allowed_from
+            ]
+            access.denied_from = [
+                _annotate_single_ip(s, dns_cache) for s in access.denied_from
+            ]
+
+    return dns_cache
+
+
 def summarize_port_access(
     chains: list[IPTablesChain],
+    dns_cache: dict[str, str | None] | None = None,
 ) -> list[IPTablesPortAccess]:
     """Build a per-port overview of allowed/denied sources from the
     INPUT chain.
     """
-    return IPTablesPortAccessSummarizer.summarize(chains)
+    return IPTablesPortAccessSummarizer.summarize(chains, dns_cache=dns_cache)
+
+
+_summarize_port_access = summarize_port_access
