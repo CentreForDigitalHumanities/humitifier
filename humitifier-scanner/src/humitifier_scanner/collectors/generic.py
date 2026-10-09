@@ -264,7 +264,7 @@ class BlocksMetricCollector(ShellCollector):
                 if name.startswith("/dev/loop") or not name.startswith("/dev"):
                     continue
 
-                size: int = block.get("size", 0) / 1024 // 1024
+                size: int = block.get("1m_blocks", 0)
                 used: int = block.get("used", 0) / 1024 // 1024
                 available: int = block.get("available", 0) / 1024 // 1024
                 use_percent: int = block.get("use_percent", 0)
