@@ -1,18 +1,16 @@
 {% extends 'hosts/scan_visualizer/components/base_component.html' %}
 
-{% block header %}
-    {% if open_to_all_count %}
-        <div class="ml-auto shrink-0 rounded-full bg-red-500 px-2.5 py-0.5 text-xs font-semibold text-white">
-            {{ open_to_all_count }} port{{ open_to_all_count|pluralize }} open to everyone
-        </div>
-    {% endif %}
-{% endblock %}
-
 {% block content %}
     <div class="flex flex-col gap-4">
         <div>
-            <div class="flex items-baseline gap-2 mb-2">
+            <div class="flex items-baseline justify-between gap-2 mb-2">
                 <div class="font-semibold">Port access</div>
+
+    {% if open_to_all_count %}
+        <div class="ml-auto shrink-0 rounded-full bg-orange-500 px-2.5 py-0.5 text-xs font-semibold text-white">
+            {{ open_to_all_count }} port{{ open_to_all_count|pluralize }} defaults to open
+        </div>
+    {% endif %}
             </div>
 
             {% if port_access %}
@@ -37,18 +35,25 @@
                                 </div>
 
                                 <div class="ml-auto flex shrink-0 items-center gap-1.5">
-                                    {% if access.denied_from %}
-                                        <div class="rounded-sm px-2 py-0.5 text-xs bg-red-500 text-white">
-                                            {{ access.denied_from|length }} <denied></denied>
+                                    {% if access.default_closed %}
+                                        <div class="rounded-sm px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                            Default closed
+                                        </div>
+                                    {% elif access.default_open %}
+                                        <div class="rounded-sm px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                            Default open
                                         </div>
                                     {% endif %}
-                                    <div
-                                        class="rounded-sm px-2 py-0.5 text-xs font-semibold
-                                            {% if access.color == 'green' %}bg-green-500 text-white
-                                            {% else %}bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300{% endif %}"
-                                    >
-                                        {{ access.status }}
-                                    </div>
+
+                                    {% if access.default_open and access.denied_from %}
+                                        <div class="rounded-sm text-xs border border-red-500/40 bg-red-100 dark:bg-red-950/60 px-1.5 py-0.5 font-mono text-red-900 dark:text-red-200">
+                                            {{ access.denied_from|length }} <denied></denied>
+                                        </div>
+                                    {% elif access.default_closed and access.allowed_from %}
+                                        <div class="rounded-sm text-xs border border-green-500/40 bg-green-100 dark:bg-green-950/60 px-1.5 py-0.5 font-mono text-green-900 dark:text-green-200">
+                                            {{ access.allowed_from|length }} <denied></denied>
+                                        </div>
+                                    {% endif %}
                                 </div>
                             </div>
 
