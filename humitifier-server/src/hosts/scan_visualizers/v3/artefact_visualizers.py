@@ -1,4 +1,6 @@
+import ipaddress
 import re
+import socket
 from django.template.defaultfilters import date
 from django.utils.safestring import mark_safe
 
@@ -213,6 +215,17 @@ class IPTablesVisualizer(ArtefactVisualizer):
     ANY_SOURCE = "0.0.0.0/0"
     # The chains that are always present; custom chains are listed after these
     BUILTIN_CHAINS = ("INPUT", "FORWARD", "OUTPUT")
+    CUSTOM_SERVICES: dict[tuple[str, int], str] = {
+        ("tcp", 1936): "haproxy-stats",
+        ("tcp", 5000): "",
+        ("tcp", 7000): "",
+        ("tcp", 8000): "",
+        ("tcp", 8080): "http-alt",
+        ("tcp", 8443): "https-alt",
+        ("tcp", 9000): "",
+        ("tcp", 21047): "InsightVM",
+        ("udp", 31400): "InsightVM",
+    }
 
     def show(self):
         return super().show() and bool(self.artefact_data.chains)
@@ -240,17 +253,72 @@ class IPTablesVisualizer(ArtefactVisualizer):
         return context
 
     def _get_port_access_item(self, access: IPTablesPortAccess) -> dict:
-        allowed_from = [self._format_source(source) for source in access.allowed_from]
-        denied_from = [self._format_source(source) for source in access.denied_from]
+        allowed_from = [
+            self._format_source(source)
+            for source in sorted(access.allowed_from, key=self._ip_sort_key)
+        ]
+        denied_from = [
+            self._format_source(source)
+            for source in sorted(access.denied_from, key=self._ip_sort_key)
+        ]
 
         return {
             "port": self._format_port(access.port),
             "protocol": access.protocol,
+            "service": self._get_port_service(access.port, access.protocol),
             "default_open": access.default_open,
             "default_closed": access.default_closed,
             "allowed_from": allowed_from,
             "denied_from": denied_from,
         }
+
+    def _get_port_service(
+        self, port: str | None, protocol: str | None = None
+    ) -> str | None:
+        if not port:
+            return None
+        try:
+            port_num = int(port)
+        except ValueError:
+            return None
+
+        proto = (
+            protocol.lower()
+            if protocol and protocol.lower() in ("tcp", "udp")
+            else None
+        )
+
+        if proto:
+            if (proto, port_num) in self.CUSTOM_SERVICES:
+                return self.CUSTOM_SERVICES[(proto, port_num)]
+            try:
+                return socket.getservbyport(port_num, proto)
+            except OSError:
+                pass
+
+        try:
+            return socket.getservbyport(port_num)
+        except OSError:
+            return None
+
+    @staticmethod
+    def _ip_sort_key(
+        item: IPTablesPortAccessSource | str,
+    ) -> tuple[int, int, int, int, str]:
+        raw = item.source if hasattr(item, "source") else str(item)
+        if "@" in raw:
+            ip_str = raw.split("@", 1)[0]
+        else:
+            ip_str = raw
+
+        if ip_str == "anyone":
+            ip_str = "0.0.0.0/0"
+
+        try:
+            net = ipaddress.ip_network(ip_str, strict=False)
+            return (0, net.version, int(net.network_address), int(net.netmask), raw)
+        except ValueError:
+            return (1, 0, 0, 0, raw)
 
     @staticmethod
     def _format_port(port: str | None) -> str:
