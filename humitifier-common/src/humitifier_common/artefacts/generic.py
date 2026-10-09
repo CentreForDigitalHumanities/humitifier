@@ -344,6 +344,13 @@ class IPTablesPortAccessSource(BaseModel):
     source: str
     resolved_hostname: str | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_str(cls, data):
+        if isinstance(data, str):
+            return {"source": data}
+        return data
+
 
 class IPTablesPortAccess(BaseModel):
     """Human-friendly summary of who can reach a given port.
