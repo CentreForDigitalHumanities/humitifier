@@ -636,7 +636,7 @@ class SELinuxVisualizer(ItemizedArtefactVisualizer):
     def _get_button_str(self, value, color):
         css_colors = f"border border-{color}-500/40 bg-{color}-200 dark:bg-{color}-900 text-{color}-950 dark:text-{color}-100"
         return mark_safe(f"""
-            <div class="px-3 py-1 inline-block mr-auto rounded-sm {css_colors}">
+            <div class="px-3 py-1 inline-block mr-auto rounded-sm {css_colors} font-semibold">
                 {value.capitalize()}
             </div>
             """)
