@@ -3,16 +3,9 @@
 {% block content %}
     <div class="grid grid-cols-[repeat(auto-fit,1fr)] center">
         {% for item in data %}
-            <span>{{ item.label_1 }}</span>
-            <span class="italic">
-                {% if item.label_2 %}
-                    {{ item.label_2 }}
-                {% endif %}
-            </span>
-            <span class="text-right">{{ item.used }} / {{ item.total }} ({{ item.percentage|floatformat:2 }}%)</span>
-            <div class="bg-gray-200 dark:bg-gray-700 h-2 w-full rounded-full col-span-3 mt-1 mb-3 last:mb-0">
-                <div class="bg-primary h-2 rounded-full" style="width: {{ item.percentage }}%;"></div>
-            </div>
+            {% with label_1=item.label_1 label_2=item.label_2 used=item.used total=item.total percentage=item.percentage %}
+                {% include 'hosts/scan_visualizer/components/fragments/bar.html' %}
+            {% endwith %}
         {% endfor %}
     </div>
 {% endblock %}
