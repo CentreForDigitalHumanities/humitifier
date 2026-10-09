@@ -207,7 +207,7 @@ class IPTablesVisualizer(ArtefactVisualizer):
 
         context["port_access"] = port_access
         context["open_to_all_count"] = len(
-            [access for access in port_access if access["open_to_all"]]
+            [access for access in port_access if access["default_open"]]
         )
         context["chains"] = chains
         context["num_rules"] = sum(len(chain["rules"]) for chain in chains)
@@ -221,31 +221,11 @@ class IPTablesVisualizer(ArtefactVisualizer):
         allowed_from = [self._format_source(source) for source in access.allowed_from]
         denied_from = [self._format_source(source) for source in access.denied_from]
 
-        # Sources that are only allowed on a specific interface (like 'lo') are
-        # not reachable from the outside, so they are not counted as 'open'
-        external_allowed = [
-            source for source in access.allowed_from if "@" not in source
-        ]
-
-        if access.open_to_all:
-            status = "Open to everyone"
-            color = "gray"
-        elif external_allowed:
-            status = len(external_allowed)
-            color = "green"
-        elif access.allowed_from:
-            status = "Local only"
-            color = "gray"
-        else:
-            status = "Denied only"
-            color = "gray"
-
         return {
             "port": self._format_port(access.port),
             "protocol": access.protocol,
-            "status": status,
-            "color": color,
-            "open_to_all": access.open_to_all,
+            "default_open": access.default_open,
+            "default_closed": access.default_closed,
             "allowed_from": allowed_from,
             "denied_from": denied_from,
         }
