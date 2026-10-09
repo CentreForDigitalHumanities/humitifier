@@ -36,7 +36,7 @@ from humitifier_common.artefacts import (
     IPTables,
     IPTablesChain,
 )
-from ..parsers.iptables import summarize_port_access
+from ..parsers.iptables import resolve_iptables_dns, summarize_port_access
 from ..constants import DEB_OS_LIST, RPM_OS_LIST, SELINUX_OS_LIST
 from ..executor import Executors
 from ..executor.linux_files import LinuxFilesExecutor
@@ -1016,7 +1016,21 @@ class IPTableFactCollector(ShellCollector):
         for chain_data in iptable_data:
             chains.append(IPTablesChain(**chain_data))
 
+        dns_cache: dict[str, str | None] = {}
+        port_access = summarize_port_access(chains, dns_cache=dns_cache)
+        resolve_iptables_dns(
+            chains=chains, port_access=port_access, dns_cache=dns_cache
+        )
+
         return IPTables(
             chains=chains,
-            port_access=summarize_port_access(chains),
+            port_access=port_access,
         )
+
+    @classmethod
+    def _summarize_port_access(
+        cls,
+        chains: list[IPTablesChain],
+        dns_cache: dict[str, str | None] | None = None,
+    ) -> list[IPTablesPortAccess]:
+        return summarize_port_access(chains, dns_cache=dns_cache)
