@@ -356,7 +356,8 @@ class IPTablesPortAccess(BaseModel):
     denied_from: list[str] = Field(default_factory=list)
     # True if there is an ACCEPT rule for this port from any source on any
     # interface
-    open_to_all: bool = False
+    default_open: bool = False
+    default_closed: bool = False
 
 
 @fact(group=GENERIC, min_version=3)
