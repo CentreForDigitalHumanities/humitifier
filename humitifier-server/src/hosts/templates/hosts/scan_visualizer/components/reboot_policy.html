@@ -10,7 +10,7 @@
             <div>Configured</div>
             {% if reboot_policy.configured %}
                 <div class="flex">
-                    <div class="px-3 py-1 mr-auto rounded-sm bg-green-500 text-white">
+                    <div class="px-3 py-1 mr-auto rounded-sm border border-green-500/40 bg-green-200 dark:bg-green-900 text-green-950 dark:text-green-100">
                         Configured
                     </div>
                 </div>
@@ -18,13 +18,13 @@
                 <div>Enabled</div>
                 {% if reboot_policy.enabled %}
                     <div class="flex ">
-                        <div class="px-3 py-1 mr-auto rounded-sm bg-green-500 text-white">
+                        <div class="px-3 py-1 mr-auto rounded-sm border border-green-500/40 bg-green-200 dark:bg-green-900 text-green-950 dark:text-green-100">
                             Enabled
                         </div>
                     </div>
                 {% else %}
                     <div class="flex">
-                        <div class="px-3 py-1 mr-auto rounded-sm bg-red-500 text-white">
+                        <div class="px-3 py-1 mr-auto rounded-sm  border border-red-500/40 bg-red-200 dark:bg-red-900 text-red-950 dark:text-red-100">
                             Disabled
                         </div>
                     </div>
@@ -34,7 +34,7 @@
                 <div class="font-normal">{{ cron_description }}</div>
             {% else %}
                 <div class="flex font-normal">
-                    <div class="px-3 py-1 mr-auto rounded-sm bg-red-500 text-white">
+                    <div class="px-3 py-1 mr-auto rounded-sm  border border-red-500/40 bg-red-200 dark:bg-red-900 text-red-950 dark:text-red-100">
                         Not configured
                     </div>
                 </div>

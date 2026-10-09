@@ -79,14 +79,14 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
         output = "<div class='flex gap-2 justify-start font-semibold'>"
 
         if value["enable"]:
-            output += f"<span class='px-3 py-1 rounded-sm bg-green-500 text-white'>Enabled</span>"
+            output += f"<span class='px-3 py-1 rounded-sm border border-green-500/40 bg-green-200 dark:bg-green-900 text-green-950 dark:text-green-100'>Enabled</span>"
         else:
-            output += f"<span class='px-3 py-1 rounded-sm bg-red-500 text-white'>Disabled</span>"
+            output += f"<span class='px-3 py-1 rounded-sm border border-red-500/40 bg-red-200 dark:bg-red-900 text-red-950 dark:text-red-100'>Disabled</span>"
 
         if value["apply_updates"]:
-            output += f"<span class='px-3 py-1 rounded-sm bg-green-500 text-white'>Applied</span>"
+            output += f"<span class='px-3 py-1 rounded-sm border border-green-500/40 bg-green-200 dark:bg-green-900 text-green-950 dark:text-green-100'>Applied</span>"
         else:
-            output += f"<span class='px-3 py-1 rounded-sm bg-red-500 text-white'>Not applied</span>"
+            output += f"<span class='px-3 py-1 rounded-sm border border-red-500/40 bg-red-200 dark:bg-red-900 text-red-950 dark:text-red-100'>Not applied</span>"
 
         output += "</div>"
 
@@ -634,8 +634,9 @@ class SELinuxVisualizer(ItemizedArtefactVisualizer):
             return self._get_button_str(value, "orange")
 
     def _get_button_str(self, value, color):
+        css_colors = f"border border-{color}-500/40 bg-{color}-200 dark:bg-{color}-900 text-{color}-950 dark:text-{color}-100"
         return mark_safe(f"""
-            <div class="px-3 py-1 inline-block mr-auto rounded-sm bg-{color}-500 text-white">
+            <div class="px-3 py-1 inline-block mr-auto rounded-sm {css_colors}">
                 {value.capitalize()}
             </div>
             """)

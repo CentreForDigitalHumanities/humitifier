@@ -13,7 +13,7 @@
                     {% for access in port_access %}
                         <div x-data="{ expanded: false }">
                             <div
-                                class="flex items-center gap-3 px-3 py-2 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-800/60 transition duration-150"
+                                class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-800/60 transition duration-150"
                                 @click="expanded = !expanded"
                             >
                                 <div
@@ -28,7 +28,7 @@
                                     {{ access.port }}
                                 </div>
                                 <div
-                                    class="shrink-0 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-1.5 text-xs text-gray-500 dark:text-gray-400">
+                                    class="shrink-0 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-200 dark:bg-gray-800 px-1.5 text-xs text-gray-700 dark:text-gray-300">
                                     {{ access.protocol }}
                                 </div>
                                 {% if access.service %}
@@ -41,24 +41,24 @@
                                     class="ml-auto flex shrink-0 items-center gap-1.5">
                                     {% if access.default_closed %}
                                         <div
-                                            class="rounded-sm px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                            class="rounded-sm border border-gray-200 dark:border-gray-700 px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                                             Default closed
                                         </div>
                                     {% elif access.default_open %}
                                         <div
-                                            class="rounded-sm px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
+                                            class="rounded-sm border border-gray-200 dark:border-gray-700 px-2 py-0.5 text-xs bg-gray-200 dark:bg-gray-800 text-gray-700 dark:text-gray-300">
                                             Default open
                                         </div>
                                     {% endif %}
 
                                     {% if access.default_open and access.denied_from %}
                                         <div
-                                            class="rounded-sm text-xs bg-red-200 dark:bg-red-900 px-2 py-0.5 font-mono text-red-950 dark:text-red-100">
+                                            class="rounded-sm text-xs border border-red-500/40 bg-red-200 dark:bg-red-900 px-2 py-0.5 font-mono text-red-950 dark:text-red-100">
                                             {{ access.denied_from|length }}
                                         </div>
                                     {% elif access.default_closed and access.allowed_from %}
                                         <div
-                                            class="rounded-sm text-xs bg-green-200 dark:bg-green-900 px-2 py-0.5 font-mono text-green-950 dark:text-green-100">
+                                            class="rounded-sm text-xs border border-green-500/40 bg-green-200 dark:bg-green-900 px-2 py-0.5 font-mono text-green-950 dark:text-green-100">
                                             {{ access.allowed_from|length }}
                                         </div>
                                     {% endif %}
@@ -75,7 +75,7 @@
                                         {% for source in access.allowed_from %}
                                             <span
                                                 {% if source.title %}title="{{ source.title }}"{% endif %}
-                                                class="rounded-sm border border-green-500/40 bg-green-100 dark:bg-green-950/60 px-1.5 py-0.5 font-mono text-green-900 dark:text-green-200{% if source.title %} underline decoration-dotted underline-offset-2 cursor-help{% endif %}"
+                                                class="rounded-sm border border-green-500/40 bg-green-100 dark:bg-green-950/60 px-1.5 py-1 font-mono text-green-900 dark:text-green-200{% if source.title %} underline decoration-dotted underline-offset-2 cursor-help{% endif %}"
                                             >{{ source }}</span>
                                         {% endfor %}
                                     </div>
@@ -88,7 +88,7 @@
                                         {% for source in access.denied_from %}
                                             <span
                                                 {% if source.title %}title="{{ source.title }}"{% endif %}
-                                                class="rounded-sm border border-red-500/40 bg-red-100 dark:bg-red-950/60 px-1.5 py-0.5 font-mono text-red-900 dark:text-red-200{% if source.title %} underline decoration-dotted underline-offset-2 cursor-help{% endif %}"
+                                                class="rounded-sm border border-red-500/40 bg-red-100 dark:bg-red-950/60 px-1.5 py-1 font-mono text-red-900 dark:text-red-200{% if source.title %} underline decoration-dotted underline-offset-2 cursor-help{% endif %}"
                                             >{{ source }}</span>
                                         {% endfor %}
                                     </div>
