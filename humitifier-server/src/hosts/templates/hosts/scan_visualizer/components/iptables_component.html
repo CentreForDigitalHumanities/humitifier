@@ -46,12 +46,12 @@
                                     {% endif %}
 
                                     {% if access.default_open and access.denied_from %}
-                                        <div class="rounded-sm text-xs border border-red-500/40 bg-red-100 dark:bg-red-950/60 px-1.5 py-0.5 font-mono text-red-900 dark:text-red-200">
-                                            {{ access.denied_from|length }} <denied></denied>
+                                        <div class="rounded-sm text-xs bg-red-200 dark:bg-red-900 px-2 py-0.5 font-mono text-red-950 dark:text-red-100">
+                                            {{ access.denied_from|length }}
                                         </div>
                                     {% elif access.default_closed and access.allowed_from %}
-                                        <div class="rounded-sm text-xs border border-green-500/40 bg-green-100 dark:bg-green-950/60 px-1.5 py-0.5 font-mono text-green-900 dark:text-green-200">
-                                            {{ access.allowed_from|length }} <denied></denied>
+                                        <div class="rounded-sm text-xs bg-green-200 dark:bg-green-900 px-2 py-0.5 font-mono text-green-950 dark:text-green-100">
+                                            {{ access.allowed_from|length }}
                                         </div>
                                     {% endif %}
                                 </div>
@@ -62,7 +62,10 @@
                                     <div class="font-semibold mb-1">Allowed from</div>
                                     <div class="flex flex-wrap gap-1 mb-2">
                                         {% for source in access.allowed_from %}
-                                            <span class="rounded-sm border border-green-500/40 bg-green-100 dark:bg-green-950/60 px-1.5 py-0.5 font-mono text-green-900 dark:text-green-200">{{ source }}</span>
+                                            <span
+                                                {% if source.title %}title="{{ source.title }}"{% endif %}
+                                                class="rounded-sm border border-green-500/40 bg-green-100 dark:bg-green-950/60 px-1.5 py-0.5 font-mono text-green-900 dark:text-green-200"
+                                            >{{ source }}</span>
                                         {% endfor %}
                                     </div>
                                 {% endif %}
@@ -70,7 +73,10 @@
                                     <div class="font-semibold mb-1">Denied from</div>
                                     <div class="flex flex-wrap gap-1">
                                         {% for source in access.denied_from %}
-                                            <span class="rounded-sm border border-red-500/40 bg-red-100 dark:bg-red-950/60 px-1.5 py-0.5 font-mono text-red-900 dark:text-red-200">{{ source }}</span>
+                                            <span
+                                                {% if source.title %}title="{{ source.title }}"{% endif %}
+                                                class="rounded-sm border border-red-500/40 bg-red-100 dark:bg-red-950/60 px-1.5 py-0.5 font-mono text-red-900 dark:text-red-200"
+                                            >{{ source }}</span>
                                         {% endfor %}
                                     </div>
                                 {% endif %}

@@ -1,3 +1,4 @@
+import re
 from django.template.defaultfilters import date
 from django.utils.safestring import mark_safe
 
@@ -15,6 +16,7 @@ from humitifier_common.artefacts import (
     IPTables,
     IPTablesChain,
     IPTablesPortAccess,
+    IPTablesPortAccessSource,
 )
 
 
@@ -178,6 +180,26 @@ class PackageManagerInfoVisualizer(SearchableCardsWithHeaderVisualizer):
         )
 
 
+class FormattedSource:
+    def __init__(self, source: str, title: str | None = None):
+        self.source = source
+        self.title = title
+
+    @property
+    def resolved_hostname(self) -> str | None:
+        return self.title
+
+    def __str__(self) -> str:
+        return self.source
+
+    def __eq__(self, other) -> bool:
+        if isinstance(other, str):
+            return self.source == other
+        if isinstance(other, FormattedSource):
+            return self.source == other.source and self.title == other.title
+        return False
+
+
 class IPTablesVisualizer(ArtefactVisualizer):
     """Shows the firewall configuration, with the focus on which ports are
     reachable from where. The raw chains and rules are available too, but are
@@ -238,18 +260,27 @@ class IPTablesVisualizer(ArtefactVisualizer):
         # Port ranges are formatted as 'start:end'
         return port.replace(":", "\u2013")
 
-    def _format_source(self, source: str) -> str:
-        interface = None
-        if "@" in source:
-            source, interface = source.split("@", 1)
+    def _format_source(self, source: IPTablesPortAccessSource | str) -> FormattedSource:
+        if hasattr(source, "source") and hasattr(source, "resolved_hostname"):
+            raw_source = source.source
+            title = source.resolved_hostname
+        else:
+            raw_source = str(source)
+            title = None
 
-        if source == self.ANY_SOURCE:
-            source = "anyone"
+        interface = None
+        if "@" in raw_source:
+            raw_source, interface = raw_source.split("@", 1)
+
+        if raw_source == self.ANY_SOURCE:
+            formatted = "anyone"
+        else:
+            formatted = raw_source
 
         if interface:
-            return f"{source} via {interface}"
+            formatted = f"{formatted} via {interface}"
 
-        return source
+        return FormattedSource(source=formatted, title=title)
 
     def _get_chain_item(self, chain: IPTablesChain) -> dict:
         rules = []

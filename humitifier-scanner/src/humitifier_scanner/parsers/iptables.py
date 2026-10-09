@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from humitifier_common.artefacts import (
     IPTablesChain,
     IPTablesPortAccess,
+    IPTablesPortAccessSource,
     IPTableRules,
 )
 from humitifier_scanner.utils import _resolve_hostname_with_dns
@@ -134,7 +135,7 @@ class IPTablesPortAccessSummarizer:
                     cls._record_verdict(summary, False, _ANY_SOURCE, _ANY_INTERFACE)
 
             if _ANY_SOURCE in summary.denied_from:
-                summary.denied_from = [_ANY_SOURCE]
+                summary.denied_from = [IPTablesPortAccessSource(source=_ANY_SOURCE)]
 
             summaries.append(summary)
 
@@ -368,8 +369,9 @@ class IPTablesPortAccessSummarizer:
             source = f"{source}@{interface}"
 
         target_list = summary.allowed_from if allowed else summary.denied_from
-        if source not in target_list:
-            target_list.append(source)
+        source_obj = IPTablesPortAccessSource(source=source)
+        if source_obj not in target_list:
+            target_list.append(source_obj)
 
         if allowed and source == _ANY_SOURCE:
             summary.default_open = True
@@ -421,7 +423,9 @@ class IPTablesPortAccessSummarizer:
             return 0
 
 
-def _extract_single_ip(spec: str) -> str | None:
+def _extract_single_ip(spec: str | IPTablesPortAccessSource) -> str | None:
+    if hasattr(spec, "source"):
+        spec = spec.source
     if not spec:
         return None
     if "@" in spec:
@@ -480,14 +484,40 @@ def _annotate_single_ip(spec: str, dns_cache: dict[str, str | None]) -> str:
 _replace_single_ip = _annotate_single_ip
 
 
+def _resolve_port_access_source(
+    item: IPTablesPortAccessSource | str,
+    dns_cache: dict[str, str | None],
+) -> IPTablesPortAccessSource:
+    if isinstance(item, IPTablesPortAccessSource):
+        source = item.source
+        resolved_hostname = item.resolved_hostname
+    else:
+        source = str(item)
+        resolved_hostname = None
+
+    ip = _extract_single_ip(source)
+    if ip:
+        if ip not in dns_cache:
+            dns_cache[ip] = _resolve_hostname_with_dns(ip)
+        hostname = dns_cache.get(ip)
+        if hostname:
+            resolved_hostname = hostname
+
+    return IPTablesPortAccessSource(
+        source=source,
+        resolved_hostname=resolved_hostname,
+    )
+
+
 def resolve_iptables_dns(
     chains: list[IPTablesChain] | None = None,
     port_access: list[IPTablesPortAccess] | None = None,
     dns_cache: dict[str, str | None] | None = None,
 ) -> dict[str, str | None]:
     """Perform reverse-DNS on single IP addresses mentioned in IPTables
-    chains (raw rules info) and/or port_access (summarized-per-port data),
-    annotating each resolved IP with its reverse-DNS hostname.
+    chains (raw rules info) and/or port_access (summarized-per-port data).
+    Raw rules are annotated in 'ip (hostname)' format, while port access
+    sources have their resolved_hostname field populated.
     """
     if dns_cache is None:
         dns_cache = {}
@@ -526,10 +556,10 @@ def resolve_iptables_dns(
     if port_access:
         for access in port_access:
             access.allowed_from = [
-                _annotate_single_ip(s, dns_cache) for s in access.allowed_from
+                _resolve_port_access_source(s, dns_cache) for s in access.allowed_from
             ]
             access.denied_from = [
-                _annotate_single_ip(s, dns_cache) for s in access.denied_from
+                _resolve_port_access_source(s, dns_cache) for s in access.denied_from
             ]
 
     return dns_cache
