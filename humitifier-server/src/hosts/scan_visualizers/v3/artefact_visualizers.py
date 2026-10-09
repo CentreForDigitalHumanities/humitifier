@@ -12,6 +12,9 @@ from humitifier_common.artefacts import (
     PackageManagerInfo,
     RpmRepository,
     AptRepository,
+    IPTables,
+    IPTablesChain,
+    IPTablesPortAccess,
 )
 
 
@@ -173,3 +176,142 @@ class PackageManagerInfoVisualizer(SearchableCardsWithHeaderVisualizer):
             search_value=repo.uri,
             content_items=content_items,
         )
+
+
+class IPTablesVisualizer(ArtefactVisualizer):
+    """Shows the firewall configuration, with the focus on which ports are
+    reachable from where. The raw chains and rules are available too, but are
+    tucked away behind a toggle as they tend to be long and rarely needed.
+    """
+
+    title = "Firewall"
+    artefact = IPTables
+    template = "hosts/scan_visualizer/components/iptables_component.html"
+
+    ANY_SOURCE = "0.0.0.0/0"
+    # The chains that are always present; custom chains are listed after these
+    BUILTIN_CHAINS = ("INPUT", "FORWARD", "OUTPUT")
+
+    def show(self):
+        return super().show() and bool(self.artefact_data.chains)
+
+    def get_context(self, **kwargs) -> dict:
+        context = super().get_context(**kwargs)
+
+        artefact_data: IPTables = self.artefact_data
+
+        port_access = [
+            self._get_port_access_item(access) for access in artefact_data.port_access
+        ]
+        chains = [self._get_chain_item(chain) for chain in artefact_data.chains]
+
+        context["port_access"] = port_access
+        context["open_to_all_count"] = len(
+            [access for access in port_access if access["open_to_all"]]
+        )
+        context["chains"] = chains
+        context["num_rules"] = sum(len(chain["rules"]) for chain in chains)
+
+        context["alpinejs_settings"]["show_rules"] = "false"
+        context["alpinejs_settings"]["rule_search"] = "''"
+
+        return context
+
+    def _get_port_access_item(self, access: IPTablesPortAccess) -> dict:
+        allowed_from = [self._format_source(source) for source in access.allowed_from]
+        denied_from = [self._format_source(source) for source in access.denied_from]
+
+        # Sources that are only allowed on a specific interface (like 'lo') are
+        # not reachable from the outside, so they are not counted as 'open'
+        external_allowed = [
+            source for source in access.allowed_from if "@" not in source
+        ]
+
+        if access.open_to_all:
+            status = "Open to everyone"
+            color = "gray"
+        elif external_allowed:
+            status = len(external_allowed)
+            color = "green"
+        elif access.allowed_from:
+            status = "Local only"
+            color = "gray"
+        else:
+            status = "Denied only"
+            color = "gray"
+
+        return {
+            "port": self._format_port(access.port),
+            "protocol": access.protocol,
+            "status": status,
+            "color": color,
+            "open_to_all": access.open_to_all,
+            "allowed_from": allowed_from,
+            "denied_from": denied_from,
+        }
+
+    @staticmethod
+    def _format_port(port: str | None) -> str:
+        if port is None:
+            return "Any port"
+
+        # Port ranges are formatted as 'start:end'
+        return port.replace(":", "\u2013")
+
+    def _format_source(self, source: str) -> str:
+        interface = None
+        if "@" in source:
+            source, interface = source.split("@", 1)
+
+        if source == self.ANY_SOURCE:
+            source = "anyone"
+
+        if interface:
+            return f"{source} via {interface}"
+
+        return source
+
+    def _get_chain_item(self, chain: IPTablesChain) -> dict:
+        rules = []
+        for rule in chain.rules:
+            target = rule.target or ""
+            rules.append(
+                {
+                    "target": target,
+                    "target_color": self._get_target_color(target),
+                    "prot": rule.prot,
+                    "in": rule.in_,
+                    "out": rule.out,
+                    "source": rule.source,
+                    "destination": rule.destination,
+                    "options": rule.options,
+                    "pkts": rule.pkts,
+                    "search_value": " ".join(
+                        [
+                            target,
+                            rule.prot,
+                            rule.in_,
+                            rule.out,
+                            rule.source,
+                            rule.destination,
+                            rule.options,
+                        ]
+                    ),
+                }
+            )
+
+        return {
+            "chain": chain.chain,
+            "default_policy": chain.default_policy,
+            "rules": rules,
+            "search_value": " ".join(rule["search_value"] for rule in rules),
+        }
+
+    @staticmethod
+    def _get_target_color(target: str) -> str:
+        if target == "ACCEPT":
+            return "green"
+        if target in ("DROP", "REJECT"):
+            return "red"
+
+        return "gray"
