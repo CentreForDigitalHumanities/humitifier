@@ -139,6 +139,50 @@ class IPTablesPortAccessSummarizer:
 
             summaries.append(summary)
 
+        # Collect IPs/IP ranges with global access to any port (port is None)
+        global_coverages: dict[str, _IPTablesCoverage] = {}
+        for s in summaries:
+            if s.port is None:
+                cov = global_coverages.setdefault(s.protocol, _IPTablesCoverage())
+                for item in s.allowed_from:
+                    source_str = item.source if hasattr(item, "source") else str(item)
+                    interface = _ANY_INTERFACE
+                    if "@" in source_str:
+                        source_str, interface = source_str.split("@", 1)
+                    networks = cls._parse_networks(source_str)
+                    if networks:
+                        cov.add(networks, interface)
+
+        # Remove those IPs/IP-ranges with global access from port-specific info
+        if global_coverages:
+            for s in summaries:
+                if s.port is not None:
+                    filtered_allowed = []
+                    for item in s.allowed_from:
+                        source_str = (
+                            item.source if hasattr(item, "source") else str(item)
+                        )
+                        interface = _ANY_INTERFACE
+                        if "@" in source_str:
+                            source_str, interface = source_str.split("@", 1)
+                        networks = cls._parse_networks(source_str)
+                        if not networks:
+                            filtered_allowed.append(item)
+                            continue
+
+                        has_global_access = False
+                        for proto in ("all", s.protocol):
+                            if proto in global_coverages and not global_coverages[
+                                proto
+                            ].remaining(networks, interface):
+                                has_global_access = True
+                                break
+
+                        if not has_global_access:
+                            filtered_allowed.append(item)
+
+                    s.allowed_from = filtered_allowed
+
         sorted_summaries = sorted(
             summaries,
             key=lambda s: (s.port is not None, cls._port_sort_key(s.port), s.protocol),
