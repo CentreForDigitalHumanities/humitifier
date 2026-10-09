@@ -5,7 +5,7 @@ A collection of facts that are generic and can be collected on any system.
 from datetime import datetime
 from typing import Literal, Annotated, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from humitifier_common.artefacts.groups import GENERIC
 from humitifier_common.artefacts.registry import fact, metric
@@ -315,6 +315,10 @@ class Systemd(BaseModel):
 
 
 class IPTableRules(BaseModel):
+    # The scanner serializes this model by field name, so 'in_' needs to be
+    # accepted next to the 'in' alias when parsing it again
+    model_config = ConfigDict(populate_by_name=True)
+
     num: int | None = None
     pkts: int
     bytes: int
