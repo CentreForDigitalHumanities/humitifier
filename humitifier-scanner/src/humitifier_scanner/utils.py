@@ -49,10 +49,9 @@ def _get_local_ip() -> str | None:
     return ip
 
 
-def _resolve_hostname_with_dns(ip: str) -> str | None:
-    reverse_name = dns.reversename.from_address(ip)
-
+def resolve_hostname_with_dns(ip: str) -> str | None:
     try:
+        reverse_name = dns.reversename.from_address(ip)
         resolved_hosts = dns.resolver.resolve(reverse_name, "PTR")
 
         for host in resolved_hosts:
@@ -68,3 +67,6 @@ def _resolve_hostname_with_dns(ip: str) -> str | None:
             return hostname
     except Exception:
         return None
+
+
+_resolve_hostname_with_dns = resolve_hostname_with_dns
