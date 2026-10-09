@@ -1,0 +1,13 @@
+<span>{{ label_1 }}</span>
+<span class="italic">
+    {% if label_2 %}
+        {{ label_2 }}
+    {% endif %}
+</span>
+<span
+    class="text-right">{{ used }} / {{ total }} ({{ percentage|floatformat:2 }}%)</span>
+<div
+    class="bg-gray-200 dark:bg-gray-700 h-2 w-full rounded-full col-span-3 mt-1 mb-3 last:mb-0">
+    <div class="bg-primary h-2 rounded-full"
+         style="width: {{ percentage }}%;"></div>
+</div>
