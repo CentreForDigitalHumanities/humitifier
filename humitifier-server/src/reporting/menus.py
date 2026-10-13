@@ -29,14 +29,14 @@ Menu.add_item(
                 reverse("reporting:report_list"),
                 icon="icons/sheet.html",
                 check=lambda request: request.user.is_authenticated
-                and request.user.is_superuser,
+                and getattr(request.user, "can_access_reporting", False),
             ),
             HumitifierMenuItem(
                 "Costs schemes list",
                 reverse("reporting:costs_list"),
                 icon="icons/banknotes.html",
                 check=lambda request: request.user.is_authenticated
-                and request.user.is_superuser,
+                and getattr(request.user, "can_access_reporting", False),
             ),
         ],
     ),

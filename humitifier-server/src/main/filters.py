@@ -222,7 +222,12 @@ class FiltersForm(Form):
 class UserFilters(django_filters.FilterSet):
     class Meta:
         model = User
-        fields = ["is_active", "is_local_account", "access_profile"]
+        fields = [
+            "is_active",
+            "is_local_account",
+            "is_financial_operator",
+            "access_profile",
+        ]
         form = FiltersForm
 
     is_active = django_filters.ChoiceFilter(
@@ -237,6 +242,15 @@ class UserFilters(django_filters.FilterSet):
     is_local_account = django_filters.ChoiceFilter(
         empty_label="Is local account",
         field_name="is_local_account",
+        choices=[
+            (True, "Yes"),
+            (False, "No"),
+        ],
+    )
+
+    is_financial_operator = django_filters.ChoiceFilter(
+        empty_label="Is financial operator",
+        field_name="is_financial_operator",
         choices=[
             (True, "Yes"),
             (False, "No"),

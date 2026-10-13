@@ -20,7 +20,11 @@ from rest_framework.reverse import reverse_lazy
 
 from hosts.models import Host, ScanData
 from humitifier_common.artefacts import Hardware
-from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
+from main.views import (
+    FilteredListView,
+    FinancialOperatorRequiredMixin,
+    TableMixin,
+)
 from reporting.filters import CostsSchemeFilters, GeneratedReportFilters
 from reporting.forms import (
     CostCalculatorForm,
@@ -36,7 +40,7 @@ from reporting.utils.get_server_hardware import get_hardware_for_hosts
 
 
 class CostsSchemeListView(
-    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+    LoginRequiredMixin, FinancialOperatorRequiredMixin, TableMixin, FilteredListView
 ):
     model = CostsScheme
     table_class = CostsSchemeTable
@@ -54,7 +58,7 @@ class CostsSchemeListView(
 
 
 class CostsSchemeCreateView(
-    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+    LoginRequiredMixin, FinancialOperatorRequiredMixin, SuccessMessageMixin, CreateView
 ):
     model = CostsScheme
     form_class = CostsSchemeForm
@@ -63,7 +67,7 @@ class CostsSchemeCreateView(
 
 
 class CostsSchemeUpdateView(
-    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+    LoginRequiredMixin, FinancialOperatorRequiredMixin, SuccessMessageMixin, UpdateView
 ):
     model = CostsScheme
     form_class = CostsSchemeForm
@@ -72,7 +76,7 @@ class CostsSchemeUpdateView(
 
 
 class CostsSchemeDeleteView(
-    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+    LoginRequiredMixin, FinancialOperatorRequiredMixin, SuccessMessageMixin, DeleteView
 ):
     model = CostsScheme
     success_url = reverse_lazy("reporting:costs_list")
@@ -163,7 +167,7 @@ class CostCalculatorView(LoginRequiredMixin, FormView):
 
 
 class ReportListView(
-    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+    LoginRequiredMixin, FinancialOperatorRequiredMixin, TableMixin, FilteredListView
 ):
     model = GeneratedReport
     table_class = GeneratedReportTable
@@ -176,7 +180,7 @@ class ReportListView(
         return super().get_queryset().filter(created_by=self.request.user)
 
 
-class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
+class CostsReportView(FinancialOperatorRequiredMixin, LoginRequiredMixin, FormView):
     form_class = CostsReportForm
     template_name = "reporting/costs_report.html"
 
@@ -224,7 +228,7 @@ class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
         return redirect("reporting:report_list")
 
 
-class ReportDownloadView(SuperuserRequiredMixin, LoginRequiredMixin, View):
+class ReportDownloadView(FinancialOperatorRequiredMixin, LoginRequiredMixin, View):
 
     def get(self, request, pk):
         report = get_object_or_404(GeneratedReport, pk=pk, created_by=request.user)
@@ -240,7 +244,7 @@ class ReportDownloadView(SuperuserRequiredMixin, LoginRequiredMixin, View):
 
 
 class ReportDeleteView(
-    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, DeleteView
+    LoginRequiredMixin, FinancialOperatorRequiredMixin, SuccessMessageMixin, DeleteView
 ):
     model = GeneratedReport
     success_url = reverse_lazy("reporting:report_list")
@@ -250,7 +254,9 @@ class ReportDeleteView(
         return super().get_queryset().filter(created_by=self.request.user)
 
 
-class ReportRerunView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
+class ReportRerunView(
+    LoginRequiredMixin, FinancialOperatorRequiredMixin, TemplateView
+):
     template_name = "reporting/report_confirm_rerun.html"
 
     def get_context_data(self, **kwargs):

@@ -24,6 +24,7 @@ class UsersTable(BaseTable):
             "access_profiles",
             "is_active",
             "is_local_account",
+            "is_financial_operator",
             "actions",
         ]
         column_type_overrides = {
