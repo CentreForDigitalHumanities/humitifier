@@ -126,6 +126,8 @@ def calculate_from_hardware_artefact(
 
         total_disk_space += size
 
+    total_disk_space = Decimal(total_disk_space)
+
     return calculate_costs(
         num_cpu=hardware.num_cpus,
         memory_in_gb=total_memory,
