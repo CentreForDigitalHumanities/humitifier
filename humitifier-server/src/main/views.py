@@ -1,6 +1,5 @@
 import json
 from datetime import datetime
-from typing import Any
 from urllib.parse import urlparse
 
 from django.contrib.auth.mixins import AccessMixin, LoginRequiredMixin
