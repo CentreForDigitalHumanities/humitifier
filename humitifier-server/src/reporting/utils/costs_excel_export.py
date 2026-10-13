@@ -363,7 +363,7 @@ def _get_server_info_for_month(
     # onward (to work around some edge cases with missing data).
     # If no scans exist for this month onward and allow_old_data is True, fall back
     # to the latest available scan.
-    all_scans = host.scans.filter(data__version=2).order_by("created_at")
+    all_scans = host.scans.filter(data__version__gte=2).order_by("created_at")
     scans = all_scans.exclude(created_at__lt=month)
     if not scans.exists():
         if not allow_old_data:
