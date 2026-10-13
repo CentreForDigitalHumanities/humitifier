@@ -226,6 +226,7 @@ class MultiPlatformCostsTestCase(TestCase):
             start_date,
             end_date,
             ["TestCustomer"],
+            False,
         )
 
         report.refresh_from_db()
