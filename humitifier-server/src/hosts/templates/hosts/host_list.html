@@ -13,9 +13,11 @@
                 <a class="btn btn-sm btn-primary" href="{% url 'hosts:export' %}?{% param_replace %}">
                     Export
                 </a>
-                <a class="btn btn-sm btn-primary" href="{% url 'hosts:create' %}">
-                    New Host
-                </a>
+                {% if request.user.is_superuser %}
+                    <a class="btn btn-sm btn-primary" href="{% url 'hosts:create' %}">
+                        New Host
+                    </a>
+                {% endif %}
             </div>
         </div>
 

@@ -12,6 +12,12 @@ class User(AbstractUser):
 
     is_local_account = models.BooleanField(default=True)
 
+    is_financial_operator = models.BooleanField(
+        default=False,
+        verbose_name="Financial operator",
+        help_text="Designates whether the user can access reporting features.",
+    )
+
     wild_wasteland_mode = models.BooleanField(
         default=False,
         help_text="Enables easter eggs, non-default as it's less professional.",
@@ -29,6 +35,10 @@ class User(AbstractUser):
         blank=True,
         related_name="users",
     )
+
+    @property
+    def can_access_reporting(self):
+        return self.is_superuser or self.is_financial_operator
 
     @property
     def can_view_datasources(self):

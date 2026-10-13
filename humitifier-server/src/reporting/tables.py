@@ -27,6 +27,7 @@ class GeneratedReportTable(BaseTable):
             "costs_schemes",
             "start_date",
             "end_date",
+            "prognosis",
             "actions",
         ]
 
@@ -47,7 +48,8 @@ class GeneratedReportTable(BaseTable):
                 text="Download",
                 button_class="btn btn-primary",
                 url=lambda obj: reverse("reporting:report_download", args=[obj.pk]),
-                show_check_function=lambda obj: obj.status == GeneratedReport.Status.COMPLETED,
+                show_check_function=lambda obj: obj.status
+                == GeneratedReport.Status.COMPLETED,
             ),
             ButtonColumn(
                 text="Rerun",

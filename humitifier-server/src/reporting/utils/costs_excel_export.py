@@ -19,7 +19,6 @@ from reporting.utils.get_server_hardware import (
     get_hardware_for_hosts,
 )
 
-
 ##
 ## Data models
 ##
@@ -92,6 +91,7 @@ def create_timeseries_cost_excel(
     filename: str,
     start_date: date,
     end_date: date,
+    prognosis: bool = False,
     customers: list[str] | str | None = None,
 ):
     customer_info = []
@@ -112,7 +112,7 @@ def create_timeseries_cost_excel(
         entries = []
         for host in hosts:
             for month in months:
-                info = _get_server_info_for_month(host, month)
+                info = _get_server_info_for_month(host, month, allow_old_data=prognosis)
 
                 if not info:
                     continue
@@ -122,7 +122,6 @@ def create_timeseries_cost_excel(
                 else:
                     scheme = costs_scheme.get(info.platform)
                     if not scheme:
-                        print("whaa")
                         # Don't do anything if we cannot find a scheme for the platform
                         continue
 
@@ -336,7 +335,9 @@ def _get_months_between_dates(start: date, end: date) -> list[datetime]:
     return dates
 
 
-def _get_server_info_for_month(host: Host, month: datetime) -> Server | None:
+def _get_server_info_for_month(
+    host: Host, month: datetime, allow_old_data: bool = False
+) -> Server | None:
     # First, see if the server was turned off for this month
     if (
         host.offline_periods.filter(
@@ -357,18 +358,24 @@ def _get_server_info_for_month(host: Host, month: datetime) -> Server | None:
     if host.archival_date and host.archival_date < month:
         return None
 
-    # Get the latest scan for this month
-    # We do this by ignoring all scans before this month and then get the oldest
-    # scan. This is a bit... weird, but this works around some edge cases with missing
-    # data.
-    scans = host.scans.exclude(created_at__lt=month).order_by("created_at")
-    scans = scans.filter(data__version__gte=2)
+    # Get the scan for this month.
+    # We ignore all scans before this month and take the oldest scan from this month
+    # onward (to work around some edge cases with missing data).
+    # If no scans exist for this month onward and allow_old_data is True, fall back
+    # to the latest available scan.
+    all_scans = host.scans.filter(data__version__gte=2).order_by("created_at")
+    scans = all_scans.exclude(created_at__lt=month)
     if not scans.exists():
-        return None
+        if not allow_old_data:
+            return None
+        if all_scans.exists():
+            scan = all_scans.last()
+        else:
+            return None
+    else:
+        scan = scans.first()
 
-    scan_for_month = scans.first().get_scan_object()
-
-    return get_hardware_fact(scan_for_month)
+    return get_hardware_fact(scan.get_scan_object())
 
 
 def _get_customer_sheet_name(customer_name: str | None) -> str:

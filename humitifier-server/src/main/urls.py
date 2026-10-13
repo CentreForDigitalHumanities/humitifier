@@ -23,12 +23,14 @@ from .views import (
     UserProfileView,
     UsersView,
     VersionView,
+    WebManifestView,
 )
 
 app_name = "main"
 
 urlpatterns = [
     path("", HomeRedirectView.as_view(), name="home"),
+    path("manifest.json", WebManifestView.as_view(), name="manifest"),
     path("dashboard/", DashboardView.as_view(), name="dashboard"),
     path("version/", VersionView.as_view(), name="version"),
     path("user_profile/", UserProfileView.as_view(), name="user_profile"),

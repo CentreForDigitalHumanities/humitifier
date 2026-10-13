@@ -55,15 +55,12 @@ class GeneratedReport(models.Model):
         on_delete=models.CASCADE,
     )
     error_message = models.TextField(blank=True)
-    customers = ArrayField(
-        models.CharField(max_length=255)
-    )
-    costs_schemes = models.ManyToManyField(
-        CostsScheme
-    )
+    customers = ArrayField(models.CharField(max_length=255))
+    costs_schemes = models.ManyToManyField(CostsScheme)
     start_date = models.DateField()
     end_date = models.DateField()
 
+    prognosis = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.filename} ({self.status})"

@@ -91,3 +91,9 @@ class CostsReportForm(forms.Form):
         "for example, any date in September will run the report up to and "
         "including September.",
     )
+
+    prognosis = forms.BooleanField(
+        label="Prognosis",
+        required=False,
+        help_text="If checked, months in the future will be calculated based on the current month's data. ",
+    )

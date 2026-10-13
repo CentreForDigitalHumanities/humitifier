@@ -183,7 +183,7 @@ jobs:
         run: |
           fpm \
           -s dir -t ${{ matrix.package }} \
-          -p humitifier-scanner.${{ env.ref_name }}.${{ matrix.package }} \
+          -p humitifier-scanner.${{ env.ref_name }}_amd64.${{ matrix.package }} \
           --name humitifier-scanner \
           --license GPL-3.0 \
           --version ${{ env.ref_name }} \

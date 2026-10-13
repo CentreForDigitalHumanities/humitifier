@@ -23,6 +23,7 @@ class UserForm(forms.ModelForm):
             "wild_wasteland_mode",
             "default_home",
             "is_superuser",
+            "is_financial_operator",
             "access_profiles",
         ]
         widgets = {
@@ -77,6 +78,7 @@ class CreateSolisUserForm(forms.ModelForm):
         fields = [
             "username",
             "is_superuser",
+            "is_financial_operator",
             "access_profiles",
         ]
         widgets = {

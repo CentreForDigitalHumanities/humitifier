@@ -143,6 +143,13 @@ WILD_WASTELAND_JOKES = [
         "The speed of light is the fastest anything can go",
     ),
     "Chicken",
+    (
+        "Have you changed your password yet?",
+        "No, really, have you changed your password yet?",
+        "No, really, really, have you changed your password yet?",
+        "Please don't wait till the last day to change your password, again....",
+        "I will be very sad if you don't change your password on time",
+    ),
     # @formatter:on
 ]
 
@@ -164,6 +171,7 @@ def layout_context(request):
 
     oidc_enabled = hasattr(settings, "OIDC_RP_CLIENT_ID")
     gitlab_gag = False
+    my_servers_gag = False
 
     if wild_wasteland:
         active_chain = request.session.get("active_joke_chain")
@@ -188,6 +196,9 @@ def layout_context(request):
         ):  # 3 is Thursday (Monday=0)
             gitlab_gag = True
 
+        if random.randint(1, 100) == 1:
+            my_servers_gag = True
+
     return {
         "layout": {
             "num_hosts": hosts.count(),
@@ -201,6 +212,7 @@ def layout_context(request):
             "oidc_enabled": oidc_enabled,
             "wild_wasteland": wild_wasteland,
             "gitlab_gag": gitlab_gag,
+            "my_servers_gag": my_servers_gag,
             "tag_line": tag_line,
             "humitifier_version": settings.HUMITIFIER_VERSION,
             "humitifier_version_name": settings.HUMITIFIER_VERSION_NAME,

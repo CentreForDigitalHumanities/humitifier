@@ -182,7 +182,7 @@ class HostManager(models.Manager):
         if user.is_anonymous:
             return self.get_queryset().none()
 
-        if user.is_superuser:
+        if user.is_superuser or user.is_financial_operator:
             return self.get_queryset()
 
         if user.access_profiles.exists():
@@ -302,7 +302,9 @@ class Host(models.Model):
     )
 
     hypervisor = models.GeneratedField(
-        expression=_json_value("last_scan_cache__facts__generic.HostnameCtl__virtualization"),
+        expression=_json_value(
+            "last_scan_cache__facts__generic.HostnameCtl__virtualization"
+        ),
         output_field=models.CharField(max_length=255),
         db_persist=True,
     )
@@ -355,13 +357,14 @@ class Host(models.Model):
         # It's not quicker for a single query, but it is for multiple queries
         # (Read: the list page)
         if "alerts" in self._prefetched_objects_cache:
-            if 'alert_acknowledgements' in self._prefetched_objects_cache:
+            if "alert_acknowledgements" in self._prefetched_objects_cache:
                 acknowledged_alerts = [
                     ack._alert_id
                     for ack in self._prefetched_objects_cache["alert_acknowledgements"]
                 ]
                 alerts = [
-                    alert for alert in self.alerts.all()
+                    alert
+                    for alert in self.alerts.all()
                     if alert.id in acknowledged_alerts
                 ]
             else:
@@ -380,21 +383,22 @@ class Host(models.Model):
         # It's not quicker for a single query, but it is for multiple queries
         # (Read: the list page)
         if "alerts" in self._prefetched_objects_cache:
-            if 'alert_acknowledgements' in self._prefetched_objects_cache:
+            if "alert_acknowledgements" in self._prefetched_objects_cache:
                 acknowledged_alerts = [
                     ack._alert_id
                     for ack in self._prefetched_objects_cache["alert_acknowledgements"]
                 ]
                 alerts = [
-                    alert for alert in self.alerts.all()
-                    if alert.severity == severity and alert.id not in acknowledged_alerts
+                    alert
+                    for alert in self.alerts.all()
+                    if alert.severity == severity
+                    and alert.id not in acknowledged_alerts
                 ]
             else:
                 alerts = [
                     alert
                     for alert in self.alerts.all()
-                    if alert.severity == severity
-                    and alert.get_acknowledgment() is None
+                    if alert.severity == severity and alert.get_acknowledgment() is None
                 ]
 
             if count:
@@ -616,13 +620,10 @@ class SavedSearch(models.Model):
     query = models.TextField()
     columns = models.TextField(help_text="Comma-separated list of column field IDs")
     is_public = models.BooleanField(
-        default=False,
-        help_text="Public searches are visible and editable by all users"
+        default=False, help_text="Public searches are visible and editable by all users"
     )
     creator = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name="saved_searches"
+        User, on_delete=models.CASCADE, related_name="saved_searches"
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

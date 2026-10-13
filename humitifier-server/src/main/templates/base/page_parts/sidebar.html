@@ -23,7 +23,7 @@
             <img src="{% static 'main/img/cm_hs_avatar_corporate.png' %}" alt="Utrecht University" class="h-14 flex-shrink-0">
         {% endif %}
         <div>
-            <div class="text-2xl font-bold">Humitifier</div>
+            <div class="text-2xl font-bold">{% if layout.wild_wasteland and layout.my_servers_gag %}MyServers{% else %}Humitifier{% endif %}</div>
             <div class="text-md italic text-gray-300">{{ layout.tag_line }}</div>
         </div>
     </section>

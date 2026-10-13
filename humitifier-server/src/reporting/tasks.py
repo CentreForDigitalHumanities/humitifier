@@ -6,7 +6,7 @@ from humitifier_server.celery.task_names import REPORTING_GENERATE_COST_REPORT
 
 @shared_task(name=REPORTING_GENERATE_COST_REPORT)
 def generate_cost_report(
-    report_id, costs_scheme_ids, filename, start_date, end_date, customers
+    report_id, costs_scheme_ids, filename, start_date, end_date, customers, prognosis
 ):
     from datetime import date as date_type
 
@@ -24,7 +24,7 @@ def generate_cost_report(
         end = date_type.fromisoformat(end_date)
 
         file_data = create_timeseries_cost_excel(
-            schemes_by_platform, filename, start, end, customers or None
+            schemes_by_platform, filename, start, end, prognosis, customers or None
         )
 
         report.file.save(filename, ContentFile(file_data.getvalue()), save=False)
