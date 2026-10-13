@@ -193,6 +193,7 @@ class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
         filename = form.cleaned_data["filename"]
         start_date = form.cleaned_data["start_date"]
         end_date = form.cleaned_data["end_date"]
+        prognosis = form.cleaned_data["prognosis"]
 
         report = GeneratedReport.objects.create(
             filename=filename,
@@ -200,6 +201,7 @@ class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
             customers=customers,
             start_date=start_date,
             end_date=end_date,
+            prognosis=prognosis,
         )
         report.costs_schemes.set(costs_schemes)
 
@@ -210,6 +212,7 @@ class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
             start_date.isoformat(),
             end_date.isoformat(),
             customers,
+            prognosis,
         )
 
         messages.success(
@@ -224,9 +227,7 @@ class CostsReportView(SuperuserRequiredMixin, LoginRequiredMixin, FormView):
 class ReportDownloadView(SuperuserRequiredMixin, LoginRequiredMixin, View):
 
     def get(self, request, pk):
-        report = get_object_or_404(
-            GeneratedReport, pk=pk, created_by=request.user
-        )
+        report = get_object_or_404(GeneratedReport, pk=pk, created_by=request.user)
 
         if report.status != GeneratedReport.Status.COMPLETED:
             raise Http404
@@ -268,6 +269,7 @@ class ReportRerunView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
             customers=report.customers,
             start_date=report.start_date,
             end_date=report.end_date,
+            prognosis=report.prognosis,
         )
         new_report.costs_schemes.set(report.costs_schemes.all())
 
@@ -278,6 +280,7 @@ class ReportRerunView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
             new_report.start_date.isoformat(),
             new_report.end_date.isoformat(),
             new_report.customers,
+            new_report.prognosis,
         )
 
         messages.success(
