@@ -369,13 +369,13 @@ def _get_server_info_for_month(
         if not allow_old_data:
             return None
         if all_scans.exists():
-            scan = all_scans.last().get_scan_object()
+            scan = all_scans.first()
         else:
             return None
     else:
         scan = scans.first()
 
-    return get_hardware_fact(scan)
+    return get_hardware_fact(scan.get_scan_object())
 
 
 def _get_customer_sheet_name(customer_name: str | None) -> str:
