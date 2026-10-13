@@ -369,7 +369,7 @@ def _get_server_info_for_month(
         if not allow_old_data:
             return None
         if all_scans.exists():
-            scan = all_scans.first()
+            scan = all_scans.last()
         else:
             return None
     else:
