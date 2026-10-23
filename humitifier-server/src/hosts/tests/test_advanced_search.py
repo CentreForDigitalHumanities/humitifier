@@ -1330,3 +1330,19 @@ class AdvancedSearchViewTests(TestCase):
         content = response.content.decode("utf-8")
         for func in function_registry.all():
             self.assertIn(f"<code>{func.name}(...)</code>", content)
+
+    def test_view_spec_includes_match_function(self):
+        url = reverse("hosts:advanced_search")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+        spec = response.context["language_spec"]
+        match_spec = next((f for f in spec["functions"] if f["name"] == "match"), None)
+        self.assertIsNotNone(match_spec)
+        self.assertEqual(match_spec["description"], "Match multiple fields against patterns on the same array element")
+        self.assertIsNotNone(match_spec["variadic"])
+        self.assertEqual(len(match_spec["variadic"]), 2)
+
+        content = response.content.decode("utf-8")
+        self.assertIn("<code>match(...)</code>", content)
+        self.assertIn("Match multiple fields against patterns on the same array element", content)

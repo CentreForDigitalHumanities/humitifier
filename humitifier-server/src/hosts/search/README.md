@@ -70,12 +70,16 @@ class ExampleFunc(SearchFunction):
    - The query parser will recognize its signature and validate argument types at parse time.
 
 ### Variadic & Correlated Functions
-Functions can accept repeated argument groups via `variadic`. For example, correlated predicates matching multiple fields on the same array element:
+Functions can accept repeated argument groups via `variadic`. For example, the built-in `match` predicate (`MatchElements` in `hosts/search/functions/matching.py`) performs correlated lookups across multiple attributes on the exact same array element:
 
 ```python
-class CorrelatedMatch(SearchFunction):
-    name = "correlated_match"
-    description = "Match multiple fields on the same array element"
+class MatchElements(SearchFunction):
+    name = "match"
+    description = "Match multiple fields against patterns on the same array element"
+    examples = (
+        "match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', "
+        "facts.generic.PackageManagerInfo.installed_packages[].current_version, '7.0')",
+    )
     params = ()
     variadic = (
         Param("field", ParamKind.FIELD, frozenset({ValueType.STRING}), Cardinality.ELEMENTS),
@@ -88,10 +92,27 @@ class CorrelatedMatch(SearchFunction):
 
     @classmethod
     def compile(cls, args, ctx: CompileContext):
-        source = ctx.get_element_source(args[0].field)
+        first_field = args[0].field
+        source = ctx.get_element_source(first_field)
         # All fields share the same source (same LATERAL element alias)
+        conditions = [
+            SqlFragment(f"{ctx.element_value(args[i].field, source).sql} ILIKE %s", (f"%{args[i+1].value}%",))
+            for i in range(0, len(args), 2)
+        ]
         ...
 ```
+
+#### The `match(...)` Search Function
+- **Signature**: `match(field, pattern, [field, pattern, ...])`
+- **Arguments**: Variadic pairs consisting of an array element string field and a string literal pattern.
+- **Validation**:
+  - Requires at least 2 arguments (one field/pattern pair) and an even argument count.
+  - All fields must reference the exact same array (`section`, `artefact_key`, and `array_path`).
+- **Behavior**: Case-insensitive substring match (`ILIKE %pattern%`). Evaluates as a standalone boolean condition returning true if and only if at least one array element satisfies all criteria simultaneously.
+- **Example**:
+  ```
+  match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', facts.generic.PackageManagerInfo.installed_packages[].current_version, '7.0')
+  ```
 
 ---
 

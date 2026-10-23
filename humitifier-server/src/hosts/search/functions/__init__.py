@@ -6,6 +6,7 @@ import importlib
 import pkgutil
 
 from .base import Param, ParamKind, SearchFunction
+from .matching import MatchElements
 from .registry import function_registry
 
 
@@ -18,6 +19,7 @@ def _autodiscover() -> None:
 _autodiscover()
 
 __all__ = [
+    "MatchElements",
     "Param",
     "ParamKind",
     "SearchFunction",
