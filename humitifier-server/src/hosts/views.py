@@ -288,12 +288,13 @@ class HostScanSpecUpdateView(
     model = Host
     form_class = HostScanSpecForm
     success_message = "Host scan spec updated successfully"
-    slug_url_kwarg = 'fqdn'
-    slug_field = 'fqdn'
-    template_name = 'hosts/host_scanspec_form.html'
+    slug_url_kwarg = "fqdn"
+    slug_field = "fqdn"
+    template_name = "hosts/host_scanspec_form.html"
 
     def get_success_url(self):
         return reverse("hosts:detail", kwargs={"fqdn": self.object.fqdn})
+
 
 class HostCreateView(
     LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
@@ -312,8 +313,8 @@ class HostUpdateView(
     model = Host
     form_class = HostForm
     success_message = "Host updated successfully"
-    slug_url_kwarg = 'fqdn'
-    slug_field = 'fqdn'
+    slug_url_kwarg = "fqdn"
+    slug_field = "fqdn"
 
     def dispatch(self, request, *args, **kwargs):
         obj: Host = self.get_object()
@@ -329,7 +330,7 @@ class HostUpdateView(
 
 
 class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateView):
-    template_name = 'hosts/host_advanced_search.html'
+    template_name = "hosts/host_advanced_search.html"
 
     def get(self, request, *args, **kwargs):
         # Check if we're loading a saved search
@@ -337,8 +338,7 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         if load_id:
             try:
                 saved_search = SavedSearch.objects.filter(
-                    Q(creator=request.user) | Q(is_public=True),
-                    pk=load_id
+                    Q(creator=request.user) | Q(is_public=True), pk=load_id
                 ).first()
                 if saved_search:
                     self._loaded_search = saved_search
@@ -386,14 +386,18 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
                     lines.append(fqdn)
             body = "\n".join(lines)
             resp = HttpResponse(body, content_type="text/plain; charset=utf-8")
-            resp["Content-Disposition"] = f"attachment; filename={EXPORT_FILENAME_PREFIX}{ts}.txt"
+            resp["Content-Disposition"] = (
+                f"attachment; filename={EXPORT_FILENAME_PREFIX}{ts}.txt"
+            )
             return resp
 
         if export_type == ExportType.JSON:
             rows = list(iter_rows())
             body = json.dumps(rows, indent=2, default=str)
             resp = HttpResponse(body, content_type="application/json")
-            resp["Content-Disposition"] = f"attachment; filename={EXPORT_FILENAME_PREFIX}{ts}.json"
+            resp["Content-Disposition"] = (
+                f"attachment; filename={EXPORT_FILENAME_PREFIX}{ts}.json"
+            )
             return resp
 
         if export_type == ExportType.CSV:
@@ -412,7 +416,9 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
                         normalized[k] = v
                 writer.writerow(normalized)
             resp = HttpResponse(sio.getvalue(), content_type="text/csv; charset=utf-8")
-            resp["Content-Disposition"] = f"attachment; filename={EXPORT_FILENAME_PREFIX}{ts}.csv"
+            resp["Content-Disposition"] = (
+                f"attachment; filename={EXPORT_FILENAME_PREFIX}{ts}.csv"
+            )
             return resp
 
         # Fallback to normal rendering
@@ -431,34 +437,31 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         search_string = None
 
         # Check if we're loading a saved search
-        if hasattr(self, '_loaded_search'):
+        if hasattr(self, "_loaded_search"):
             saved_search = self._loaded_search
             search_string = saved_search.query
-            context['search_string'] = saved_search.query
+            context["search_string"] = saved_search.query
             requested_columns = saved_search.get_columns_list()
-            context['loaded_search_id'] = saved_search.pk
+            context["loaded_search_id"] = saved_search.pk
         else:
             requested_columns = self._parse_requested_columns(searchable_fields)
             if self.request.POST:
-                search_string = self.request.POST.get(SearchFormParam.SEARCH_STRING, '')
-                context['search_string'] = search_string
+                search_string = self.request.POST.get(SearchFormParam.SEARCH_STRING, "")
+                context["search_string"] = search_string
 
-        context['searchable_fields'] = searchable_fields
-        context['language_spec'] = get_language_spec()
-        context['requested_columns'] = requested_columns
-        context['data'] = self._get_data(
-            search_string,
-            searchable_fields,
-            requested_columns)
-        context['include_archived'] = self._include_archived()
+        context["searchable_fields"] = searchable_fields
+        context["language_spec"] = get_language_spec()
+        context["requested_columns"] = requested_columns
+        context["data"] = self._get_data(search_string, requested_columns)
+        context["include_archived"] = self._include_archived()
 
         # Check for query parse error message
-        if hasattr(self, '_query_parse_error'):
-            context['query_parse_error'] = self._query_parse_error
+        if hasattr(self, "_query_parse_error"):
+            context["query_parse_error"] = self._query_parse_error
 
         return context
 
-    def _get_data(self, search_string, searchable_fields, requested_columns):
+    def _get_data(self, search_string, requested_columns):
         qs = Host.objects.get_for_user(self.request.user)
 
         if not self._include_archived():
@@ -480,15 +483,14 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         if not self.request.POST:
             return []
 
-        column_string = self.request.POST.get(SearchFormParam.COLUMNS, '')
+        column_string = self.request.POST.get(SearchFormParam.COLUMNS, "")
 
         if not column_string:
             return {}
 
         allowed_fields = [field.id for field in searchable_fields]
 
-        return [field for field in column_string.split(',') if field in allowed_fields]
-
+        return [field for field in column_string.split(",") if field in allowed_fields]
 
     def _parse_search_string(self, search_string):
         """Parse the search string using the ComplexQuery parser.
@@ -508,6 +510,7 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
             self._query_parse_error = str(e)
             return None
 
+
 ##
 ## Data source views
 ##
@@ -525,7 +528,9 @@ class DataSourcesView(LoginRequiredMixin, TableMixin, FilteredListView):
     paginate_by = 10
 
 
-class DataSourceCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView):
+class DataSourceCreateView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     template_name = "hosts/datasource_form.html"
     model = DataSource
     form_class = DataSourceForm
@@ -533,7 +538,9 @@ class DataSourceCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMe
     success_message = "Data source created"
 
 
-class DataSourceEditView(LoginRequiredMixin, SuperuserRequiredMixin,SuccessMessageMixin, UpdateView):
+class DataSourceEditView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
     template_name = "hosts/datasource_form.html"
     model = DataSource
     form_class = DataSourceForm
@@ -546,7 +553,9 @@ class DataSourceEditView(LoginRequiredMixin, SuperuserRequiredMixin,SuccessMessa
 ##
 
 
-class OperatingSystemsView(LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView):
+class OperatingSystemsView(
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+):
     template_name = "hosts/operatingsystem_list.html"
     model = OperatingSystem
     table_class = OperatingSystemsTable
@@ -558,7 +567,9 @@ class OperatingSystemsView(LoginRequiredMixin, SuperuserRequiredMixin, TableMixi
     paginate_by = 50
 
 
-class OperatingSystemCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView):
+class OperatingSystemCreateView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     template_name = "hosts/operatingsystem_form.html"
     model = OperatingSystem
     form_class = OperatingSystemForm
@@ -566,7 +577,9 @@ class OperatingSystemCreateView(LoginRequiredMixin, SuperuserRequiredMixin, Succ
     success_message = "Operating system created"
 
 
-class OperatingSystemEditView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView):
+class OperatingSystemEditView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
     template_name = "hosts/operatingsystem_form.html"
     model = OperatingSystem
     form_class = OperatingSystemForm
@@ -587,7 +600,9 @@ class OperatingSystemDeleteView(
 ##
 
 
-class SavedSearchListView(LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView):
+class SavedSearchListView(
+    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
+):
     model = SavedSearch
     table_class = SavedSearchesTable
     template_name = "hosts/saved_search_list.html"
@@ -597,12 +612,16 @@ class SavedSearchListView(LoginRequiredMixin, SuperuserRequiredMixin, TableMixin
     def get_queryset(self):
         user = self.request.user
         # Get user's own searches and public searches
-        return SavedSearch.objects.filter(
-            Q(creator=user) | Q(is_public=True)
-        ).select_related('creator').order_by('-updated_at')
+        return (
+            SavedSearch.objects.filter(Q(creator=user) | Q(is_public=True))
+            .select_related("creator")
+            .order_by("-updated_at")
+        )
 
 
-class SavedSearchCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView):
+class SavedSearchCreateView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, CreateView
+):
     model = SavedSearch
     form_class = SavedSearchForm
     template_name = "hosts/saved_search_form.html"
@@ -612,15 +631,15 @@ class SavedSearchCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessM
     def get_initial(self):
         initial = super().get_initial()
         # Pre-populate from query parameters if provided
-        if 'query' in self.request.GET:
-            initial['query'] = self.request.GET['query']
-        if 'columns' in self.request.GET:
-            initial['columns'] = self.request.GET['columns']
+        if "query" in self.request.GET:
+            initial["query"] = self.request.GET["query"]
+        if "columns" in self.request.GET:
+            initial["columns"] = self.request.GET["columns"]
         return initial
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['searchable_fields'] = get_searchable_fields()
+        context["searchable_fields"] = get_searchable_fields()
         return context
 
     def form_valid(self, form):
@@ -628,7 +647,9 @@ class SavedSearchCreateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessM
         return super().form_valid(form)
 
 
-class SavedSearchUpdateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView):
+class SavedSearchUpdateView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, UpdateView
+):
     model = SavedSearch
     form_class = SavedSearchForm
     template_name = "hosts/saved_search_form.html"
@@ -637,7 +658,7 @@ class SavedSearchUpdateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessM
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['searchable_fields'] = get_searchable_fields()
+        context["searchable_fields"] = get_searchable_fields()
         return context
 
     def get_queryset(self):
@@ -647,13 +668,14 @@ class SavedSearchUpdateView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessM
         )
 
 
-class SavedSearchDeleteView(LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, View):
+class SavedSearchDeleteView(
+    LoginRequiredMixin, SuperuserRequiredMixin, SuccessMessageMixin, View
+):
     success_message = "Saved search deleted successfully"
 
     def post(self, request, pk):
         saved_search = SavedSearch.objects.filter(
-            Q(creator=request.user) | Q(is_public=True),
-            pk=pk
+            Q(creator=request.user) | Q(is_public=True), pk=pk
         ).first()
 
         if saved_search:
@@ -668,8 +690,7 @@ class SavedSearchLoadView(LoginRequiredMixin, SuperuserRequiredMixin, View):
 
     def get(self, request, pk):
         saved_search = SavedSearch.objects.filter(
-            Q(creator=request.user) | Q(is_public=True),
-            pk=pk
+            Q(creator=request.user) | Q(is_public=True), pk=pk
         ).first()
 
         if not saved_search:
@@ -679,6 +700,5 @@ class SavedSearchLoadView(LoginRequiredMixin, SuperuserRequiredMixin, View):
         # Redirect to advanced search with the saved parameters
         # We'll need to modify the advanced search view to accept GET parameters
         return HttpResponseRedirect(
-            reverse("hosts:advanced_search") +
-            f"?load={saved_search.pk}"
+            reverse("hosts:advanced_search") + f"?load={saved_search.pk}"
         )
