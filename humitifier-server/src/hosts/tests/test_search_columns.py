@@ -64,7 +64,10 @@ class ColumnParserTests(TestCase):
             parse_column(
                 "match(facts.generic.PackageManagerInfo.installed_packages[].name, 'apache')"
             )
-        self.assertIn("Boolean predicate function 'match' cannot be used as a column", str(ctx.exception))
+        self.assertIn(
+            "Boolean predicate function 'match' cannot be used as a column",
+            str(ctx.exception),
+        )
 
     def test_reject_unknown_field(self):
         with self.assertRaises(ValueError) as ctx:
@@ -109,7 +112,10 @@ class ColumnFormattingTests(TestCase):
         self.assertEqual(format_value(val), "name: php-cli; version: 7.4")
 
     def test_format_list_of_dicts(self):
-        val = [{"name": "php-cli", "version": "7.4"}, {"name": "php-fpm", "version": "7.4"}]
+        val = [
+            {"name": "php-cli", "version": "7.4"},
+            {"name": "php-fpm", "version": "7.4"},
+        ]
         self.assertEqual(
             format_value(val),
             "name: php-cli; version: 7.4, name: php-fpm; version: 7.4",
@@ -121,19 +127,25 @@ class ColumnEvaluationTests(AdvancedSearchTestCase):
 
     def test_evaluate_meta_field(self):
         spec = parse_column('meta.fqdn AS "FQDN"')
-        results = evaluate_columns(Host.objects.filter(fqdn="web01.example.com"), [spec])
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), [spec]
+        )
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["fields"]["FQDN"], "web01.example.com")
 
     def test_evaluate_scalar_fact(self):
         spec = parse_column('facts.generic.HostnameCtl.os AS "OS"')
-        results = evaluate_columns(Host.objects.filter(fqdn="web01.example.com"), [spec])
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), [spec]
+        )
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["fields"]["OS"], "Ubuntu 22.04.3 LTS")
 
     def test_evaluate_array_field(self):
         spec = parse_column("facts.generic.Users[].name")
-        results = evaluate_columns(Host.objects.filter(fqdn="web01.example.com"), [spec])
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), [spec]
+        )
         self.assertEqual(len(results), 1)
         names = results[0]["fields"]["facts.generic.Users[].name"]
         self.assertIn("root", names)
@@ -143,14 +155,18 @@ class ColumnEvaluationTests(AdvancedSearchTestCase):
         spec = parse_column(
             'filter(facts.generic.PackageManagerInfo.installed_packages[].name, "^apache") AS "Apache"'
         )
-        results = evaluate_columns(Host.objects.filter(fqdn="web01.example.com"), [spec])
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), [spec]
+        )
         self.assertEqual(len(results), 1)
         pkgs = results[0]["fields"]["Apache"]
         self.assertEqual(pkgs, ["apache2"])
 
     def test_evaluate_count_function(self):
         spec = parse_column('count(facts.generic.Users[].name) AS "User Count"')
-        results = evaluate_columns(Host.objects.filter(fqdn="web01.example.com"), [spec])
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), [spec]
+        )
         self.assertEqual(len(results), 1)
         self.assertEqual(results[0]["fields"]["User Count"], 2)
 
@@ -160,7 +176,10 @@ class ColumnEvaluationTests(AdvancedSearchTestCase):
         # Host with outdated version
         old_host = Host.objects.create(
             fqdn="old.example.com",
-            last_scan_cache={"version": artefact_registry.latest_version - 1, "facts": {}},
+            last_scan_cache={
+                "version": artefact_registry.latest_version - 1,
+                "facts": {},
+            },
         )
 
         spec_scalar = parse_column("facts.generic.HostnameCtl.os")
@@ -168,7 +187,9 @@ class ColumnEvaluationTests(AdvancedSearchTestCase):
         spec_meta = parse_column("meta.fqdn")
 
         results = evaluate_columns(
-            Host.objects.filter(fqdn__in=["nocache.example.com", "old.example.com"]).order_by("fqdn"),
+            Host.objects.filter(
+                fqdn__in=["nocache.example.com", "old.example.com"]
+            ).order_by("fqdn"),
             [spec_meta, spec_scalar, spec_array],
         )
         self.assertEqual(len(results), 2)
@@ -198,7 +219,9 @@ class DerivedMatchColumnsTests(AdvancedSearchTestCase):
             'Matches: match(facts.generic.PackageManagerInfo.installed_packages[].name, "php", facts.generic.PackageManagerInfo.installed_packages[].current_version, "8.1")',
         )
 
-        results = evaluate_columns(Host.objects.filter(fqdn="web01.example.com"), derived)
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), derived
+        )
         self.assertEqual(len(results), 1)
         matches = results[0]["fields"][derived[0].label]
         self.assertEqual(len(matches), 1)
@@ -206,7 +229,9 @@ class DerivedMatchColumnsTests(AdvancedSearchTestCase):
         self.assertEqual(matches[0]["current_version"], "8.1.2-1ubuntu2.14")
 
     def test_derive_from_array_comparison(self):
-        query = parse_query('facts.generic.PackageManagerInfo.installed_packages[].name contains "ssh"')
+        query = parse_query(
+            'facts.generic.PackageManagerInfo.installed_packages[].name contains "ssh"'
+        )
         derived = derive_match_columns(query)
         self.assertEqual(len(derived), 1)
         self.assertTrue(derived[0].derived)
@@ -215,7 +240,9 @@ class DerivedMatchColumnsTests(AdvancedSearchTestCase):
             'Matches: facts.generic.PackageManagerInfo.installed_packages[].name CONTAINS "ssh"',
         )
 
-        results = evaluate_columns(Host.objects.filter(fqdn="web01.example.com"), derived)
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), derived
+        )
         self.assertEqual(len(results), 1)
         matches = results[0]["fields"][derived[0].label]
         self.assertEqual(matches, ["openssh-server"])
@@ -250,15 +277,9 @@ class SavedSearchModelAndFormTests(TestCase):
 
     def test_saved_search_get_columns_list_native_list(self):
         s = SavedSearch(columns=["meta.fqdn", "facts.generic.HostnameCtl.os"])
-        self.assertEqual(s.get_columns_list(), ["meta.fqdn", "facts.generic.HostnameCtl.os"])
-
-    def test_saved_search_get_columns_list_json(self):
-        s = SavedSearch(columns='["meta.fqdn", "facts.generic.HostnameCtl.os"]')
-        self.assertEqual(s.get_columns_list(), ["meta.fqdn", "facts.generic.HostnameCtl.os"])
-
-    def test_saved_search_get_columns_list_legacy_comma(self):
-        s = SavedSearch(columns="meta.fqdn, facts.generic.HostnameCtl.os")
-        self.assertEqual(s.get_columns_list(), ["meta.fqdn", "facts.generic.HostnameCtl.os"])
+        self.assertEqual(
+            s.get_columns_list(), ["meta.fqdn", "facts.generic.HostnameCtl.os"]
+        )
 
     def test_saved_search_set_columns_list(self):
         s = SavedSearch()
@@ -277,12 +298,12 @@ class SavedSearchModelAndFormTests(TestCase):
             data={
                 "title": "Test",
                 "query": 'meta.fqdn = "web01"',
-                "columns": json.dumps(["meta.fqdn AS \"FQDN\""]),
+                "columns": json.dumps(['meta.fqdn AS "FQDN"']),
                 "show_matches": True,
             }
         )
         self.assertTrue(form.is_valid(), form.errors)
-        self.assertEqual(form.cleaned_data["columns"], ["meta.fqdn AS \"FQDN\""])
+        self.assertEqual(form.cleaned_data["columns"], ['meta.fqdn AS "FQDN"'])
         self.assertTrue(form.cleaned_data["show_matches"])
 
     def test_saved_search_form_legacy_comma_normalised(self):
@@ -312,27 +333,35 @@ class SavedSearchModelAndFormTests(TestCase):
 
     def test_migration_convert_columns(self):
         import importlib
-        migration_mod = importlib.import_module("hosts.migrations.0030_savedsearch_show_matches")
+
+        migration_mod = importlib.import_module(
+            "hosts.migrations.0030_savedsearch_show_matches"
+        )
         convert_columns_to_json = migration_mod.convert_columns_to_json
         convert_json_to_columns = migration_mod.convert_json_to_columns
 
         class DummyModel:
             def __init__(self, cols):
                 self.columns = cols
+
             def save(self, update_fields=None):
                 pass
 
         class DummyApps:
             def __init__(self, records):
                 self.records = records
+
             def get_model(self, app_label, model_name):
                 records = self.records
+
                 class DummyManager:
                     @staticmethod
                     def all():
                         return records
+
                 class Model:
                     objects = DummyManager
+
                 return Model
 
         r1 = DummyModel("meta.fqdn, facts.generic.os")
@@ -364,7 +393,7 @@ class AdvancedSearchViewIntegrationTests(AdvancedSearchTestCase):
         response = self.client.post(
             reverse("hosts:advanced_search"),
             {
-                SearchFormParam.COLUMNS: json.dumps(["meta.fqdn AS \"Host FQDN\""]),
+                SearchFormParam.COLUMNS: json.dumps(['meta.fqdn AS "Host FQDN"']),
                 SearchFormParam.SHOW_MATCHES: "1",
                 SearchFormParam.SEARCH_STRING: 'facts.generic.PackageManagerInfo.installed_packages[].name contains "ssh"',
             },
@@ -394,7 +423,9 @@ class AdvancedSearchViewIntegrationTests(AdvancedSearchTestCase):
         )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(response.context["column_errors"]), 1)
-        self.assertEqual(response.context["column_errors"][0]["column"], "bad.field.expr")
+        self.assertEqual(
+            response.context["column_errors"][0]["column"], "bad.field.expr"
+        )
         self.assertEqual(len(response.context["columns"]), 1)
         self.assertEqual(response.context["columns"][0].source, "meta.fqdn")
         data = response.context["data"]
@@ -407,7 +438,10 @@ class AdvancedSearchViewIntegrationTests(AdvancedSearchTestCase):
             {
                 "export-csv": "1",
                 SearchFormParam.COLUMNS: json.dumps(
-                    ["meta.fqdn AS \"FQDN Label\"", "facts.generic.Users[].name AS \"Users\""]
+                    [
+                        'meta.fqdn AS "FQDN Label"',
+                        'facts.generic.Users[].name AS "Users"',
+                    ]
                 ),
             },
         )
@@ -426,7 +460,7 @@ class AdvancedSearchViewIntegrationTests(AdvancedSearchTestCase):
             reverse("hosts:advanced_search"),
             {
                 "export-json": "1",
-                SearchFormParam.COLUMNS: json.dumps(["meta.fqdn AS \"FQDN Label\""]),
+                SearchFormParam.COLUMNS: json.dumps(['meta.fqdn AS "FQDN Label"']),
             },
         )
         self.assertEqual(response.status_code, 200)
@@ -441,10 +475,12 @@ class AdvancedSearchViewIntegrationTests(AdvancedSearchTestCase):
             creator=self.superuser,
             title="Saved",
             query='meta.fqdn contains "web"',
-            columns=json.dumps(["meta.fqdn AS \"FQDN\""]),
+            columns=['meta.fqdn AS "FQDN"'],
             show_matches=True,
         )
-        response = self.client.get(reverse("hosts:advanced_search") + f"?load={saved.pk}")
+        response = self.client.get(
+            reverse("hosts:advanced_search") + f"?load={saved.pk}"
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.context["show_matches"])
         self.assertEqual(response.context["search_string"], 'meta.fqdn contains "web"')
