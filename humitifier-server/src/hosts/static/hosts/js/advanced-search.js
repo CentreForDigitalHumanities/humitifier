@@ -240,6 +240,72 @@ function advancedSearchQuery() {
         },
 
         /**
+         * Resolve the return type of a function call, handling static and dynamic return types.
+         */
+        _resolveFunctionReturnType(funcDef, tokens, funcTokenIndex) {
+            if (!funcDef || !funcDef.return_type) {
+                return null;
+            }
+            const returnType = funcDef.return_type;
+            if (returnType.value_type !== 'dynamic') {
+                return returnType;
+            }
+
+            // Dynamic return type: inspect argument(s)
+            const targetArgIdx = returnType.dynamic_from_arg != null ? returnType.dynamic_from_arg : 0;
+            if (tokens && funcTokenIndex != null && funcTokenIndex >= 0) {
+                let currentArg = 0;
+                let depth = 0;
+                let argFieldToken = null;
+                let argFuncToken = null;
+                let argFuncIndex = -1;
+
+                for (let i = funcTokenIndex + 1; i < tokens.length; i++) {
+                    const tok = tokens[i];
+                    if (tok.type === 'lparen') {
+                        depth++;
+                    } else if (tok.type === 'rparen') {
+                        depth--;
+                        if (depth <= 0) break;
+                    } else if (tok.type === 'comma' && depth === 1) {
+                        currentArg++;
+                    } else if (depth === 1 && currentArg === targetArgIdx) {
+                        if (tok.type === 'field' && !argFieldToken) {
+                            argFieldToken = tok;
+                        } else if (tok.type === 'function' && !argFuncToken) {
+                            argFuncToken = tok;
+                            argFuncIndex = i;
+                        }
+                    }
+                }
+
+                if (argFieldToken) {
+                    const field = this.fields.find(f => f.id === argFieldToken.value);
+                    if (field) {
+                        return {
+                            value_type: field.valueType,
+                            cardinality: returnType.cardinality || 'elements'
+                        };
+                    }
+                } else if (argFuncToken) {
+                    const argFuncDef = argFuncToken.func || this.functions.find(f => f.name.toLowerCase() === argFuncToken.value.toLowerCase());
+                    const nestedReturnType = this._resolveFunctionReturnType(argFuncDef, tokens, argFuncIndex);
+                    if (nestedReturnType) {
+                        return {
+                            value_type: nestedReturnType.value_type,
+                            cardinality: returnType.cardinality || nestedReturnType.cardinality
+                        };
+                    }
+                }
+            }
+
+            return {
+                value_type: 'string',
+                cardinality: returnType.cardinality || 'elements'
+            };
+        },
+
+        /**
          * Determine query context before the caret.
          */
         _determineContext() {
@@ -295,6 +361,7 @@ function advancedSearchQuery() {
                     }
                     // Standalone or closed function expression at top level: can be followed by operator or logical
                     let closedFuncDef = null;
+                    let closedFuncTokenIndex = -1;
                     let parenDepth = 1;
                     for (let i = tokens.length - 2; i >= 0; i--) {
                         if (tokens[i].type === 'rparen') parenDepth++;
@@ -302,34 +369,50 @@ function advancedSearchQuery() {
                             parenDepth--;
                             if (parenDepth === 0 && i > 0 && tokens[i - 1].type === 'function') {
                                 closedFuncDef = tokens[i - 1].func || this.functions.find(f => f.name.toLowerCase() === tokens[i - 1].value.toLowerCase());
+                                closedFuncTokenIndex = i - 1;
                                 break;
                             }
                         }
                     }
 
+                    const returnType = closedFuncDef
+                        ? this._resolveFunctionReturnType(closedFuncDef, tokens, closedFuncTokenIndex)
+                        : null;
+
                     return {
                         type: 'expect_operator_or_logical',
                         partial: currentPartial,
-                        funcDef: closedFuncDef
+                        funcDef: closedFuncDef,
+                        returnType: returnType,
+                        fieldType: returnType ? returnType.value_type : null
                     };
 
                 case 'operator':
                     let valueType = null;
-                    // Find preceding field or function
-                    for (let i = tokens.length - 2; i >= 0; i--) {
-                        if (tokens[i].type === 'field') {
-                            const f = this.fields.find(fld => fld.id === tokens[i].value);
-                            if (f) { valueType = f.valueType; break; }
-                        } else if (tokens[i].type === 'function') {
-                            // If aggregation (count/min/max/sum) or filter
-                            const fDef = this.functions.find(fld => fld.name.toLowerCase() === tokens[i].value.toLowerCase());
-                            if (fDef) {
-                                if (fDef.name === 'count' || fDef.name === 'sum' || fDef.name === 'min' || fDef.name === 'max') {
-                                    valueType = 'integer';
-                                } else if (fDef.name === 'concat') {
-                                    valueType = 'string';
+                    // Check if preceding expression is a closed function call (ended with rparen)
+                    if (tokens.length >= 2 && tokens[tokens.length - 2].type === 'rparen') {
+                        let parenDepth = 1;
+                        for (let i = tokens.length - 3; i >= 0; i--) {
+                            if (tokens[i].type === 'rparen') parenDepth++;
+                            else if (tokens[i].type === 'lparen') {
+                                parenDepth--;
+                                if (parenDepth === 0 && i > 0 && tokens[i - 1].type === 'function') {
+                                    const funcDef = tokens[i - 1].func || this.functions.find(f => f.name.toLowerCase() === tokens[i - 1].value.toLowerCase());
+                                    const retType = this._resolveFunctionReturnType(funcDef, tokens, i - 1);
+                                    if (retType) {
+                                        valueType = retType.value_type;
+                                    }
+                                    break;
                                 }
-                                break;
+                            }
+                        }
+                    }
+                    if (!valueType) {
+                        // Find preceding field
+                        for (let i = tokens.length - 2; i >= 0; i--) {
+                            if (tokens[i].type === 'field') {
+                                const f = this.fields.find(fld => fld.id === tokens[i].value);
+                                if (f) { valueType = f.valueType; break; }
                             }
                         }
                     }
@@ -475,6 +558,16 @@ function advancedSearchQuery() {
                     // Nested functions if expr
                     if (paramSpec.accepts === 'expr') {
                         this.functions.forEach(func => {
+                            if (func.return_type) {
+                                const funcCard = func.return_type.cardinality;
+                                if (reqCardinality && funcCard && funcCard !== reqCardinality) {
+                                    return;
+                                }
+                                const funcValType = func.return_type.value_type;
+                                if (reqTypes && funcValType && funcValType !== 'dynamic' && !reqTypes.includes(funcValType)) {
+                                    return;
+                                }
+                            }
                             if (partialLower === '' || func.name.toLowerCase().startsWith(partialLower)) {
                                 suggestions.push({
                                     id: func.name,
@@ -488,7 +581,7 @@ function advancedSearchQuery() {
                 }
 
                 // Literal expected
-                if (paramSpec.accepts === 'literal' || paramSpec.accepts === 'expr') {
+                if (paramSpec.accepts === 'literal' || (paramSpec.accepts === 'expr' && paramSpec.cardinality !== 'elements')) {
                     const reqTypes = paramSpec.value_types || ['string', 'integer', 'boolean'];
                     if (reqTypes.includes('string') && (partialLower === '' || '"pattern"'.startsWith(partialLower))) {
                         suggestions.push({
@@ -538,20 +631,42 @@ function advancedSearchQuery() {
             }
 
             else if (context.type === 'expect_operator_or_logical') {
-                // If it can be a condition (predicate), suggest logical operators
-                this.binaryLogicalOperators.forEach(op => {
-                    if (partialLower === '' || op.toLowerCase().startsWith(partialLower)) {
+                const retType = context.returnType;
+                const isBooleanPredicate = retType
+                    ? (retType.value_type === 'boolean' && retType.cardinality === 'single')
+                    : true;
+
+                if (isBooleanPredicate) {
+                    const openCount = (this.value.match(/\{/g) || []).length;
+                    const closeCount = (this.value.match(/\}/g) || []).length;
+
+                    if (openCount > closeCount && (this.grouping.close.startsWith(partialLower) || partialLower === '')) {
                         suggestions.push({
-                            id: op,
-                            label: `${op} — logical ${op}`,
-                            insertValue: op,
-                            type: 'logical'
+                            id: this.grouping.close,
+                            label: `${this.grouping.close} — close group`,
+                            insertValue: this.grouping.close,
+                            type: 'bracket'
                         });
                     }
-                });
+
+                    this.binaryLogicalOperators.forEach(op => {
+                        if (partialLower === '' || op.toLowerCase().startsWith(partialLower)) {
+                            suggestions.push({
+                                id: op,
+                                label: `${op} — logical ${op}`,
+                                insertValue: op,
+                                type: 'logical'
+                            });
+                        }
+                    });
+                }
 
                 // Comparison operators
+                const valueType = retType ? retType.value_type : context.fieldType;
                 this.operators.forEach(op => {
+                    if (valueType && !this._isOperatorApplicableToFieldType(op, valueType)) {
+                        return;
+                    }
                     if (partialLower === '' || op.toLowerCase().startsWith(partialLower)) {
                         const opObj = this.operatorObjects.find(o => o.symbol === op);
                         suggestions.push({

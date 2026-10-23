@@ -1346,3 +1346,34 @@ class AdvancedSearchViewTests(TestCase):
         content = response.content.decode("utf-8")
         self.assertIn("<code>match(...)</code>", content)
         self.assertIn("Match multiple fields against patterns on the same array element", content)
+
+    def test_view_spec_function_return_types(self):
+        url = reverse("hosts:advanced_search")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+        spec = response.context["language_spec"]
+        funcs_by_name = {f["name"]: f for f in spec["functions"]}
+
+        expected_return_types = {
+            "count": {"value_type": "integer", "cardinality": "single"},
+            "min": {"value_type": "integer", "cardinality": "single"},
+            "max": {"value_type": "integer", "cardinality": "single"},
+            "sum": {"value_type": "integer", "cardinality": "single"},
+            "concat": {"value_type": "string", "cardinality": "single"},
+            "match": {"value_type": "boolean", "cardinality": "single"},
+            "filter": {
+                "value_type": "dynamic",
+                "cardinality": "elements",
+                "dynamic_from_arg": 0,
+            },
+        }
+
+        for func_name, expected in expected_return_types.items():
+            self.assertIn(func_name, funcs_by_name)
+            self.assertEqual(funcs_by_name[func_name]["return_type"], expected)
+
+        for func in spec["functions"]:
+            self.assertIn("return_type", func)
+            self.assertIn("value_type", func["return_type"])
+            self.assertIn("cardinality", func["return_type"])
