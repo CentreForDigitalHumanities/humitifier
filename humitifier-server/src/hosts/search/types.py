@@ -5,9 +5,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Literal
 
+from .constants import FieldKind, Section, ValueType
 
-# Where the field lives: "facts" and "metrics" are in last_scan_cache, "meta" is on the Host model itself
-ArtefactSection = Literal["facts", "metrics", "meta"]
 
 # Comparison operators for search criteria
 ComparisonOperator = Literal["EQ", "GT", "GTE", "LT", "LTE", "CONTAINS"]
@@ -24,9 +23,9 @@ class SearchableField:
     id: stable identifier to be used in search criteria.
         Example: "facts.generic.HostnameCtl.os"
     label: human readable label.
-    value_type: one of "string", "integer", "boolean"; used to choose operators.
-    section: whether this field is in facts or metrics.
-    kind: "scalar" for plain objects; "array" when the target lives inside a list
+    value_type: one of ValueType (string, integer, boolean); used to choose operators.
+    section: Section; whether this field is in facts, metrics, or meta.
+    kind: FieldKind; "scalar" for plain objects; "array" when the target lives inside a list
           at any nesting depth.
     artefact_key: the key inside last_scan_cache[section] (e.g. "generic.HostnameCtl").
     field_path: for kind="scalar": the JSON path within the artefact object to the value.
@@ -41,9 +40,9 @@ class SearchableField:
 
     id: str
     label: str
-    value_type: Literal["string", "integer", "boolean"]
-    section: ArtefactSection
-    kind: Literal["scalar", "array"]
+    value_type: ValueType
+    section: Section
+    kind: FieldKind
     artefact_key: str
     field_path: tuple[str, ...]
     array_path: tuple[str, ...] | None = None

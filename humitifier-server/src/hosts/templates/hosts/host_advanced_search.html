@@ -57,12 +57,9 @@
                 <div>
                     <h3 class="font-semibold mb-1">Comparison Operators</h3>
                     <ul class="list-disc list-inside space-y-1 ml-2">
-                        <li><code>=</code> — equals (case-insensitive for strings)</li>
-                        <li><code>&gt;</code> — greater than</li>
-                        <li><code>&gt;=</code> — greater than or equal</li>
-                        <li><code>&lt;</code> — less than</li>
-                        <li><code>&lt;=</code> — less than or equal</li>
-                        <li><code>CONTAINS</code> — substring match (case-insensitive)</li>
+                        {% for op in language_spec.operators %}
+                            <li><code>{{ op.symbol }}</code> — {{ op.description }}</li>
+                        {% endfor %}
                     </ul>
                 </div>
 
@@ -93,25 +90,21 @@
                 </div>
 
                 <div>
-                    <h3 class="font-semibold mb-1">Aggregations for Array Fields</h3>
-                    <p class="mb-2">Apply aggregation functions to array fields using the syntax: <code>function(field[])</code></p>
-                    <ul class="list-disc list-inside space-y-1 ml-2">
-                        <li><code>min(field[])</code> — minimum value (integer fields)</li>
-                        <li><code>max(field[])</code> — maximum value (integer fields)</li>
-                        <li><code>sum(field[])</code> — sum of values (integer fields)</li>
-                        <li><code>concat(field[])</code> — concatenate strings (string fields)</li>
-                        <li><code>count(field[])</code> — count array elements (all array fields)</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <h3 class="font-semibold mb-1">Filtering Array Fields</h3>
-                    <p class="mb-2">Filter array elements before comparison or aggregation using regex patterns: <code>filter(field[], "pattern")</code></p>
-                    <ul class="list-disc list-inside space-y-1 ml-2">
-                        <li><code>filter(field[], "^prefix")</code> — match elements starting with "prefix"</li>
-                        <li><code>filter(field[], "suffix$")</code> — match elements ending with "suffix"</li>
-                        <li><code>filter(field[], "pattern")</code> — match elements containing "pattern"</li>
-                        <li>Can be combined with aggregations: <code>count(filter(field[], "pattern"))</code></li>
+                    <h3 class="font-semibold mb-1">Functions</h3>
+                    <p class="mb-2">Apply functions to fields using the syntax: <code>function(arguments...)</code></p>
+                    <ul class="list-disc list-inside space-y-2 ml-2">
+                        {% for func in language_spec.functions %}
+                            <li>
+                                <code>{{ func.name }}(...)</code> — {{ func.description }}
+                                {% if func.examples %}
+                                    {% for ex in func.examples %}
+                                        <div class="mt-0.5">
+                                            <code class="block mt-0.5 bg-gray-50 dark:bg-gray-800 p-2 rounded">{{ ex }}</code>
+                                        </div>
+                                    {% endfor %}
+                                {% endif %}
+                            </li>
+                        {% endfor %}
                     </ul>
                 </div>
 
@@ -341,25 +334,24 @@
 
 {% block footer_scripts %}
 {% load static %}
+{{ language_spec|json_script:"search-language-spec" }}
 <script src="{% static 'hosts/js/advanced-search.js' %}"></script>
 <script>
 // Initialize the advanced search with Django template data
 document.addEventListener('alpine:init', () => {
-    // Override the init method to inject Django data
-    const originalInit = advancedSearchQuery().init;
     window.advancedSearchQueryWithData = function() {
         const instance = advancedSearchQuery();
         const originalInstanceInit = instance.init;
         instance.init = function() {
+            const specElement = document.getElementById('search-language-spec');
+            const spec = specElement ? JSON.parse(specElement.textContent) : null;
+            if (spec) {
+                this.setLanguageSpec(spec);
+            }
             originalInstanceInit.call(this);
             // Inject Django template values
             this.value = '{{ search_string|escapejs }}';
-            this.selectedColumns = [{% for column in requested_columns %}{ id: '{{ column|safe }}', label: '{{ column|safe }}' },{% endfor %}];
-            this.fields = [
-            {% for field in searchable_fields %}
-                { id: '{{ field.id|safe }}', label: '{{ field.label|safe }}', valueType: '{{ field.value_type|safe }}' },
-            {% endfor %}
-            ];
+            this.selectedColumns = [{% for column in requested_columns %}{ id: '{{ column|escapejs }}', label: '{{ column|escapejs }}' },{% endfor %}];
             this.updateHighlight();
             this.autoResize();
         };
