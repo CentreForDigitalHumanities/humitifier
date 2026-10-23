@@ -1,6 +1,9 @@
+import json
+
 from django import forms
 
 from .models import DataSource, DataSourceType, Host, OperatingSystem, SavedSearch
+from .search import parse_column
 
 
 class DataSourceForm(forms.ModelForm):
@@ -77,6 +80,8 @@ class HostForm(forms.ModelForm):
 
 
 class SavedSearchForm(forms.ModelForm):
+    columns = forms.CharField(widget=forms.HiddenInput(), required=False)
+
     class Meta:
         model = SavedSearch
         fields = (
@@ -84,12 +89,49 @@ class SavedSearchForm(forms.ModelForm):
             "description",
             "query",
             "columns",
+            "show_matches",
             "is_public",
         )
         widgets = {
             "query": forms.Textarea(attrs={"rows": 3}),
             "description": forms.Textarea(attrs={"rows": 2}),
-            "columns": forms.TextInput()
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if isinstance(self.initial.get("columns"), list):
+            self.initial["columns"] = json.dumps(self.initial["columns"])
+        elif self.instance and isinstance(self.instance.columns, list):
+            self.initial["columns"] = json.dumps(self.instance.columns)
+
+    def clean_columns(self):
+        data = self.cleaned_data.get("columns", "")
+        if not data:
+            return []
+
+        if isinstance(data, list):
+            raw_cols = data
+        else:
+            try:
+                parsed = json.loads(data)
+                if isinstance(parsed, list):
+                    raw_cols = parsed
+                else:
+                    raw_cols = [c.strip() for c in str(data).split(",") if c.strip()]
+            except (json.JSONDecodeError, TypeError):
+                raw_cols = [c.strip() for c in str(data).split(",") if c.strip()]
+
+        validated_cols = []
+        for raw in raw_cols:
+            col_str = str(raw).strip()
+            if not col_str:
+                continue
+            try:
+                parse_column(col_str)
+            except ValueError as e:
+                raise forms.ValidationError(f"Invalid column expression '{col_str}': {e}")
+            validated_cols.append(col_str)
+
+        return validated_cols
 
 

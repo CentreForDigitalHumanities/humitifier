@@ -1,4 +1,5 @@
 import dataclasses
+import json
 import uuid
 from datetime import datetime
 from functools import cached_property
@@ -628,7 +629,14 @@ class SavedSearch(models.Model):
     title = models.CharField(max_length=255)
     description = models.TextField(blank=True, default="")
     query = models.TextField()
-    columns = models.TextField(help_text="Comma-separated list of column field IDs")
+    columns = models.JSONField(
+        default=list,
+        help_text="List of column expressions",
+    )
+    show_matches = models.BooleanField(
+        default=False,
+        help_text="Automatically derive and show matched array element columns",
+    )
     is_public = models.BooleanField(
         default=False, help_text="Public searches are visible and editable by all users"
     )
@@ -641,8 +649,15 @@ class SavedSearch(models.Model):
     def __str__(self):
         return self.title
 
-    def get_columns_list(self):
-        """Return columns as a list."""
+    def get_columns_list(self) -> list[str]:
+        """Return columns as a list of expression strings, decoding JSON with comma fallback."""
         if not self.columns:
             return []
-        return [col.strip() for col in self.columns.split(",") if col.strip()]
+        if isinstance(self.columns, list):
+            return [str(col).strip() for col in self.columns if str(col).strip()]
+
+        return []
+
+    def set_columns_list(self, cols: list[str]) -> None:
+        """Store columns as a list of expression strings."""
+        self.columns = [str(col).strip() for col in cols if str(col).strip()]

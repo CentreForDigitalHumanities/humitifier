@@ -40,6 +40,7 @@ class TokenType(StrEnum):
     BOOLEAN = "boolean"
     OPERATOR = "operator"
     LOGICAL = "logical"
+    ALIAS = "alias"
     LPAREN = "lparen"
     RPAREN = "rparen"
     LBRACE = "lbrace"
@@ -47,6 +48,8 @@ class TokenType(StrEnum):
     COMMA = "comma"
 
 
+ALIAS_KEYWORD = "AS"
+MATCH_COLUMN_PREFIX = "Matches: "
 ARRAY_MARKER = "[]"
 SCAN_CACHE_FIELD = "last_scan_cache"
 GROUP_OPEN = "{"
@@ -56,6 +59,7 @@ GROUP_CLOSE = "}"
 class SearchFormParam(StrEnum):
     SEARCH_STRING = "search-string"
     COLUMNS = "columns"
+    SHOW_MATCHES = "show-matches"
     INCLUDE_ARCHIVED = "include-archived"
     LOAD = "load"
 
