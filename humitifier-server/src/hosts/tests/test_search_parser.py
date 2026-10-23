@@ -27,6 +27,7 @@ from hosts.search.operators import (
     GreaterThan,
     LessOrEqual,
     LessThan,
+    NotEquals,
 )
 from hosts.search.parser import parse_query
 from hosts.search.types import SearchableField
@@ -99,6 +100,24 @@ class SearchLexerTestCase(SimpleTestCase):
         with self.assertRaises(ValueError) as ctx:
             tokenize("field @ value")
         self.assertIn("Unexpected character '@'", str(ctx.exception))
+        self.assertIn("position 6", str(ctx.exception))
+
+    def test_tokenize_not_and_not_equals(self):
+        tokens = tokenize('meta.fqdn != "host01"')
+        self.assertEqual(len(tokens), 3)
+        self.assertEqual(tokens[1].type, TokenType.OPERATOR)
+        self.assertEqual(tokens[1].value, "!=")
+
+        tokens = tokenize("not Not NOT")
+        self.assertEqual(len(tokens), 3)
+        for tok in tokens:
+            self.assertEqual(tok.type, TokenType.LOGICAL)
+            self.assertEqual(tok.value, LogicalOperator.NOT)
+
+    def test_tokenize_exclamation_without_equals_error(self):
+        with self.assertRaises(ValueError) as ctx:
+            tokenize("field ! value")
+        self.assertIn("Unexpected character '!'", str(ctx.exception))
         self.assertIn("position 6", str(ctx.exception))
 
 
@@ -182,6 +201,8 @@ class SearchParserTestCase(SimpleTestCase):
             ("facts.hardware.cpus >= 4", GreaterOrEqual),
             ("facts.hardware.cpus < 4", LessThan),
             ("facts.hardware.cpus <= 4", LessOrEqual),
+            ("facts.hardware.cpus != 4", NotEquals),
+            ('meta.fqdn != "web"', NotEquals),
             ('meta.fqdn contains "web"', Contains),
             ('meta.fqdn CONTAINS "web"', Contains),
         ]
@@ -189,6 +210,79 @@ class SearchParserTestCase(SimpleTestCase):
             ast = self._parse(query)
             self.assertIsInstance(ast, Comparison)
             self.assertEqual(ast.operator, expected_op)
+
+    def test_parse_unary_not(self):
+        ast = self._parse('NOT meta.fqdn = "web01"')
+        self.assertIsInstance(ast, Logical)
+        self.assertEqual(ast.operator, LogicalOperator.NOT)
+        self.assertEqual(len(ast.children), 1)
+        self.assertIsInstance(ast.children[0], Comparison)
+        self.assertEqual(ast.children[0].operator, Equals)
+
+        ast_lower = self._parse("not facts.hardware.cpus >= 4")
+        self.assertIsInstance(ast_lower, Logical)
+        self.assertEqual(ast_lower.operator, LogicalOperator.NOT)
+        self.assertEqual(ast_lower.children[0].operator, GreaterOrEqual)
+
+    def test_parse_not_with_logical_precedence(self):
+        # NOT binds tighter than AND: NOT a AND b -> AND(NOT(a), b)
+        ast = self._parse('NOT meta.fqdn = "a" AND facts.hardware.cpus > 2')
+        self.assertIsInstance(ast, Logical)
+        self.assertEqual(ast.operator, LogicalOperator.AND)
+        self.assertEqual(len(ast.children), 2)
+        self.assertIsInstance(ast.children[0], Logical)
+        self.assertEqual(ast.children[0].operator, LogicalOperator.NOT)
+        self.assertIsInstance(ast.children[1], Comparison)
+
+        # a OR NOT b -> OR(a, NOT(b))
+        ast_or = self._parse('meta.fqdn = "a" OR NOT facts.hardware.cpus > 2')
+        self.assertIsInstance(ast_or, Logical)
+        self.assertEqual(ast_or.operator, LogicalOperator.OR)
+        self.assertIsInstance(ast_or.children[0], Comparison)
+        self.assertIsInstance(ast_or.children[1], Logical)
+        self.assertEqual(ast_or.children[1].operator, LogicalOperator.NOT)
+
+    def test_parse_not_with_grouping(self):
+        # NOT { a OR b } -> NOT(OR(a, b))
+        ast = self._parse('{meta.fqdn = "a" OR facts.hardware.cpus > 2}')
+        self.assertIsInstance(ast, Logical)
+        self.assertEqual(ast.operator, LogicalOperator.OR)
+
+        ast_not = self._parse('NOT {meta.fqdn = "a" OR facts.hardware.cpus > 2}')
+        self.assertIsInstance(ast_not, Logical)
+        self.assertEqual(ast_not.operator, LogicalOperator.NOT)
+        self.assertEqual(len(ast_not.children), 1)
+        self.assertIsInstance(ast_not.children[0], Logical)
+        self.assertEqual(ast_not.children[0].operator, LogicalOperator.OR)
+
+    def test_parse_double_not(self):
+        ast = self._parse('NOT NOT meta.fqdn = "a"')
+        self.assertIsInstance(ast, Logical)
+        self.assertEqual(ast.operator, LogicalOperator.NOT)
+        self.assertIsInstance(ast.children[0], Logical)
+        self.assertEqual(ast.children[0].operator, LogicalOperator.NOT)
+        self.assertIsInstance(ast.children[0].children[0], Comparison)
+
+    def test_parse_infix_not(self):
+        ast = self._parse('meta.fqdn NOT CONTAINS "web"')
+        self.assertIsInstance(ast, Logical)
+        self.assertEqual(ast.operator, LogicalOperator.NOT)
+        self.assertEqual(ast.children[0].operator, Contains)
+
+        ast_eq = self._parse('meta.fqdn NOT = "web01"')
+        self.assertIsInstance(ast_eq, Logical)
+        self.assertEqual(ast_eq.operator, LogicalOperator.NOT)
+        self.assertEqual(ast_eq.children[0].operator, Equals)
+
+        ast_val = self._parse('meta.fqdn NOT "web01"')
+        self.assertIsInstance(ast_val, Comparison)
+        self.assertEqual(ast_val.operator, NotEquals)
+
+    def test_error_not_without_operand(self):
+        with self.assertRaises(ValueError):
+            self._parse("NOT")
+        with self.assertRaises(ValueError):
+            self._parse('meta.fqdn = "a" AND NOT')
 
     def test_parse_logical_precedence(self):
         # AND should bind tighter than OR: a OR b AND c -> OR(a, AND(b, c))

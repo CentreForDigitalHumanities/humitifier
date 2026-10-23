@@ -106,6 +106,14 @@ def tokenize(query: str) -> list[Token]:
             tokens.append(Token(TokenType.OPERATOR, op, start_pos))
             continue
 
+        if char == "!":
+            start_pos = i
+            if i + 1 < n and query[i + 1] == "=":
+                tokens.append(Token(TokenType.OPERATOR, "!=", start_pos))
+                i += 2
+                continue
+            raise ValueError(f"Unexpected character '{char}' at position {i}")
+
         if char == "=":
             tokens.append(Token(TokenType.OPERATOR, "=", i))
             i += 1
@@ -140,6 +148,8 @@ def tokenize(query: str) -> list[Token]:
                 tokens.append(Token(TokenType.LOGICAL, LogicalOperator.AND, start_pos))
             elif word_upper == "OR":
                 tokens.append(Token(TokenType.LOGICAL, LogicalOperator.OR, start_pos))
+            elif word_upper == "NOT":
+                tokens.append(Token(TokenType.LOGICAL, LogicalOperator.NOT, start_pos))
             elif word_upper == "CONTAINS":
                 tokens.append(Token(TokenType.OPERATOR, "CONTAINS", start_pos))
             elif word_upper == "TRUE":

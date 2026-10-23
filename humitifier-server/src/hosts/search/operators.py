@@ -15,6 +15,8 @@ class ComparisonOperator:
     symbol: ClassVar[str]
     keyword: ClassVar[bool] = False
     description: ClassVar[str]
+    negated: ClassVar[bool] = False
+    invert: ClassVar[bool] = False
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -71,6 +73,27 @@ class Equals(ComparisonOperator):
             return SqlFragment(f"LOWER({lhs.sql}) = LOWER(%s)", lhs.params + (str(rhs),))
         val = str(rhs).lower() if isinstance(rhs, bool) else rhs
         return SqlFragment(f"{lhs.sql} = %s", lhs.params + (val,))
+
+
+class NotEquals(ComparisonOperator):
+    symbol = "!="
+    keyword = False
+    description = "not equal (case-insensitive for strings)"
+    negated = True
+    invert = True
+
+    @classmethod
+    def to_lookup(cls, value_type: ValueType) -> str:
+        if value_type == ValueType.STRING:
+            return "iexact"
+        return "exact"
+
+    @classmethod
+    def to_sql(cls, lhs: SqlFragment, rhs: Any, value_type: ValueType) -> SqlFragment:
+        if value_type == ValueType.STRING:
+            return SqlFragment(f"LOWER({lhs.sql}) != LOWER(%s)", lhs.params + (str(rhs),))
+        val = str(rhs).lower() if isinstance(rhs, bool) else rhs
+        return SqlFragment(f"{lhs.sql} != %s", lhs.params + (val,))
 
 
 class GreaterThan(ComparisonOperator):

@@ -910,6 +910,7 @@ class ComplexSearchTests(AdvancedSearchTestCase):
             ('facts.generic.Hardware.num_cpus >= 8', ">="),
             ('facts.generic.Hardware.num_cpus < 8', "<"),
             ('facts.generic.Hardware.num_cpus <= 8', "<="),
+            ('facts.generic.Hardware.num_cpus != 8', "!="),
             ('facts.generic.HostnameCtl.os contains "Ubuntu"', "CONTAINS"),
             ('facts.generic.HostnameCtl.os CONTAINS "Ubuntu"', "CONTAINS"),
         ]
@@ -922,6 +923,9 @@ class ComplexSearchTests(AdvancedSearchTestCase):
 
         or_query = parse_query('meta.department = "Engineering" or facts.generic.Hardware.num_cpus >= 8')
         self.assertEqual(or_query.operator, LogicalOperator.OR)
+
+        not_query = parse_query('not meta.department = "Engineering"')
+        self.assertEqual(not_query.operator, LogicalOperator.NOT)
 
     def test_nested_and_or_query(self):
         """Test nested AND/OR query."""
@@ -1194,6 +1198,108 @@ class EdgeCaseTests(AdvancedSearchTestCase):
         self.assertNotIn("oldversion.example.com", fqdns)
 
 
+class NegatedSearchTests(AdvancedSearchTestCase):
+    """Test negated lookups using NOT and != operators."""
+
+    def test_not_equals_meta_field(self):
+        """Test != operator on meta fields."""
+        query = parse_query('meta.department != "Engineering"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "legacy01.example.com")
+
+    def test_not_equals_boolean_meta_field(self):
+        """Test != operator on boolean meta fields."""
+        query = parse_query('meta.archived != true')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 3)
+        self.assertNotIn("legacy01.example.com", {h.fqdn for h in result})
+
+    def test_not_equals_scalar_json_field(self):
+        """Test != operator on scalar JSON fields."""
+        query = parse_query('facts.generic.Hardware.num_cpus != 8')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 3)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"db01.example.com", "legacy01.example.com", "storage01.example.com"})
+
+    def test_not_equals_string_json_field(self):
+        """Test != operator on string JSON fields."""
+        query = parse_query('facts.generic.HostnameCtl.virtualization != "kvm"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "legacy01.example.com")
+
+    def test_not_equals_array_element(self):
+        """Test != operator on array element match."""
+        query = parse_query('facts.generic.Users[].name != "root"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        # web01 has www-data, db01 has postgres & mysql; legacy01 has only root
+        self.assertEqual(result.count(), 2)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"web01.example.com", "db01.example.com"})
+
+    def test_unary_not_simple_comparison(self):
+        """Test unary NOT prefix on simple comparison."""
+        query = parse_query('NOT meta.department = "Engineering"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "legacy01.example.com")
+
+    def test_unary_not_case_insensitive(self):
+        """Test NOT operator works case-insensitively (not, Not, NOT)."""
+        for op in ["not", "Not", "NOT"]:
+            query = parse_query(f'{op} meta.archived = true')
+            self.assertEqual(query.operator, LogicalOperator.NOT)
+            result = search_hosts_by_scan_fields(Host.objects.all(), query)
+            self.assertEqual(result.count(), 3)
+            self.assertNotIn("legacy01.example.com", {h.fqdn for h in result})
+
+    def test_unary_not_grouped_expression(self):
+        """Test NOT negating a grouped expression with braces."""
+        query = parse_query(
+            'NOT { facts.generic.HostnameCtl.os contains "Ubuntu" OR facts.generic.Hardware.num_cpus = 4 }'
+        )
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "db01.example.com")
+
+    def test_not_with_and_logical_precedence(self):
+        """Test precedence of NOT with AND: NOT binds tighter than AND."""
+        query = parse_query(
+            'meta.department = "Engineering" AND NOT facts.generic.Hardware.num_cpus = 8'
+        )
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 2)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"db01.example.com", "storage01.example.com"})
+
+    def test_infix_not_contains(self):
+        """Test infix NOT CONTAINS syntax."""
+        query = parse_query('facts.generic.HostnameCtl.os NOT CONTAINS "Ubuntu"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 2)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"db01.example.com", "legacy01.example.com"})
+
+    def test_infix_not_literal(self):
+        """Test infix NOT followed by literal syntax as !=."""
+        query = parse_query('meta.department NOT "Engineering"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "legacy01.example.com")
+
+    def test_combined_negated_and_positive_conditions(self):
+        """Test combining !=, NOT, AND, and OR in a complex query."""
+        query = parse_query(
+            '{meta.department = "Engineering" AND facts.generic.Hardware.num_cpus != 16} AND '
+            'NOT meta.customer = "acme-corp"'
+        )
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "web01.example.com")
+
+
 class AdvancedSearchViewTests(TestCase):
     """Test the AdvancedSearchView endpoint, context data, and rendered help."""
 
@@ -1214,6 +1320,8 @@ class AdvancedSearchViewTests(TestCase):
         self.assertIn("operators", spec)
         self.assertIn("functions", spec)
         self.assertIn("fields", spec)
+        self.assertIn("NOT", spec["logical_operators"])
+        self.assertTrue(any(op["symbol"] == "!=" for op in spec["operators"]))
 
         # Assert json_script is rendered
         self.assertContains(response, 'id="search-language-spec"')

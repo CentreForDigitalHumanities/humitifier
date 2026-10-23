@@ -17,7 +17,7 @@ from .nodes import (
     Literal,
     Logical,
 )
-from .operators import operator_registry
+from .operators import NotEquals, operator_registry
 from .types import SearchableField
 
 
@@ -94,7 +94,7 @@ class _Parser:
         return left
 
     def parse_and(self) -> BoolNode:
-        left = self.parse_factor()
+        left = self.parse_not()
         children = [left]
 
         while (
@@ -103,7 +103,7 @@ class _Parser:
             and self.current().value == LogicalOperator.AND
         ):
             self.advance()
-            children.append(self.parse_factor())
+            children.append(self.parse_not())
 
         if len(children) > 1:
             return Logical(
@@ -112,6 +112,22 @@ class _Parser:
                 position=children[0].position,
             )
         return left
+
+    def parse_not(self) -> BoolNode:
+        tok = self.current()
+        if (
+            tok is not None
+            and tok.type == TokenType.LOGICAL
+            and tok.value == LogicalOperator.NOT
+        ):
+            self.advance()
+            child = self.parse_not()
+            return Logical(
+                operator=LogicalOperator.NOT,
+                children=(child,),
+                position=tok.position,
+            )
+        return self.parse_factor()
 
     def parse_factor(self) -> BoolNode:
         tok = self.current()
@@ -128,6 +144,18 @@ class _Parser:
     def parse_condition(self) -> BoolNode:
         lhs = self.parse_expr()
         next_tok = self.current()
+
+        negated = False
+        negated_pos = 0
+        if (
+            next_tok is not None
+            and next_tok.type == TokenType.LOGICAL
+            and next_tok.value == LogicalOperator.NOT
+        ):
+            neg_tok = self.advance()
+            negated = True
+            negated_pos = neg_tok.position
+            next_tok = self.current()
 
         if next_tok is not None and next_tok.type == TokenType.OPERATOR:
             op_tok = self.advance()
@@ -151,11 +179,41 @@ class _Parser:
                     f"CONTAINS operator requires string type at position {op_tok.position}"
                 )
 
-            return Comparison(
+            comp = Comparison(
                 lhs=lhs,
                 operator=op_cls,
                 rhs=rhs,
                 position=lhs.position,
+            )
+            if negated:
+                return Logical(
+                    operator=LogicalOperator.NOT,
+                    children=(comp,),
+                    position=negated_pos,
+                )
+            return comp
+
+        if negated:
+            if next_tok is not None and next_tok.type in (
+                TokenType.STRING,
+                TokenType.NUMBER,
+                TokenType.BOOLEAN,
+            ):
+                rhs = self.parse_literal()
+                lhs_type = lhs.expr_type.value_type
+                rhs_type = rhs.value_type
+                if lhs_type != rhs_type:
+                    raise ValueError(
+                        f"Type mismatch: cannot compare {lhs_type.value} with {rhs_type.value} at position {rhs.position}"
+                    )
+                return Comparison(
+                    lhs=lhs,
+                    operator=NotEquals,
+                    rhs=rhs,
+                    position=lhs.position,
+                )
+            raise ValueError(
+                f"Expected comparison operator after NOT at position {negated_pos}"
             )
 
         # Standalone predicate function call

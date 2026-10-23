@@ -22,9 +22,10 @@ function advancedSearchQuery() {
         colActiveIndex: 0,
 
         // Defaults populated from spec
-        operators: ['=', '>', '>=', '<', '<=', 'CONTAINS'],
+        operators: ['=', '!=', '>', '>=', '<', '<=', 'CONTAINS'],
         operatorObjects: [],
-        logicalOperators: ['AND', 'OR'],
+        logicalOperators: ['AND', 'OR', 'NOT'],
+        binaryLogicalOperators: ['AND', 'OR'],
         functions: [],
         grouping: { open: '{', close: '}' },
 
@@ -33,7 +34,8 @@ function advancedSearchQuery() {
             this.spec = spec;
             this.operatorObjects = spec.operators || [];
             this.operators = this.operatorObjects.map(o => o.symbol);
-            this.logicalOperators = spec.logical_operators || ['AND', 'OR'];
+            this.logicalOperators = spec.logical_operators || ['AND', 'OR', 'NOT'];
+            this.binaryLogicalOperators = (this.logicalOperators || []).filter(op => op.toUpperCase() !== 'NOT');
             this.functions = spec.functions || [];
             this.grouping = spec.grouping || { open: '{', close: '}' };
             this.fields = (spec.fields || []).map(f => ({
@@ -147,7 +149,7 @@ function advancedSearchQuery() {
                     continue;
                 }
 
-                if (char === '>' || char === '<' || char === '=') {
+                if (char === '>' || char === '<' || char === '=' || char === '!') {
                     let op = char;
                     if (i + 1 < text.length && text[i + 1] === '=') {
                         op += '=';
@@ -394,6 +396,15 @@ function advancedSearchQuery() {
                     });
                 }
 
+                if ('not'.startsWith(partialLower) || partialLower === '') {
+                    suggestions.push({
+                        id: 'NOT',
+                        label: 'NOT — negate condition',
+                        insertValue: 'NOT',
+                        type: 'logical'
+                    });
+                }
+
                 // All registered functions
                 this.functions.forEach(func => {
                     if (partialLower === '' || func.name.toLowerCase().startsWith(partialLower)) {
@@ -528,7 +539,7 @@ function advancedSearchQuery() {
 
             else if (context.type === 'expect_operator_or_logical') {
                 // If it can be a condition (predicate), suggest logical operators
-                this.logicalOperators.forEach(op => {
+                this.binaryLogicalOperators.forEach(op => {
                     if (partialLower === '' || op.toLowerCase().startsWith(partialLower)) {
                         suggestions.push({
                             id: op,
@@ -605,7 +616,7 @@ function advancedSearchQuery() {
                     });
                 }
 
-                this.logicalOperators.forEach(op => {
+                this.binaryLogicalOperators.forEach(op => {
                     if (partialLower === '' || op.toLowerCase().startsWith(partialLower)) {
                         suggestions.push({
                             id: op,
@@ -622,9 +633,9 @@ function advancedSearchQuery() {
 
         _isOperatorApplicableToFieldType(operator, fieldType) {
             if (!fieldType) return true;
-            if (fieldType === 'boolean') return operator === '=';
+            if (fieldType === 'boolean') return operator === '=' || operator === '!=';
             const opUpper = (operator || '').toUpperCase();
-            if (fieldType === 'string') return operator === '=' || opUpper === 'CONTAINS';
+            if (fieldType === 'string') return operator === '=' || operator === '!=' || opUpper === 'CONTAINS';
             if (fieldType === 'integer') return opUpper !== 'CONTAINS';
             return true;
         },
@@ -835,7 +846,7 @@ function advancedSearchQuery() {
                     continue;
                 }
 
-                if (char === '>' || char === '<' || char === '=') {
+                if (char === '>' || char === '<' || char === '=' || char === '!') {
                     let op = char;
                     if (i + 1 < text.length && text[i + 1] === '=') {
                         op += '=';
