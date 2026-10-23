@@ -21,12 +21,12 @@ from hosts.search.nodes import ExprType
 from hosts.search.sql import CompileContext, SqlFragment
 
 
-class MatchElements(SearchFunction):
+class CustomTestLookup(SearchFunction):
     """Test-only correlated predicate matching multiple fields on the same array element."""
 
-    name = "match"
+    name = "custom_test_match"
     description = "Test correlated match across multiple fields of the same array element"
-    examples = ("match(arr[].name, 'php', arr[].version, '7.0')",)
+    examples = ("custom_test_match(arr[].name, 'php', arr[].version, '7.0')",)
     params = ()
     variadic = (
         Param("field", ParamKind.FIELD, frozenset({ValueType.STRING}), Cardinality.ELEMENTS),
@@ -76,7 +76,7 @@ class SearchExtensibilityTestCase(TestCase):
     @classmethod
     def tearDownClass(cls):
         super().tearDownClass()
-        function_registry.unregister(MatchElements)
+        function_registry.unregister(CustomTestLookup)
 
     def setUp(self):
         self.now = timezone.now()
@@ -165,17 +165,17 @@ class SearchExtensibilityTestCase(TestCase):
         """A SearchFunction subclass is automatically registered and appears in get_language_spec."""
         spec = get_language_spec()
         func_names = [f["name"] for f in spec["functions"]]
-        self.assertIn("match", func_names)
+        self.assertIn("custom_test_match", func_names)
 
-        match_spec = next(f for f in spec["functions"] if f["name"] == "match")
-        self.assertEqual(match_spec["description"], MatchElements.description)
+        match_spec = next(f for f in spec["functions"] if f["name"] == "custom_test_match")
+        self.assertEqual(match_spec["description"], CustomTestLookup.description)
         self.assertIsNotNone(match_spec["variadic"])
         self.assertEqual(len(match_spec["variadic"]), 2)
 
     def test_correlated_predicate_matches_same_element_only(self):
         """Correlated predicate matches only hosts where one element satisfies all partial criteria."""
         query_str = (
-            "match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', "
+            "custom_test_match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', "
             "facts.generic.PackageManagerInfo.installed_packages[].current_version, '7.0')"
         )
         ast = parse_query(query_str)
