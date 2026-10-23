@@ -200,6 +200,16 @@ class HostManager(models.Manager):
             customer__in=application.access_profile.customers_for_filter
         )
 
+    def advanced_search(self, query: str, user: User | None = None):
+        from hosts.search import parse_query, search_hosts_by_scan_fields
+
+        if user is None:
+            qs = self.get_queryset()
+        else:
+            qs = self.get_for_user(user)
+
+        return search_hosts_by_scan_fields(qs, parse_query(query))
+
 
 class Host(models.Model):
     class Meta:
