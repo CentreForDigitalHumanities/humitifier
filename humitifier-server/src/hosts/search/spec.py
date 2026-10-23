@@ -34,6 +34,7 @@ def get_language_spec() -> dict[str, Any]:
             "name": func.name,
             "description": func.description,
             "examples": list(func.examples),
+            "return_type": func.return_type_spec(),
             "params": [
                 {
                     "name": p.name,

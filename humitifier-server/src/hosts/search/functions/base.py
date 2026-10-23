@@ -106,6 +106,23 @@ class SearchFunction:
                     )
 
     @classmethod
+    def return_type_spec(cls) -> dict[str, Any]:
+        """Return return type specification for frontend language spec."""
+        try:
+            expr_type = cls.return_type(())
+            vt = getattr(expr_type.value_type, "value", expr_type.value_type)
+            card = getattr(expr_type.cardinality, "value", expr_type.cardinality)
+            return {
+                "value_type": vt,
+                "cardinality": card,
+            }
+        except Exception:
+            return {
+                "value_type": "dynamic",
+                "cardinality": Cardinality.SINGLE.value,
+            }
+
+    @classmethod
     def return_type(cls, args: tuple[Expr, ...]) -> ExprType:
         """Return the expression type produced by calling this function with `args`."""
         raise NotImplementedError

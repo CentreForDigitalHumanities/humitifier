@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..constants import Cardinality, ValueType
 from ..sql import ElementSet, SqlFragment
@@ -36,6 +36,14 @@ class Filter(SearchFunction):
             Cardinality.SINGLE,
         ),
     )
+
+    @classmethod
+    def return_type_spec(cls) -> dict[str, Any]:
+        return {
+            "value_type": "dynamic",
+            "cardinality": Cardinality.ELEMENTS.value,
+            "dynamic_from_arg": 0,
+        }
 
     @classmethod
     def return_type(cls, args: tuple[Expr, ...]) -> ExprType:

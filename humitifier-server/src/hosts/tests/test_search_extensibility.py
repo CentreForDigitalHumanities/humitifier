@@ -171,6 +171,10 @@ class SearchExtensibilityTestCase(TestCase):
         self.assertEqual(match_spec["description"], CustomTestLookup.description)
         self.assertIsNotNone(match_spec["variadic"])
         self.assertEqual(len(match_spec["variadic"]), 2)
+        self.assertEqual(
+            match_spec["return_type"],
+            {"value_type": "boolean", "cardinality": "single"},
+        )
 
     def test_correlated_predicate_matches_same_element_only(self):
         """Correlated predicate matches only hosts where one element satisfies all partial criteria."""
