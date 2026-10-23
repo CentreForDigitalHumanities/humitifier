@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .constants import GROUP_CLOSE, GROUP_OPEN, LogicalOperator, TokenType
+from .constants import ALIAS_KEYWORD, GROUP_CLOSE, GROUP_OPEN, LogicalOperator, TokenType
 
 
 @dataclass(frozen=True)
@@ -144,7 +144,9 @@ def tokenize(query: str) -> list[Token]:
             word = query[start_pos:i]
             word_upper = word.upper()
 
-            if word_upper == "AND":
+            if word_upper == ALIAS_KEYWORD:
+                tokens.append(Token(TokenType.ALIAS, ALIAS_KEYWORD, start_pos))
+            elif word_upper == "AND":
                 tokens.append(Token(TokenType.LOGICAL, LogicalOperator.AND, start_pos))
             elif word_upper == "OR":
                 tokens.append(Token(TokenType.LOGICAL, LogicalOperator.OR, start_pos))

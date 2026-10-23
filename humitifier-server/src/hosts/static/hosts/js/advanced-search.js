@@ -14,14 +14,19 @@ function advancedSearchQuery() {
         open: false,
         suggestions: [],
         activeIndex: 0,
-        // Columns multiselect state
-        selectedColumns: [], // [{id,label}]
-        columnsFilter: '',
-        colOpen: false,
-        colSuggestions: [],
-        colActiveIndex: 0,
+
+        // Active editor: 'query' | 'column'
+        activeEditor: 'query',
+
+        // Columns state
+        columns: [], // [{text, label}]
+        columnDraft: '',
+        editingIndex: -1,
+        columnHighlightHtml: '',
+        showMatches: false,
 
         // Defaults populated from spec
+        aliasKeyword: 'AS',
         operators: ['=', '!=', '>', '>=', '<', '<=', 'CONTAINS'],
         operatorObjects: [],
         logicalOperators: ['AND', 'OR', 'NOT'],
@@ -32,6 +37,7 @@ function advancedSearchQuery() {
         setLanguageSpec(spec) {
             if (!spec) return;
             this.spec = spec;
+            this.aliasKeyword = spec.alias_keyword || 'AS';
             this.operatorObjects = spec.operators || [];
             this.operators = this.operatorObjects.map(o => o.symbol);
             this.logicalOperators = spec.logical_operators || ['AND', 'OR', 'NOT'];
@@ -59,13 +65,29 @@ function advancedSearchQuery() {
             textarea.style.height = textarea.scrollHeight + 'px';
         },
 
+        _text() {
+            return this.activeEditor === 'column' ? (this.columnDraft || '') : (this.value || '');
+        },
+
+        _setText(val) {
+            if (this.activeEditor === 'column') {
+                this.columnDraft = val;
+            } else {
+                this.value = val;
+            }
+        },
+
+        _el() {
+            return this.activeEditor === 'column' ? this.$refs.columnInput : this.$refs.input;
+        },
+
         getCaret() {
-            const el = this.$refs.input;
+            const el = this._el();
             return el ? el.selectionStart : 0;
         },
 
         setCaret(pos) {
-            const el = this.$refs.input;
+            const el = this._el();
             if (!el) return;
             requestAnimationFrame(() => {
                 el.setSelectionRange(pos, pos);
@@ -92,6 +114,10 @@ function advancedSearchQuery() {
             const isOpKeyword = (word) => {
                 const upper = word.toUpperCase();
                 return this.operatorObjects.find(o => o.keyword && o.symbol.toUpperCase() === upper);
+            };
+
+            const isAlias = (word) => {
+                return word.toUpperCase() === (this.aliasKeyword || 'AS').toUpperCase();
             };
 
             while (i < text.length) {
@@ -168,7 +194,9 @@ function advancedSearchQuery() {
                     }
 
                     const wordUpper = word.toUpperCase();
-                    if (this.logicalOperators.map(o => o.toUpperCase()).includes(wordUpper)) {
+                    if (isAlias(word)) {
+                        tokens.push({ type: 'alias', value: word });
+                    } else if (this.logicalOperators.map(o => o.toUpperCase()).includes(wordUpper)) {
                         tokens.push({ type: 'logical', value: word });
                     } else if (isOpKeyword(word)) {
                         tokens.push({ type: 'operator', value: word });
@@ -191,7 +219,7 @@ function advancedSearchQuery() {
         },
 
         _tokenizeUpToCaret() {
-            const text = this.value.slice(0, this.getCaret());
+            const text = this._text().slice(0, this.getCaret());
             return this._tokenizeText(text);
         },
 
@@ -310,7 +338,7 @@ function advancedSearchQuery() {
          */
         _determineContext() {
             const currentPartial = this._getCurrentPartialToken();
-            const beforePartial = this.value.slice(0, this.getCaret() - currentPartial.length);
+            const beforePartial = this._text().slice(0, this.getCaret() - currentPartial.length);
             const tokens = this._tokenizeText(beforePartial);
 
             if (tokens.length === 0) {
@@ -319,6 +347,42 @@ function advancedSearchQuery() {
 
             const lastToken = tokens[tokens.length - 1];
             const enclosing = this._findEnclosingFunctionCall(tokens);
+
+            if (this.activeEditor === 'column') {
+                switch (lastToken.type) {
+                    case 'function':
+                        return { type: 'expect_lparen', partial: currentPartial, func: lastToken.func };
+
+                    case 'lparen':
+                    case 'comma':
+                        if (enclosing) {
+                            const paramSpec = this._getParamSpec(enclosing.funcDef, enclosing.argIndex);
+                            return { type: 'expect_arg', partial: currentPartial, enclosing, paramSpec };
+                        }
+                        return { type: 'start', partial: currentPartial };
+
+                    case 'field':
+                    case 'string':
+                    case 'number':
+                    case 'boolean':
+                        if (enclosing) {
+                            return { type: 'after_arg', partial: currentPartial, enclosing };
+                        }
+                        return { type: 'expect_as', partial: currentPartial };
+
+                    case 'rparen':
+                        if (enclosing) {
+                            return { type: 'after_arg', partial: currentPartial, enclosing };
+                        }
+                        return { type: 'expect_as', partial: currentPartial };
+
+                    case 'alias':
+                        return { type: 'expect_alias_string', partial: currentPartial };
+
+                    default:
+                        return { type: 'start', partial: currentPartial };
+                }
+            }
 
             switch (lastToken.type) {
                 case 'lbracket':
@@ -446,7 +510,7 @@ function advancedSearchQuery() {
 
         _getCurrentPartialToken() {
             const caret = this.getCaret();
-            const before = this.value.slice(0, caret);
+            const before = this._text().slice(0, caret);
 
             let start = before.length - 1;
             while (start >= 0) {
@@ -467,6 +531,67 @@ function advancedSearchQuery() {
         _generateSuggestions(context) {
             const suggestions = [];
             const partialLower = context.partial.toLowerCase();
+
+            if (this.activeEditor === 'column') {
+                if (context.type === 'start') {
+                    // Registered value functions (not boolean predicates)
+                    this.functions.forEach(func => {
+                        const ret = func.return_type;
+                        if (ret && ret.value_type === 'boolean' && ret.cardinality === 'single') {
+                            return;
+                        }
+                        if (partialLower === '' || func.name.toLowerCase().startsWith(partialLower)) {
+                            suggestions.push({
+                                id: func.name,
+                                label: `${func.name}() — ${func.description}`,
+                                insertValue: func.name,
+                                type: 'function'
+                            });
+                        }
+                    });
+
+                    // Searchable fields
+                    this.fields.forEach(field => {
+                        if (partialLower === '' ||
+                            field.id.toLowerCase().includes(partialLower) ||
+                            field.label.toLowerCase().includes(partialLower)) {
+                            suggestions.push({
+                                id: field.id,
+                                label: field.label,
+                                insertValue: field.id,
+                                type: 'field'
+                            });
+                        }
+                    });
+                    return suggestions;
+                }
+
+                if (context.type === 'expect_as' || context.type === 'expect_operator' || context.type === 'expect_operator_or_logical') {
+                    const asKw = this.aliasKeyword || 'AS';
+                    if (partialLower === '' || asKw.toLowerCase().startsWith(partialLower)) {
+                        suggestions.push({
+                            id: asKw,
+                            label: `${asKw} "Alias" — rename column`,
+                            insertValue: asKw,
+                            type: 'alias'
+                        });
+                    }
+                    return suggestions;
+                }
+
+                if (context.type === 'expect_alias_string') {
+                    if (partialLower === '' || '"alias"'.startsWith(partialLower)) {
+                        suggestions.push({
+                            id: 'string',
+                            label: '"Label" — column header alias',
+                            insertValue: '""',
+                            type: 'value',
+                            cursorOffset: -1
+                        });
+                    }
+                    return suggestions;
+                }
+            }
 
             // Start of query or after { or AND/OR
             if (context.type === 'start') {
@@ -780,8 +905,9 @@ function advancedSearchQuery() {
             let replaceStart = caret - partial.length;
             let replaceEnd = caret;
 
-            const left = this.value.slice(0, replaceStart);
-            const right = this.value.slice(replaceEnd);
+            const text = this._text();
+            const left = text.slice(0, replaceStart);
+            const right = text.slice(replaceEnd);
 
             let insert = s.insertValue;
             let spacing = '';
@@ -793,18 +919,18 @@ function advancedSearchQuery() {
                 }
             } else if (s.type === 'comma') {
                 spacing = ' ';
-            } else if (s.type === 'field' || s.type === 'operator' || s.type === 'logical') {
+            } else if (s.type === 'field' || s.type === 'operator' || s.type === 'logical' || s.type === 'alias') {
                 if ((right && !right.startsWith(' ')) || !right) {
                     spacing = ' ';
                 }
-                if (s.type === 'logical' && left && !left.endsWith(' ')) {
+                if ((s.type === 'logical' || s.type === 'alias') && left && !left.endsWith(' ')) {
                     insert = ' ' + insert;
                 }
             } else if (s.type === 'paren' && s.insertValue === ')') {
                 spacing = ' ';
             }
 
-            this.value = left + insert + spacing + right;
+            this._setText(left + insert + spacing + right);
 
             let newCaret = (left + insert + spacing).length;
             if (s.cursorOffset !== undefined) {
@@ -813,15 +939,21 @@ function advancedSearchQuery() {
 
             this.setCaret(newCaret);
             this.closeSuggestions();
-            this.updateHighlight();
-
-            setTimeout(() => this.onInput(), 10);
+            if (this.activeEditor === 'column') {
+                this.updateColumnHighlight();
+                setTimeout(() => this.onColumnInput(), 10);
+            } else {
+                this.updateHighlight();
+                setTimeout(() => this.onInput(), 10);
+            }
         },
 
         onTab() {
             if (this.open && this.suggestions.length) {
                 this.choose(this.activeIndex);
-                this.autoResize();
+                if (this.activeEditor === 'query') {
+                    this.autoResize();
+                }
                 return;
             }
         },
@@ -858,9 +990,21 @@ function advancedSearchQuery() {
             this.syncHighlightScroll();
         },
 
+        updateColumnHighlight() {
+            this.columnHighlightHtml = this._renderHighlight(this.columnDraft);
+            this.syncColumnHighlightScroll();
+        },
+
         syncHighlightScroll() {
             const input = this.$refs.input;
             const highlight = this.$refs.highlight;
+            if (!input || !highlight) return;
+            highlight.scrollLeft = input.scrollLeft;
+        },
+
+        syncColumnHighlightScroll() {
+            const input = this.$refs.columnInput;
+            const highlight = this.$refs.columnHighlight;
             if (!input || !highlight) return;
             highlight.scrollLeft = input.scrollLeft;
         },
@@ -881,6 +1025,7 @@ function advancedSearchQuery() {
                 field: 'text-neutral-900 dark:text-neutral-50',
                 operator: 'text-orange-600 dark:text-orange-500',
                 logical: 'text-orange-600 dark:text-orange-500',
+                alias: 'text-orange-600 dark:text-orange-500 font-semibold',
                 string: 'text-green-600 dark:text-green-300',
                 number: 'text-blue-600 dark:text-blue-300',
                 boolean: 'text-red-600 dark:text-red-300',
@@ -911,6 +1056,10 @@ function advancedSearchQuery() {
             const isOpKeyword = (word) => {
                 const upper = word.toUpperCase();
                 return this.operatorObjects.some(o => o.keyword && o.symbol.toUpperCase() === upper);
+            };
+
+            const isAlias = (word) => {
+                return word.toUpperCase() === (this.aliasKeyword || 'AS').toUpperCase();
             };
 
             while (i < text.length) {
@@ -965,7 +1114,6 @@ function advancedSearchQuery() {
                     let op = char;
                     if (i + 1 < text.length && text[i + 1] === '=') {
                         op += '=';
-                        i++;
                     }
                     pushToken(op, 'operator');
                     i++;
@@ -980,7 +1128,9 @@ function advancedSearchQuery() {
                     }
 
                     const wordUpper = word.toUpperCase();
-                    if (this.logicalOperators.map(o => o.toUpperCase()).includes(wordUpper)) {
+                    if (isAlias(word)) {
+                        pushToken(word, 'alias');
+                    } else if (this.logicalOperators.map(o => o.toUpperCase()).includes(wordUpper)) {
                         pushToken(word, 'logical');
                     } else if (isOpKeyword(word)) {
                         pushToken(word, 'operator');
@@ -1003,60 +1153,90 @@ function advancedSearchQuery() {
             return output;
         },
 
-        // ==== Columns multiselect methods ====
-        onColumnsInput() {
-            const needle = (this.columnsFilter || '').toLowerCase();
-            const selectedIds = new Set(this.selectedColumns.map(c => c.id));
-            let pool = this.fields.filter(f => !selectedIds.has(f.id));
-            if (needle.length) {
-                pool = pool.filter(f => f.label.toLowerCase().includes(needle) || f.id.toLowerCase().includes(needle));
+        // ==== Column Editor state and methods ====
+        editColumn(idx) {
+            if (this.activeEditor === 'column' && this.editingIndex !== idx) {
+                if (this.columnDraft && this.columnDraft.trim()) {
+                    this.commitColumn();
+                } else {
+                    this.cancelColumn();
+                }
             }
-            this.colSuggestions = pool;
-            this.colActiveIndex = 0;
-            this.colOpen = this.colSuggestions.length > 0;
+            this.activeEditor = 'column';
+            if (idx >= 0 && idx < this.columns.length) {
+                this.editingIndex = idx;
+                this.columnDraft = this.columns[idx].text;
+            } else {
+                this.editingIndex = -1;
+                this.columnDraft = '';
+            }
+            this.updateColumnHighlight();
+            this.closeSuggestions();
+            this.$nextTick(() => {
+                const el = this.$refs.columnInput;
+                if (el) {
+                    el.focus();
+                    const pos = this.columnDraft.length;
+                    el.setSelectionRange(pos, pos);
+                }
+            });
         },
 
-        moveColumn(delta) {
-            if (!this.colOpen || !this.colSuggestions.length) return;
-            const len = this.colSuggestions.length;
-            this.colActiveIndex = (this.colActiveIndex + delta + len) % len;
+        commitColumn() {
+            const text = (this.columnDraft || '').trim();
+            if (!text) {
+                this.cancelColumn();
+                return;
+            }
+            const m = text.match(/\s+AS\s+["'](.*)["']\s*$/i);
+            const label = m ? m[1] : text;
+            if (this.editingIndex >= 0 && this.editingIndex < this.columns.length) {
+                this.columns[this.editingIndex] = { text, label };
+            } else {
+                this.columns.push({ text, label });
+            }
+            this.cancelColumn();
         },
 
-        chooseColumn(idx) {
-            if (!this.colSuggestions.length) return;
-            const s = this.colSuggestions[idx ?? this.colActiveIndex];
-            if (!s) return;
-            if (this.selectedColumns.some(c => c.id === s.id)) return this.closeColumnSuggestions();
-            this.selectedColumns.push({ id: s.id, label: s.label });
-            this.columnsFilter = '';
-            this.$refs.columnsInput && this.$refs.columnsInput.focus();
-            this.onColumnsInput();
+        cancelColumn() {
+            this.activeEditor = 'query';
+            this.columnDraft = '';
+            this.editingIndex = -1;
+            this.columnHighlightHtml = '';
+            this.closeSuggestions();
         },
 
         removeColumn(idx) {
-            this.selectedColumns.splice(idx, 1);
-            this.onColumnsInput();
-        },
-
-        maybeBackspaceRemove() {
-            if ((this.columnsFilter || '').length === 0 && this.selectedColumns.length) {
-                this.selectedColumns.pop();
-                this.onColumnsInput();
+            this.columns.splice(idx, 1);
+            if (this.editingIndex === idx) {
+                this.cancelColumn();
+            } else if (this.editingIndex > idx) {
+                this.editingIndex--;
             }
         },
 
-        closeColumnSuggestions() {
-            this.colOpen = false;
-            this.colSuggestions = [];
-            this.colActiveIndex = 0;
+        onColumnInput() {
+            this.activeEditor = 'column';
+            const context = this._determineContext();
+            this.suggestions = this._generateSuggestions(context);
+            this.activeIndex = 0;
+            this.open = this.suggestions.length > 0;
+            this.updateColumnHighlight();
+        },
+
+        columnsJson() {
+            return JSON.stringify(this.columns.map(c => c.text));
         },
 
         saveCurrentSearch() {
             const searchQuery = this.value || '';
-            const columns = this.selectedColumns.map(c => c.id).join(',');
+            const columns = this.columnsJson();
             const params = new URLSearchParams();
             params.set('query', searchQuery);
             params.set('columns', columns);
+            if (this.showMatches) {
+                params.set('show-matches', 'on');
+            }
             window.location.href = '/hosts/saved_searches/create/?' + params.toString();
         }
     };

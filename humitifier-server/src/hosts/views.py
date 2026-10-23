@@ -38,9 +38,13 @@ from .forms import (
 from .models import DataSource, Host, OperatingSystem, SavedSearch
 from .scan_visualizers import get_scan_visualizer
 from .search import (
+    ColumnSpec,
+    derive_match_columns,
+    evaluate_columns,
+    format_value,
     get_language_spec,
-    get_scan_field_values,
     get_searchable_fields,
+    parse_column,
     parse_query,
     search_hosts_by_scan_fields,
 )
@@ -363,15 +367,17 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         # Build context to get the data to export
         context = self.get_context_data()
         data = context.get("data", [])
-        requested_columns = context.get("requested_columns", [])
+        columns = context.get("columns", [])
 
         # Helper to normalize dict rows for export (CSV/JSON)
         def iter_rows():
             for item in data:
                 obj = item.get("object")
                 fields = dict(item.get("fields", {}))
-                fields["FQDN"] = getattr(obj, "fqdn", "")
-                yield fields
+                row = {"FQDN": getattr(obj, "fqdn", "")}
+                for col in columns:
+                    row[col.label] = fields.get(col.label)
+                yield row
 
         # Build filename timestamp
         ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
@@ -401,19 +407,16 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
             return resp
 
         if export_type == ExportType.CSV:
-            # Header: FQDN + requested field ids (in chosen order)
-            headers = ["FQDN"] + list(requested_columns)
+            # Header: FQDN + column labels (in chosen order)
+            headers = ["FQDN"] + [col.label for col in columns]
             sio = StringIO()
             writer = csv.DictWriter(sio, fieldnames=headers, extrasaction="ignore")
             writer.writeheader()
             for row in iter_rows():
-                # Convert list values to comma-separated strings for CSV
-                normalized = {}
-                for k, v in row.items():
-                    if isinstance(v, list):
-                        normalized[k] = ", ".join(str(x) for x in v)
-                    else:
-                        normalized[k] = v
+                normalized = {
+                    k: (v if k == "FQDN" else format_value(v))
+                    for k, v in row.items()
+                }
                 writer.writerow(normalized)
             resp = HttpResponse(sio.getvalue(), content_type="text/csv; charset=utf-8")
             resp["Content-Disposition"] = (
@@ -430,11 +433,19 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
 
         return SearchFormParam.INCLUDE_ARCHIVED in self.request.POST
 
+    def _show_matches(self):
+        if hasattr(self, "_loaded_search"):
+            return getattr(self._loaded_search, "show_matches", False)
+        if not self.request.POST:
+            return False
+        return SearchFormParam.SHOW_MATCHES in self.request.POST
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
 
         searchable_fields = get_searchable_fields()
-        search_string = None
+        search_string = ""
+        show_matches = self._show_matches()
 
         # Check if we're loading a saved search
         if hasattr(self, "_loaded_search"):
@@ -444,15 +455,38 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
             requested_columns = saved_search.get_columns_list()
             context["loaded_search_id"] = saved_search.pk
         else:
-            requested_columns = self._parse_requested_columns(searchable_fields)
+            requested_columns = self._parse_requested_columns()
             if self.request.POST:
                 search_string = self.request.POST.get(SearchFormParam.SEARCH_STRING, "")
                 context["search_string"] = search_string
 
+        # Parse requested columns and collect column errors
+        column_specs = []
+        column_errors = []
+        for col_str in requested_columns:
+            try:
+                spec = parse_column(col_str, fields=searchable_fields)
+                column_specs.append(spec)
+            except ValueError as e:
+                column_errors.append({"column": col_str, "error": str(e)})
+
+        # Parse query AST to derive match columns if show_matches is enabled
+        search_query = None
+        if search_string:
+            search_query = self._parse_search_string(search_string)
+
+        all_columns = list(column_specs)
+        if show_matches and search_query is not None:
+            derived_cols = derive_match_columns(search_query)
+            all_columns.extend(derived_cols)
+
         context["searchable_fields"] = searchable_fields
         context["language_spec"] = get_language_spec()
         context["requested_columns"] = requested_columns
-        context["data"] = self._get_data(search_string, requested_columns)
+        context["columns"] = all_columns
+        context["column_errors"] = column_errors
+        context["show_matches"] = show_matches
+        context["data"] = self._get_data(search_query, all_columns)
         context["include_archived"] = self._include_archived()
 
         # Check for query parse error message
@@ -461,49 +495,52 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
 
         return context
 
-    def _get_data(self, search_string, requested_columns):
+    def _get_data(self, search_query, columns):
         qs = Host.objects.get_for_user(self.request.user)
 
         if not self._include_archived():
             qs = qs.exclude(archived=True)
 
-        if search_string:
-            search_query = self._parse_search_string(search_string)
-            if search_query is not None:
-                try:
-                    qs = search_hosts_by_scan_fields(qs, search_query)
-                except ValueError as e:
-                    # Store the error message to display to the user
-                    self._query_parse_error = str(e)
-                    return Host.objects.none()
+        if search_query is not None:
+            try:
+                qs = search_hosts_by_scan_fields(qs, search_query)
+            except ValueError as e:
+                # Store the error message to display to the user
+                self._query_parse_error = str(e)
+                return []
+        elif hasattr(self, "_query_parse_error"):
+            return []
 
-        return get_scan_field_values(qs, requested_columns)
+        return evaluate_columns(qs, columns)
 
-    def _parse_requested_columns(self, searchable_fields):
+    def _parse_requested_columns(self):
         if not self.request.POST:
             return []
 
         column_string = self.request.POST.get(SearchFormParam.COLUMNS, "")
-
         if not column_string:
-            return {}
+            return []
 
-        allowed_fields = [field.id for field in searchable_fields]
+        try:
+            parsed = json.loads(column_string)
+            if isinstance(parsed, list):
+                return [str(col).strip() for col in parsed if str(col).strip()]
+        except (json.JSONDecodeError, TypeError):
+            pass
 
-        return [field for field in column_string.split(",") if field in allowed_fields]
+        return [col.strip() for col in column_string.split(",") if col.strip()]
 
     def _parse_search_string(self, search_string):
-        """Parse the search string using the ComplexQuery parser.
+        """Parse the search string using the search query parser.
 
         Returns:
-            ComplexQuery object or None if there's no search string or parsing fails.
+            BoolNode object or None if there's no search string or parsing fails.
             Sets self._query_parse_error if parsing fails.
         """
         if not search_string:
             return None
 
         try:
-            # Use the new query parser to create a ComplexQuery object
             return parse_query(search_string)
         except ValueError as e:
             # Store the error message to display to the user
@@ -635,11 +672,17 @@ class SavedSearchCreateView(
             initial["query"] = self.request.GET["query"]
         if "columns" in self.request.GET:
             initial["columns"] = self.request.GET["columns"]
+        if SearchFormParam.SHOW_MATCHES in self.request.GET or "show_matches" in self.request.GET:
+            val = self.request.GET.get(
+                SearchFormParam.SHOW_MATCHES, self.request.GET.get("show_matches")
+            )
+            initial["show_matches"] = val in ("true", "True", "1", "on")
         return initial
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["searchable_fields"] = get_searchable_fields()
+        context["language_spec"] = get_language_spec()
         return context
 
     def form_valid(self, form):
@@ -659,6 +702,7 @@ class SavedSearchUpdateView(
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["searchable_fields"] = get_searchable_fields()
+        context["language_spec"] = get_language_spec()
         return context
 
     def get_queryset(self):

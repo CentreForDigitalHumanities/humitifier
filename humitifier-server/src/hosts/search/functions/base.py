@@ -131,3 +131,10 @@ class SearchFunction:
     def compile(cls, args: tuple[Expr, ...], ctx: CompileContext) -> CompiledExpr:
         """Compile this function call to a CompiledExpr."""
         raise NotImplementedError
+
+    @classmethod
+    def compile_matches(
+        cls, args: tuple[Expr, ...], ctx: CompileContext
+    ) -> SqlFragment | None:
+        """Compile this function call to a SqlFragment producing matching elements, or None."""
+        return None

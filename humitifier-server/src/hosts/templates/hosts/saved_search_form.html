@@ -17,7 +17,7 @@
         {% endif %}
 
         <div class="max-w-3xl bg-white dark:bg-gray-900 rounded-md border border-gray-200 dark:border-gray-700 overflow-hidden transition duration-150">
-            <form method="post" class="p-6" x-data="window.savedSearchFormWithData ? window.savedSearchFormWithData() : advancedSearchQuery()" x-init="init()" @keydown.window.escape="closeSuggestions(); closeColumnSuggestions()">
+            <form method="post" class="p-6" x-data="window.savedSearchFormWithData ? window.savedSearchFormWithData() : advancedSearchQuery()" x-init="init()" @keydown.window.escape="closeSuggestions(); cancelColumn()">
                 {% csrf_token %}
 
                 <div class="mb-4">
@@ -61,7 +61,7 @@
                             @keydown.enter.prevent="onTab()"
                         ></textarea>
 
-                        <template x-if="open && suggestions.length">
+                        <template x-if="open && suggestions.length && activeEditor === 'query'">
                             <ul class="absolute z-40 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-md w-full">
                                 <template x-for="(s, idx) in suggestions" :key="s.id">
                                     <li
@@ -83,53 +83,83 @@
                     <label for="id_columns" class="block font-semibold text-gray-600 dark:text-gray-300 mb-1">Columns</label>
                     <div class="relative w-full">
                         <div class="input w-full min-h-[2.5rem] flex items-center flex-wrap gap-2 py-1">
-                            <!-- Selected column bubbles -->
-                            <template x-for="(col, idx) in selectedColumns" :key="col.id">
+                            <!-- Chips for existing columns -->
+                            <template x-for="(col, idx) in columns" :key="idx">
                                 <span
-                                    class="px-2 py-1 cursor-pointer bg-gray-100 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-50 border border-gray-200 dark:border-gray-700 rounded-md flex items-center gap-1"
-                                    @click="removeColumn(idx)"
+                                    class="px-2 py-1 cursor-pointer bg-gray-100 dark:bg-gray-700 text-sm text-gray-700 dark:text-gray-50 border border-gray-200 dark:border-gray-700 rounded-sm flex items-center gap-1 hover:border-blue-400"
+                                    @click="editColumn(idx)"
+                                    :style="'order: ' + (idx * 2)"
+                                    x-show="!(activeEditor === 'column' && editingIndex === idx)"
                                 >
                                     <span x-text="col.label"></span>
-                                    <button type="button" class="text-red-500 leading-none" aria-label="Remove">×</button>
+                                    <button type="button" class="text-red-500 leading-none hover:text-red-700 cursor-pointer" aria-label="Remove" @click.stop="removeColumn(idx)">×</button>
                                 </span>
                             </template>
-                            <!-- Inline input for filtering options -->
-                            <input
-                                x-ref="columnsInput"
-                                class="grow outline-none bg-transparent placeholder-gray-400 min-w-[8ch]"
-                                type="text"
-                                autocomplete="off"
-                                x-model="columnsFilter"
-                                placeholder="Choose columns…"
-                                @input="onColumnsInput()"
-                                @focus="onColumnsInput()"
-                                @click.outside="closeColumnSuggestions()"
-                                @keydown.down.prevent="moveColumn(1)"
-                                @keydown.up.prevent="moveColumn(-1)"
-                                @keydown.enter.prevent="chooseColumn()"
-                                @keydown.tab.prevent="chooseColumn()"
-                                @keydown.backspace="maybeBackspaceRemove()"
-                            />
+
+                            <!-- When in column mode: one-line inline editor -->
+                            <div x-show="activeEditor === 'column'" :style="'order: ' + (editingIndex === -1 ? 9999 : editingIndex * 2)" class="relative grow min-w-[20ch] flex items-center" @click.outside="if (activeEditor === 'column') { if (columnDraft.trim()) { commitColumn(); } else { cancelColumn(); } }">
+                                <div class="absolute inset-0 z-0 pointer-events-none overflow-hidden rounded-sm p-0 font-semibold text-sm" aria-hidden="true" x-ref="columnHighlight">
+                                    <div class="px-2 py-1 leading-5 whitespace-pre text-gray-700 dark:text-gray-50" x-html="columnHighlightHtml"></div>
+                                </div>
+                                <input
+                                    type="text"
+                                    x-ref="columnInput"
+                                    class="border-none relative z-10 w-full !bg-transparent !text-transparent caret-gray-700 dark:caret-gray-50 font-semibold text-sm px-2 py-1 outline-none"
+                                    x-model="columnDraft"
+                                    placeholder='expr [AS "Label"]'
+                                    autocomplete="off"
+                                    @input="onColumnInput()"
+                                    @click="onColumnInput()"
+                                    @scroll="syncColumnHighlightScroll()"
+                                    @keydown.down.prevent="move(1)"
+                                    @keydown.up.prevent="move(-1)"
+                                    @keydown.tab.prevent="onTab()"
+                                    @keydown.enter.prevent="if (open && suggestions.length) { onTab(); } else { commitColumn(); }"
+                                    @keydown.escape.prevent="cancelColumn()"
+                                />
+                            </div>
+
+                            <!-- Button to add new column when not editing -->
+                            <button
+                                type="button"
+                                x-show="activeEditor !== 'column'"
+                                style="order: 9999"
+                                @click="editColumn(-1)"
+                                class="px-2 py-1 text-sm bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-300 border border-dashed border-gray-300 dark:border-gray-600 rounded-sm cursor-pointer"
+                            >
+                                + Add column
+                            </button>
                         </div>
 
-                        <!-- Suggestions dropdown -->
-                        <template x-if="colOpen && colSuggestions.length">
-                            <ul class="absolute z-40 mt-1 max-h-60 overflow-auto max-h-[80vh] bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-md w-full">
-                                <template x-for="(s, idx) in colSuggestions" :key="s.id">
+                        <!-- Autocomplete suggestions dropdown when in column editor -->
+                        <template x-if="open && suggestions.length && activeEditor === 'column'">
+                            <ul class="absolute z-40 mt-1 max-h-60 overflow-auto bg-gray-50 dark:bg-gray-900 text-sm text-gray-700 dark:text-gray-50 placeholder-gray-400 border border-gray-200 dark:border-gray-700 rounded-sm w-full shadow-lg">
+                                <template x-for="(s, idx) in suggestions" :key="s.id">
                                     <li
                                         class="px-3 py-2 cursor-pointer hover:bg-gray-200 hover:dark:bg-gray-700"
-                                        :class="{ 'bg-gray-200 dark:bg-gray-700': idx === colActiveIndex }"
-                                        @mousedown.prevent="chooseColumn(idx)"
+                                        :class="{ 'bg-gray-200 dark:bg-gray-700': idx === activeIndex }"
+                                        @mousedown.prevent="choose(idx)"
                                         x-text="s.label"
                                     ></li>
                                 </template>
                             </ul>
                         </template>
-                        <!-- Hidden input for submitting selected column ids -->
-                        <input type="hidden" name="columns" id="id_columns" :value="selectedColumns.map(c => c.id).join(',')">
+
+                        <!-- Hidden input for submitting column expressions as JSON array -->
+                        <input type="hidden" name="columns" id="id_columns" :value="columnsJson()">
                     </div>
                     {% if form.columns.errors %}
                         <div class="text-red-600 text-sm mt-1">{{ form.columns.errors }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4 flex items-center gap-2">
+                    <input type="checkbox" name="show_matches" id="id_show_matches" x-model="showMatches" {% if form.show_matches.value or form.instance.show_matches %}checked{% endif %}>
+                    <label for="id_show_matches" class="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                        Show matches (automatically include matching array element columns)
+                    </label>
+                    {% if form.show_matches.errors %}
+                        <div class="text-red-600 text-sm mt-1">{{ form.show_matches.errors }}</div>
                     {% endif %}
                 </div>
 
@@ -158,6 +188,8 @@
 
 {% block footer_scripts %}
 {% load static %}
+{{ language_spec|json_script:"search-language-spec" }}
+{{ form.instance.get_columns_list|json_script:"saved-search-columns-data" }}
 <script src="{% static 'hosts/js/advanced-search.js' %}"></script>
 <script>
 // Initialize the saved search form with Django template data
@@ -166,32 +198,63 @@ document.addEventListener('alpine:init', () => {
         const instance = advancedSearchQuery();
         const originalInstanceInit = instance.init;
         instance.init = function() {
+            const specElement = document.getElementById('search-language-spec');
+            const spec = specElement ? JSON.parse(specElement.textContent) : null;
+            if (spec) {
+                this.setLanguageSpec(spec);
+            }
             originalInstanceInit.call(this);
+
             // Inject Django template values
             this.value = '{{ form.query.value|default:""|escapejs }}';
 
-            // Parse columns from the form value or URL parameters
+            // Parse columns from the JSON script, form value or URL parameters
             const urlParams = new URLSearchParams(window.location.search);
-            const columnsParam = urlParams.get('columns') || '{{ form.columns.value|default:""|safe }}';
-            const columnIds = columnsParam ? columnsParam.split(',').filter(c => c.trim()) : [];
-
-            this.fields = [
-            {% for field in searchable_fields %}
-                { id: '{{ field.id|safe }}', label: '{{ field.label|safe }}', valueType: '{{ field.value_type|safe }}' },
-            {% endfor %}
-            ];
-
-            // Map column IDs to their labels
-            this.selectedColumns = columnIds.map(id => {
-                const field = this.fields.find(f => f.id === id);
-                return field ? { id: id, label: field.label } : { id: id, label: id };
-            });
-
-            // Pre-populate query from URL parameters if provided
             const queryParam = urlParams.get('query');
             if (queryParam) {
                 this.value = queryParam;
             }
+
+            const showMatchesParam = urlParams.get('show-matches');
+            if (showMatchesParam !== null) {
+                this.showMatches = showMatchesParam === 'on' || showMatchesParam === 'true';
+            } else {
+                this.showMatches = {% if form.show_matches.value or form.instance.show_matches %}true{% else %}false{% endif %};
+            }
+
+            let rawCols = [];
+            const columnsParam = urlParams.get('columns');
+            if (columnsParam) {
+                try {
+                    const parsed = JSON.parse(columnsParam);
+                    if (Array.isArray(parsed)) rawCols = parsed;
+                    else rawCols = columnsParam.split(',').filter(c => c.trim());
+                } catch (e) {
+                    rawCols = columnsParam.split(',').filter(c => c.trim());
+                }
+            } else {
+                const colsElement = document.getElementById('saved-search-columns-data');
+                const savedCols = colsElement ? JSON.parse(colsElement.textContent) : [];
+                if (Array.isArray(savedCols) && savedCols.length > 0) {
+                    rawCols = savedCols;
+                } else {
+                    const formVal = '{{ form.columns.value|default:""|escapejs }}';
+                    if (formVal) {
+                        try {
+                            const parsed = JSON.parse(formVal);
+                            if (Array.isArray(parsed)) rawCols = parsed;
+                            else rawCols = formVal.split(',').filter(c => c.trim());
+                        } catch (e) {
+                            rawCols = formVal.split(',').filter(c => c.trim());
+                        }
+                    }
+                }
+            }
+
+            this.columns = rawCols.map(c => {
+                const m = c.match(/\s+AS\s+["'](.*)["']\s*$/i);
+                return { text: c, label: m ? m[1] : c };
+            });
 
             this.updateHighlight();
             this.autoResize();

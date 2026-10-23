@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .constants import GROUP_CLOSE, GROUP_OPEN, LogicalOperator
+from .constants import ALIAS_KEYWORD, GROUP_CLOSE, GROUP_OPEN, LogicalOperator
 from .field_discovery import get_searchable_fields
 from .functions import function_registry
 from .operators import operator_registry
@@ -81,6 +81,7 @@ def get_language_spec() -> dict[str, Any]:
     ]
 
     return {
+        "alias_keyword": ALIAS_KEYWORD,
         "operators": operators,
         "logical_operators": [op.value for op in LogicalOperator],
         "grouping": {

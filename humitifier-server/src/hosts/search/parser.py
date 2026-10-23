@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Iterable
 
-from .constants import LogicalOperator, TokenType, ValueType
+from .columns import ColumnSpec
+from .constants import Cardinality, LogicalOperator, TokenType, ValueType
 from .field_discovery import get_searchable_fields
 from .functions import function_registry
 from .lexer import Token, tokenize
@@ -322,6 +323,29 @@ class _Parser:
 
         raise ValueError(f"Expected literal value at position {tok.position}")
 
+    def parse_column(self, source_text: str) -> ColumnSpec:
+        expr = self.parse_expr()
+        if (
+            isinstance(expr, FunctionCall)
+            and expr.expr_type.value_type == ValueType.BOOLEAN
+            and expr.expr_type.cardinality == Cardinality.SINGLE
+        ):
+            raise ValueError(
+                f"Boolean predicate function '{expr.function.name}' cannot be used as a column; use 'Show matches' instead."
+            )
+        alias: str | None = None
+        if self.match(TokenType.ALIAS) is not None:
+            tok = self.expect(
+                TokenType.STRING, "Expected string literal alias after AS"
+            )
+            alias = str(tok.value)
+        if self.pos < len(self.tokens):
+            tok = self.tokens[self.pos]
+            raise ValueError(
+                f"Unexpected token '{tok.value}' at position {tok.position}"
+            )
+        return ColumnSpec(source=source_text, expr=expr, alias=alias)
+
 
 def parse_query(
     query_string: str | None,
@@ -350,3 +374,34 @@ def parse_query(
     fields_by_id = {f.id: f for f in (fields if fields is not None else get_searchable_fields())}
     parser = _Parser(tokens, fields_by_id)
     return parser.parse()
+
+
+def parse_column(
+    text: str | None,
+    fields: Iterable[SearchableField] | None = None,
+) -> ColumnSpec:
+    """Parse a column expression with optional alias into a ColumnSpec.
+
+    Args:
+        text: The column expression string to parse (e.g., 'meta.fqdn',
+              'filter(pkgs[].name, "php") AS "PHP"').
+        fields: Optional collection of SearchableField descriptors to validate against.
+                Defaults to get_searchable_fields().
+
+    Returns:
+        A ColumnSpec representing the parsed column expression.
+
+    Raises:
+        ValueError: If text is empty, has syntax errors, unknown fields/functions,
+                    or is a boolean predicate function.
+    """
+    if not text or not text.strip():
+        raise ValueError("Column expression cannot be empty")
+
+    tokens = tokenize(text)
+    if not tokens:
+        raise ValueError("Column expression cannot be empty")
+
+    fields_by_id = {f.id: f for f in (fields if fields is not None else get_searchable_fields())}
+    parser = _Parser(tokens, fields_by_id)
+    return parser.parse_column(text.strip())
