@@ -62,7 +62,7 @@
                         <li><code>&gt;=</code> — greater than or equal</li>
                         <li><code>&lt;</code> — less than</li>
                         <li><code>&lt;=</code> — less than or equal</li>
-                        <li><code>contains</code> — substring match (case-insensitive)</li>
+                        <li><code>CONTAINS</code> — substring match (case-insensitive)</li>
                     </ul>
                 </div>
 
@@ -136,7 +136,7 @@
                         </div>
                         <div>
                             <p class="font-medium">Find Linux hosts with "web" in hostname:</p>
-                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">{ facts.os.name = "Ubuntu" OR facts.os.name = "Debian" } AND facts.hostname contains "web"</code>
+                            <code class="block bg-gray-50 dark:bg-gray-800 p-2 rounded">{ facts.os.name = "Ubuntu" OR facts.os.name = "Debian" } AND facts.hostname CONTAINS "web"</code>
                         </div>
                         <div>
                             <p class="font-medium">Find hosts with more than 100 packages:</p>
@@ -178,7 +178,7 @@
                         x-ref="input"
                         name="search-string"
                         x-model="value"
-                        placeholder='field = "value" AND field >= 42 OR (field contains "text")'
+                        placeholder='field = "value" AND field >= 42 OR (field CONTAINS "text")'
                         autocomplete="off"
                         rows="1"
                         @input="onInput()"

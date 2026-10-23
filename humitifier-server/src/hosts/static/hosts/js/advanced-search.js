@@ -2,7 +2,7 @@
  * Advanced Search Query Helper
  *
  * Provides comprehensive autocomplete and validation for the ComplexQuery syntax:
- * - Operators: =, >, >=, <, <=, contains
+ * - Operators: =, >, >=, <, <=, CONTAINS
  * - Logical operators: AND, OR
  * - Brackets for grouping: {expr}
  * - Quoted strings: "value" or 'value'
@@ -12,7 +12,7 @@
  *   - facts.cpu.count = 4
  *   - facts.os.name = "Ubuntu" AND facts.cpu.count >= 4
  *   - {facts.os.name = "Ubuntu" OR facts.os.name = "Debian"} AND facts.cpu.count > 2
- *   - facts.hostname contains "web"
+ *   - facts.hostname CONTAINS "web"
  */
 
 function advancedSearchQuery() {
@@ -31,7 +31,7 @@ function advancedSearchQuery() {
         colActiveIndex: 0,
 
         // Supported operators in the new syntax
-        operators: ['=', '>', '>=', '<', '<=', 'contains'],
+        operators: ['=', '>', '>=', '<', '<=', 'CONTAINS'],
         logicalOperators: ['AND', 'OR'],
         aggregationFunctions: ['min', 'max', 'sum', 'concat', 'count'],
         filterFunction: 'filter',
@@ -158,9 +158,10 @@ function advancedSearchQuery() {
                     }
 
                     // Check if it's a logical operator
-                    if (word === 'AND' || word === 'OR') {
+                    const wordUpper = word.toUpperCase();
+                    if (wordUpper === 'AND' || wordUpper === 'OR') {
                         tokens.push({ type: 'logical', value: word });
-                    } else if (word === 'contains') {
+                    } else if (wordUpper === 'CONTAINS') {
                         tokens.push({ type: 'operator', value: word });
                     } else if (word === 'min' || word === 'max' || word === 'sum' || word === 'concat' || word === 'count') {
                         tokens.push({ type: 'aggregation', value: word });
@@ -576,7 +577,7 @@ function advancedSearchQuery() {
                     if (isApplicable && (partialLower === '' || op.toLowerCase().startsWith(partialLower))) {
                         suggestions.push({
                             id: op,
-                            label: op === 'contains' ? 'contains — substring match' : `${op} — ${this._getOperatorDescription(op)}`,
+                            label: op === 'CONTAINS' ? 'CONTAINS — substring match' : `${op} — ${this._getOperatorDescription(op)}`,
                             insertValue: op,
                             type: 'operator'
                         });
@@ -735,14 +736,15 @@ function advancedSearchQuery() {
                 return operator === '=';
             }
 
+            const opUpper = (operator || '').toUpperCase();
             // String fields support equality and contains
             if (fieldType === 'string') {
-                return operator === '=' || operator === 'contains';
+                return operator === '=' || opUpper === 'CONTAINS';
             }
 
             // Integer fields support all comparison operators except contains
             if (fieldType === 'integer') {
-                return operator !== 'contains';
+                return opUpper !== 'CONTAINS';
             }
 
             return true;
@@ -1008,9 +1010,10 @@ function advancedSearchQuery() {
                         i++;
                     }
 
-                    if (word === 'AND' || word === 'OR') {
+                    const wordUpper = word.toUpperCase();
+                    if (wordUpper === 'AND' || wordUpper === 'OR') {
                         pushToken(word, 'logical');
-                    } else if (word === 'contains') {
+                    } else if (wordUpper === 'CONTAINS') {
                         pushToken(word, 'operator');
                     } else if (word === 'min' || word === 'max' || word === 'sum' || word === 'concat' || word === 'count') {
                         pushToken(word, 'aggregation');

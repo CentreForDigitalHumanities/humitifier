@@ -10,7 +10,7 @@ from typing import Any, Literal
 ArtefactSection = Literal["facts", "metrics", "meta"]
 
 # Comparison operators for search criteria
-ComparisonOperator = Literal["eq", "gt", "gte", "lt", "lte", "contains"]
+ComparisonOperator = Literal["EQ", "GT", "GTE", "LT", "LTE", "CONTAINS"]
 
 # Aggregation functions for array fields
 AggregationFunction = Literal["min", "max", "sum", "concat", "count"]
@@ -56,7 +56,7 @@ class SearchCriterion:
     A single search criterion with an operator.
 
     field_id: the SearchableField.id to search
-    operator: comparison operator (eq, gt, gte, lt, lte, contains)
+    operator: comparison operator (EQ, GT, GTE, LT, LTE, CONTAINS)
     value: the value to compare against
     aggregation: optional aggregation function for array fields (min, max, sum, concat, count)
     filter_pattern: optional regex pattern to filter array elements before comparison/aggregation
@@ -78,6 +78,6 @@ class ComplexQuery:
     - A conjunction (AND) of sub-queries
     - A disjunction (OR) of sub-queries
     """
-    type: Literal["criterion", "and", "or"]
+    type: Literal["criterion", "AND", "OR"]
     criterion: SearchCriterion | None = None
     children: list[ComplexQuery] | None = None

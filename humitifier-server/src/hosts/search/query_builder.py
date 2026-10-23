@@ -60,14 +60,15 @@ def _operator_to_sql(operator: ComparisonOperator) -> str:
         Defaults to "=" for unknown operators.
     """
     operator_mapping = {
-        "eq": "=",
-        "gt": ">",
-        "gte": ">=",
-        "lt": "<",
-        "lte": "<=",
-        "contains": "ILIKE",  # Fallback; usually handled specially for case-insensitive matching
+        "EQ": "=",
+        "GT": ">",
+        "GTE": ">=",
+        "LT": "<",
+        "LTE": "<=",
+        "CONTAINS": "ILIKE",  # Fallback; usually handled specially for case-insensitive matching
     }
-    return operator_mapping.get(operator, "=")
+    op = operator.upper() if isinstance(operator, str) else operator
+    return operator_mapping.get(op, "=")
 
 
 def _build_json_lookup_path(descriptor: SearchableField) -> str:
@@ -115,23 +116,24 @@ def _apply_meta_filter(
         return queryset
 
     is_string_field = descriptor.value_type == "string"
+    op = criterion.operator.upper() if isinstance(criterion.operator, str) else criterion.operator
 
-    if criterion.operator == "eq":
+    if op == "EQ":
         lookup_suffix = "__iexact" if is_string_field else ""
         return queryset.filter(**{f"{field_name}{lookup_suffix}": parsed_value})
-    elif criterion.operator == "contains":
+    elif op == "CONTAINS":
         if is_string_field:
             return queryset.filter(**{f"{field_name}__icontains": parsed_value})
         else:
             # Contains doesn't make sense for non-strings, treat as exact match
             return queryset.filter(**{field_name: parsed_value})
-    elif criterion.operator == "gt":
+    elif op == "GT":
         return queryset.filter(**{f"{field_name}__gt": parsed_value})
-    elif criterion.operator == "gte":
+    elif op == "GTE":
         return queryset.filter(**{f"{field_name}__gte": parsed_value})
-    elif criterion.operator == "lt":
+    elif op == "LT":
         return queryset.filter(**{f"{field_name}__lt": parsed_value})
-    elif criterion.operator == "lte":
+    elif op == "LTE":
         return queryset.filter(**{f"{field_name}__lte": parsed_value})
     else:
         # Unknown operator, treat as exact match
@@ -158,23 +160,24 @@ def _apply_scalar_filter(
     """
     lookup_path = _build_json_lookup_path(descriptor)
     is_string_field = descriptor.value_type == "string"
+    op = criterion.operator.upper() if isinstance(criterion.operator, str) else criterion.operator
 
-    if criterion.operator == "eq":
+    if op == "EQ":
         lookup_suffix = "__iexact" if is_string_field else ""
         return queryset.filter(**{f"{lookup_path}{lookup_suffix}": parsed_value})
-    elif criterion.operator == "contains":
+    elif op == "CONTAINS":
         if is_string_field:
             return queryset.filter(**{f"{lookup_path}__icontains": parsed_value})
         else:
             # Contains doesn't make sense for non-strings, treat as exact match
             return queryset.filter(**{lookup_path: parsed_value})
-    elif criterion.operator == "gt":
+    elif op == "GT":
         return queryset.filter(**{f"{lookup_path}__gt": parsed_value})
-    elif criterion.operator == "gte":
+    elif op == "GTE":
         return queryset.filter(**{f"{lookup_path}__gte": parsed_value})
-    elif criterion.operator == "lt":
+    elif op == "LT":
         return queryset.filter(**{f"{lookup_path}__lt": parsed_value})
-    elif criterion.operator == "lte":
+    elif op == "LTE":
         return queryset.filter(**{f"{lookup_path}__lte": parsed_value})
     else:
         # Unknown operator, treat as exact match
@@ -317,6 +320,7 @@ def _build_array_where_clause(
         SQL WHERE clause string.
     """
     is_string_field = descriptor.value_type == "string"
+    op = criterion.operator.upper() if isinstance(criterion.operator, str) else criterion.operator
     where_clauses = []
 
     # Add filter pattern clause if provided
@@ -343,27 +347,27 @@ def _build_array_where_clause(
                 f"ELSE {element_expression}::text END"
             )
 
-            if criterion.operator == "contains":
+            if op == "CONTAINS":
                 sql_params.append(f"%{parsed_value}%")
                 where_clauses.append(f"{comparison_expression} ILIKE %s")
-            elif criterion.operator == "eq":
+            elif op == "EQ":
                 sql_params.append(str(parsed_value))
                 where_clauses.append(f"LOWER({comparison_expression}) = LOWER(%s)")
             else:
                 sql_params.append(str(parsed_value))
-                sql_operator = _operator_to_sql(criterion.operator)
+                sql_operator = _operator_to_sql(op)
                 where_clauses.append(f"{comparison_expression} {sql_operator} %s")
         else:
             # For nested fields within elements
-            if criterion.operator == "contains":
+            if op == "CONTAINS":
                 sql_params.append(f"%{parsed_value}%")
                 where_clauses.append(f"{text_expression} ILIKE %s")
-            elif criterion.operator == "eq":
+            elif op == "EQ":
                 sql_params.append(str(parsed_value))
                 where_clauses.append(f"LOWER({text_expression}) = LOWER(%s)")
             else:
                 sql_params.append(str(parsed_value))
-                sql_operator = _operator_to_sql(criterion.operator)
+                sql_operator = _operator_to_sql(op)
                 where_clauses.append(f"{text_expression} {sql_operator} %s")
     else:
         # For integer/boolean fields
@@ -372,13 +376,13 @@ def _build_array_where_clause(
             if isinstance(parsed_value, bool)
             else str(parsed_value)
         )
-        if criterion.operator == "contains":
+        if op == "CONTAINS":
             # Contains doesn't make sense for non-strings, treat as exact match
             sql_params.append(val_str)
             where_clauses.append(f"{text_expression} = %s")
         else:
             sql_params.append(val_str)
-            sql_operator = _operator_to_sql(criterion.operator)
+            sql_operator = _operator_to_sql(op)
             where_clauses.append(f"{text_expression} {sql_operator} %s")
 
     return " AND ".join(where_clauses)
@@ -514,13 +518,14 @@ def _apply_array_aggregation_filter(
     )
 
     # Build the comparison
-    sql_operator = _operator_to_sql(criterion.operator)
+    op = criterion.operator.upper() if isinstance(criterion.operator, str) else criterion.operator
+    sql_operator = _operator_to_sql(op)
 
     # For string comparisons (concat result), use case-insensitive comparison
-    if aggregation == "concat" and criterion.operator == "eq":
+    if aggregation == "concat" and op == "EQ":
         having_clause = f"LOWER({agg_expr}) = LOWER(%s)"
         having_params = agg_params + [str(parsed_value)]
-    elif aggregation == "concat" and criterion.operator == "contains":
+    elif aggregation == "concat" and op == "CONTAINS":
         having_clause = f"{agg_expr} ILIKE %s"
         having_params = agg_params + [f"%{parsed_value}%"]
     else:
@@ -701,7 +706,7 @@ def _apply_or_query(
 
     Args:
         queryset: The Django QuerySet to filter.
-        query: The ComplexQuery object with type="or".
+        query: The ComplexQuery object with type="OR".
         fields_by_id: Mapping of field IDs to their descriptors.
 
     Returns:
@@ -739,7 +744,7 @@ def _apply_and_query(
 
     Args:
         queryset: The Django QuerySet to filter.
-        query: The ComplexQuery object with type="and".
+        query: The ComplexQuery object with type="AND".
         fields_by_id: Mapping of field IDs to their descriptors.
 
     Returns:
@@ -790,8 +795,8 @@ def _apply_complex_query_to_queryset(
 
     This function handles the three types of query nodes:
     - "criterion": A single search condition (leaf node)
-    - "and": Logical AND of multiple child queries
-    - "or": Logical OR of multiple child queries
+    - "AND": Logical AND of multiple child queries
+    - "OR": Logical OR of multiple child queries
 
     Args:
         queryset: The Django QuerySet to filter.
@@ -801,11 +806,12 @@ def _apply_complex_query_to_queryset(
     Returns:
         Filtered QuerySet matching the complex query criteria.
     """
-    if query.type == "criterion":
+    query_type = query.type.upper() if isinstance(query.type, str) else query.type
+    if query_type == "CRITERION":
         return _apply_criterion_query(queryset, query, fields_by_id)
-    elif query.type == "and":
+    elif query_type == "AND":
         return _apply_and_query(queryset, query, fields_by_id)
-    elif query.type == "or":
+    elif query_type == "OR":
         return _apply_or_query(queryset, query, fields_by_id)
     else:
         return queryset

@@ -14,8 +14,8 @@ def parse_query(query_string: str) -> ComplexQuery:
 
     Supported syntax:
     - Basic: field_id = "value"
-    - Operators: =, >, >=, <, <=, contains
-    - Logical operators: AND, OR
+    - Operators: =, >, >=, <, <=, contains (case-insensitive)
+    - Logical operators: AND, OR (case-insensitive)
     - Brackets for grouping: {expr}
     - Quoted strings: "value" or 'value'
     - Unquoted values for numbers and booleans: 42, true, false
@@ -166,26 +166,26 @@ class _QueryParser:
         left = self._parse_and_expr()
 
         children = [left]
-        while self._current_token() == "OR":
+        while self._current_token() and self._current_token().upper() == "OR":
             self._consume_token()  # Consume "OR"
             children.append(self._parse_and_expr())
 
         if len(children) == 1:
             return children[0]
-        return ComplexQuery(type="or", children=children)
+        return ComplexQuery(type="OR", children=children)
 
     def _parse_and_expr(self) -> ComplexQuery:
         """Parse AND expressions (higher precedence than OR)."""
         left = self._parse_primary()
 
         children = [left]
-        while self._current_token() == "AND":
+        while self._current_token() and self._current_token().upper() == "AND":
             self._consume_token()  # Consume "AND"
             children.append(self._parse_primary())
 
         if len(children) == 1:
             return children[0]
-        return ComplexQuery(type="and", children=children)
+        return ComplexQuery(type="AND", children=children)
 
     def _parse_primary(self) -> ComplexQuery:
         """Parse primary expressions (bracketed expressions or criteria)."""
@@ -314,14 +314,14 @@ class _QueryParser:
     def _parse_operator(self, token: str) -> ComparisonOperator:
         """Parse an operator token into a ComparisonOperator."""
         operator_map = {
-            "=": "eq",
-            ">": "gt",
-            ">=": "gte",
-            "<": "lt",
-            "<=": "lte",
-            "contains": "contains",
+            "=": "EQ",
+            ">": "GT",
+            ">=": "GTE",
+            "<": "LT",
+            "<=": "LTE",
+            "CONTAINS": "CONTAINS",
         }
-        operator = operator_map.get(token)
+        operator = operator_map.get(token.upper())
         if operator is None:
             raise ValueError(f"Invalid operator: {token}")
         return operator  # type: ignore[return-value]
