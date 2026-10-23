@@ -2,15 +2,19 @@
 
 from unittest import mock
 
+from django.contrib.auth import get_user_model
 from django.test import TestCase
+from django.urls import reverse
 from django.utils import timezone
 
 from humitifier_common.artefacts import registry as artefact_registry
 
 from hosts.models import Host, Scan
-from hosts.search.query_builder import search_hosts_by_scan_fields
-from hosts.search.query_parser import parse_query
-from hosts.search.types import ComplexQuery, SearchCriterion
+from hosts.search import parse_query, search_hosts_by_scan_fields
+from hosts.search.constants import LogicalOperator
+from hosts.search.functions import function_registry
+
+User = get_user_model()
 
 
 class AdvancedSearchTestCase(TestCase):
@@ -717,84 +721,47 @@ class SimpleSearchTests(AdvancedSearchTestCase):
 
     def test_search_by_meta_fqdn(self):
         """Test searching by FQDN using meta field."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="meta.fqdn", operator="CONTAINS", value="web"
-            ),
-        )
+        query = parse_query('meta.fqdn contains "web"')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "web01.example.com")
 
     def test_search_by_meta_department(self):
         """Test searching by department."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="meta.department", operator="EQ", value="Engineering"
-            ),
-        )
+        query = parse_query('meta.department = "Engineering"')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 3)
 
     def test_search_by_meta_archived(self):
         """Test searching by archived status."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="meta.archived", operator="EQ", value=True
-            ),
-        )
+        query = parse_query('meta.archived = true')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "legacy01.example.com")
 
     def test_search_by_meta_billable(self):
         """Test searching by billable status."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="meta.billable", operator="EQ", value=False
-            ),
-        )
+        query = parse_query('meta.billable = false')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "legacy01.example.com")
 
     def test_search_by_os_string(self):
         """Test searching by OS using string contains."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.generic.HostnameCtl.os",
-                operator="CONTAINS",
-                value="Ubuntu",
-            ),
-        )
+        query = parse_query('facts.generic.HostnameCtl.os contains "Ubuntu"')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 2)
 
     def test_search_by_cpu_count_exact(self):
         """Test searching by CPU count with exact match."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.generic.Hardware.num_cpus", operator="EQ", value=8
-            ),
-        )
+        query = parse_query('facts.generic.Hardware.num_cpus = 8')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "web01.example.com")
 
     def test_search_by_cpu_count_gte(self):
         """Test searching by CPU count with greater than or equal."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.generic.Hardware.num_cpus", operator="GTE", value=12
-            ),
-        )
+        query = parse_query('facts.generic.Hardware.num_cpus >= 12')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 2)
         fqdns = {host.fqdn for host in result}
@@ -803,26 +770,14 @@ class SimpleSearchTests(AdvancedSearchTestCase):
 
     def test_search_by_cpu_count_lt(self):
         """Test searching by CPU count with less than."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.generic.Hardware.num_cpus", operator="LT", value=8
-            ),
-        )
+        query = parse_query('facts.generic.Hardware.num_cpus < 8')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "legacy01.example.com")
 
     def test_search_by_memory_total(self):
         """Test searching by total memory."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.generic.Hardware.total_memory_gb",
-                operator="GTE",
-                value=32,
-            ),
-        )
+        query = parse_query('facts.generic.Hardware.total_memory_gb >= 32')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 2)
         fqdns = {host.fqdn for host in result}
@@ -831,86 +786,46 @@ class SimpleSearchTests(AdvancedSearchTestCase):
 
     def test_search_by_virtualization(self):
         """Test searching by virtualization type."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.generic.HostnameCtl.virtualization",
-                operator="EQ",
-                value="vmware",
-            ),
-        )
+        query = parse_query('facts.generic.HostnameCtl.virtualization = "vmware"')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
-
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "legacy01.example.com")
 
     def test_search_by_selinux_enabled(self):
         """Test searching by SELinux enabled status."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.generic.SELinux.enabled", operator="EQ", value=True
-            ),
-        )
+        query = parse_query('facts.generic.SELinux.enabled = true')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "legacy01.example.com")
 
     def test_search_by_puppet_enabled(self):
         """Test searching by Puppet enabled status."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.server.PuppetAgent.enabled", operator="EQ", value=True
-            ),
-        )
+        query = parse_query('facts.server.PuppetAgent.enabled = true')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 3)
 
     def test_search_by_puppet_environment(self):
         """Test searching by Puppet environment."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.server.PuppetAgent.environment",
-                operator="EQ",
-                value="production",
-            ),
-        )
+        query = parse_query('facts.server.PuppetAgent.environment = "production"')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 3)
 
     def test_search_by_memory_metric_used(self):
         """Test searching by used memory metric."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="metrics.generic.Memory.used_mb", operator="GTE", value=20000
-            ),
-        )
+        query = parse_query('metrics.generic.Memory.used_mb >= 20000')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "db01.example.com")
 
     def test_search_no_results(self):
         """Test search that should return no results."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="facts.generic.Hardware.num_cpus", operator="EQ", value=999
-            ),
-        )
+        query = parse_query('facts.generic.Hardware.num_cpus = 999')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 0)
 
     def test_search_with_customer(self):
         """Test searching by customer."""
-        query = ComplexQuery(
-            type="criterion",
-            criterion=SearchCriterion(
-                field_id="meta.customer", operator="EQ", value="acme-corp"
-            ),
-        )
+        query = parse_query('meta.customer = "acme-corp"')
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "storage01.example.com")
@@ -935,7 +850,7 @@ class ComplexSearchTests(AdvancedSearchTestCase):
                 f'meta.department = "Engineering" {op} facts.generic.Hardware.num_cpus >= 8'
             )
             parsed_query = parse_query(query_string)
-            self.assertEqual(parsed_query.type, "AND")
+            self.assertEqual(parsed_query.operator, LogicalOperator.AND)
             result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
             self.assertEqual(result.count(), 3)
 
@@ -946,7 +861,7 @@ class ComplexSearchTests(AdvancedSearchTestCase):
             'facts.generic.HostnameCtl.os contains "Debian"'
         )
         parsed_query = parse_query(query_string)
-        self.assertEqual(parsed_query.type, "OR")
+        self.assertEqual(parsed_query.operator, LogicalOperator.OR)
         result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
         self.assertEqual(result.count(), 3)
 
@@ -958,7 +873,7 @@ class ComplexSearchTests(AdvancedSearchTestCase):
                 f'facts.generic.HostnameCtl.os contains "Debian"'
             )
             parsed_query = parse_query(query_string)
-            self.assertEqual(parsed_query.type, "OR")
+            self.assertEqual(parsed_query.operator, LogicalOperator.OR)
             result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
             self.assertEqual(result.count(), 3)
 
@@ -967,7 +882,7 @@ class ComplexSearchTests(AdvancedSearchTestCase):
         for op in ["contains", "CONTAINS", "Contains", "CoNtAiNs"]:
             query_string = f'facts.generic.HostnameCtl.os {op} "Ubuntu"'
             parsed_query = parse_query(query_string)
-            self.assertEqual(parsed_query.criterion.operator, "CONTAINS")
+            self.assertEqual(parsed_query.operator.symbol, "CONTAINS")
             result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
             self.assertEqual(result.count(), 2)
 
@@ -979,35 +894,34 @@ class ComplexSearchTests(AdvancedSearchTestCase):
             'facts.generic.Hardware.num_cpus >= 8'
         )
         parsed_query = parse_query(query_string)
-        self.assertEqual(parsed_query.type, "AND")
-        self.assertEqual(parsed_query.children[0].type, "OR")
-        self.assertEqual(parsed_query.children[0].children[0].criterion.operator, "CONTAINS")
-        self.assertEqual(parsed_query.children[0].children[1].criterion.operator, "CONTAINS")
-        self.assertEqual(parsed_query.children[1].criterion.operator, "GTE")
+        self.assertEqual(parsed_query.operator, LogicalOperator.AND)
+        self.assertEqual(parsed_query.children[0].operator, LogicalOperator.OR)
+        self.assertEqual(parsed_query.children[0].children[0].operator.symbol, "CONTAINS")
+        self.assertEqual(parsed_query.children[0].children[1].operator.symbol, "CONTAINS")
+        self.assertEqual(parsed_query.children[1].operator.symbol, ">=")
         result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
         self.assertEqual(result.count(), 3)
 
     def test_all_operators_processed_uppercase_internally(self):
         """Test that all comparison and logical operators are uppercase in the AST."""
         ops_test = [
-            ('meta.department = "Engineering"', "EQ"),
-            ('facts.generic.Hardware.num_cpus > 8', "GT"),
-            ('facts.generic.Hardware.num_cpus >= 8', "GTE"),
-            ('facts.generic.Hardware.num_cpus < 8', "LT"),
-            ('facts.generic.Hardware.num_cpus <= 8', "LTE"),
+            ('meta.department = "Engineering"', "="),
+            ('facts.generic.Hardware.num_cpus > 8', ">"),
+            ('facts.generic.Hardware.num_cpus >= 8', ">="),
+            ('facts.generic.Hardware.num_cpus < 8', "<"),
+            ('facts.generic.Hardware.num_cpus <= 8', "<="),
             ('facts.generic.HostnameCtl.os contains "Ubuntu"', "CONTAINS"),
             ('facts.generic.HostnameCtl.os CONTAINS "Ubuntu"', "CONTAINS"),
         ]
         for query_str, expected_op in ops_test:
             parsed = parse_query(query_str)
-            self.assertEqual(parsed.type, "criterion")
-            self.assertEqual(parsed.criterion.operator, expected_op)
+            self.assertEqual(parsed.operator.symbol, expected_op)
 
         and_query = parse_query('meta.department = "Engineering" and facts.generic.Hardware.num_cpus >= 8')
-        self.assertEqual(and_query.type, "AND")
+        self.assertEqual(and_query.operator, LogicalOperator.AND)
 
         or_query = parse_query('meta.department = "Engineering" or facts.generic.Hardware.num_cpus >= 8')
-        self.assertEqual(or_query.type, "OR")
+        self.assertEqual(or_query.operator, LogicalOperator.OR)
 
     def test_nested_and_or_query(self):
         """Test nested AND/OR query."""
@@ -1278,3 +1192,33 @@ class EdgeCaseTests(AdvancedSearchTestCase):
         # Should not include oldversion.example.com
         fqdns = {h.fqdn for h in result}
         self.assertNotIn("oldversion.example.com", fqdns)
+
+
+class AdvancedSearchViewTests(TestCase):
+    """Test the AdvancedSearchView endpoint, context data, and rendered help."""
+
+    def setUp(self):
+        self.superuser = User.objects.create_superuser(
+            username="admin", password="password", email="admin@example.com"
+        )
+        self.client.login(username="admin", password="password")
+
+    def test_view_spec_in_context_and_rendered_help(self):
+        url = reverse("hosts:advanced_search")
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+        # Assert language_spec is in context
+        self.assertIn("language_spec", response.context)
+        spec = response.context["language_spec"]
+        self.assertIn("operators", spec)
+        self.assertIn("functions", spec)
+        self.assertIn("fields", spec)
+
+        # Assert json_script is rendered
+        self.assertContains(response, 'id="search-language-spec"')
+
+        # Assert every registered function appears in the rendered help
+        content = response.content.decode("utf-8")
+        for func in function_registry.all():
+            self.assertIn(f"<code>{func.name}(...)</code>", content)

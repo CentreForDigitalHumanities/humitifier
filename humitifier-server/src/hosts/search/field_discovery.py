@@ -8,7 +8,8 @@ from typing import Any, Iterable, get_args, get_origin
 from humitifier_common.artefacts.registry import registry as artefact_registry
 from pydantic import BaseModel
 
-from .types import ArtefactSection, SearchableField
+from .constants import ARRAY_MARKER, FieldKind, Section, ValueType
+from .types import SearchableField
 
 
 PrimitivePydanticTypes = (str, int, bool)
@@ -19,15 +20,15 @@ PrimitivePydanticTypes = (str, int, bool)
 # expansion to the generated queries, so the number is kept modest.
 MaxModelRecursionDepth = 3
 
-def _iter_artefacts() -> Iterable[tuple[ArtefactSection, Any, str]]:
+def _iter_artefacts() -> Iterable[tuple[Section, Any, str]]:
     """Yield (section, artefact_cls, artefact_key) for all registered artefacts."""
     # Available facts/metrics return strings like "group.Name"
     for key in artefact_registry.available_facts:
         artefact_cls = artefact_registry.get(key)
-        yield "facts", artefact_cls, key
+        yield Section.FACTS, artefact_cls, key
     for key in artefact_registry.available_metrics:
         artefact_cls = artefact_registry.get(key)
-        yield "metrics", artefact_cls, key
+        yield Section.METRICS, artefact_cls, key
 
 
 def _get_meta_fields() -> list[SearchableField]:
@@ -41,16 +42,16 @@ def _get_meta_fields() -> list[SearchableField]:
 
     # Define which fields should be searchable and their types
     meta_field_definitions = [
-        ("fqdn", "string"),
-        ("archived", "boolean"),
-        ("billable", "boolean"),
-        ("has_tofu_config", "boolean"),
-        ("otap_stage", "string"),
-        ("department", "string"),
-        ("customer", "string"),
-        ("contact", "string"),
-        ("os", "string"),
-        ("hypervisor", "string"),
+        ("fqdn", ValueType.STRING),
+        ("archived", ValueType.BOOLEAN),
+        ("billable", ValueType.BOOLEAN),
+        ("has_tofu_config", ValueType.BOOLEAN),
+        ("otap_stage", ValueType.STRING),
+        ("department", ValueType.STRING),
+        ("customer", ValueType.STRING),
+        ("contact", ValueType.STRING),
+        ("os", ValueType.STRING),
+        ("hypervisor", ValueType.STRING),
     ]
 
     fields: list[SearchableField] = []
@@ -60,15 +61,15 @@ def _get_meta_fields() -> list[SearchableField]:
         if not hasattr(Host, field_name):
             continue
 
-        field_id = f"meta.{field_name}"
+        field_id = f"{Section.META}.{field_name}"
         label = f"{field_id} ({value_type})"
 
         field = SearchableField(
             id=field_id,
             label=label,
-            value_type=value_type,  # type: ignore[arg-type]
-            section="meta",
-            kind="scalar",
+            value_type=value_type,
+            section=Section.META,
+            kind=FieldKind.SCALAR,
             artefact_key="",  # Not applicable for meta fields
             field_path=(field_name,),
         )
@@ -97,21 +98,21 @@ def _unwrap_optional(ann: Any) -> Any:
     return ann
 
 
-def _field_type_to_value_type(ann: Any) -> str | None:
+def _field_type_to_value_type(ann: Any) -> ValueType | None:
     """Map a pydantic field annotation to a simplified value type string.
 
-    Returns one of: "string", "integer", "boolean" or None if not supported.
+    Returns one of: ValueType.STRING, ValueType.INTEGER, ValueType.BOOLEAN or None if not supported.
     """
     ann = _unwrap_optional(ann)
     origin = get_origin(ann)
     if origin is None:
         if ann in PrimitivePydanticTypes:
             if ann is str:
-                return "string"
+                return ValueType.STRING
             if ann is int:
-                return "integer"
+                return ValueType.INTEGER
             if ann is bool:
-                return "boolean"
+                return ValueType.BOOLEAN
         return None
     return None
 
@@ -127,7 +128,7 @@ def _recursion_exhausted(
     return model_chain.count(model) >= MaxModelRecursionDepth
 
 
-def _iter_base_model_fields(model: type[BaseModel]) -> Iterable[tuple[str, str]]:
+def _iter_base_model_fields(model: type[BaseModel]) -> Iterable[tuple[str, ValueType]]:
     """Yield (name, value_type) for primitive fields of a pydantic BaseModel."""
     for name, field in model.model_fields.items():
         value_type = _field_type_to_value_type(field.annotation)
@@ -156,7 +157,7 @@ def _get_list_element_type(list_cls: type) -> Any | None:
 
 
 def _build_array_field_id(
-    section: str,
+    section: Section,
     artefact_key: str,
     array_path: tuple[str, ...],
     element_field_path: tuple[str, ...]
@@ -164,7 +165,7 @@ def _build_array_field_id(
     """Construct a field identifier for an array field.
 
     Args:
-        section: The artefact section (e.g., 'facts' or 'metrics')
+        section: The artefact section (e.g., Section.FACTS or Section.METRICS)
         artefact_key: The key identifying the artefact type
         array_path: Path components including "[]" markers for arrays
         element_field_path: Path to field within array elements
@@ -173,11 +174,11 @@ def _build_array_field_id(
         A field ID like "facts.generic.Hardware.memory[].size"
 
     Example:
-        >>> _build_array_field_id("facts", "Hardware", ("memory", "[]"), ("size",))
+        >>> _build_array_field_id(Section.FACTS, "Hardware", ("memory", "[]"), ("size",))
         "facts.Hardware.memory[].size"
     """
-    # Extract only the field names, excluding "[]" markers
-    field_names = [component for component in array_path if component != "[]"]
+    # Extract only the field names, excluding ARRAY_MARKER markers
+    field_names = [component for component in array_path if component != ARRAY_MARKER]
 
     # Start with section and artefact key
     identifier = f"{section}.{artefact_key}"
@@ -187,7 +188,7 @@ def _build_array_field_id(
         identifier += "." + ".".join(field_names)
 
     # Add array marker
-    identifier += "[]"
+    identifier += ARRAY_MARKER
 
     # Add element field path if present
     if element_field_path:
@@ -197,18 +198,18 @@ def _build_array_field_id(
 
 
 def _create_scalar_field(
-    section: str,
+    section: Section,
     artefact_key: str,
     field_path: tuple[str, ...],
-    value_type: str
+    value_type: ValueType
 ) -> SearchableField:
     """Create a searchable field descriptor for a scalar (non-array) field.
 
     Args:
-        section: The artefact section (e.g., 'facts' or 'metrics')
+        section: The artefact section (e.g., Section.FACTS or Section.METRICS)
         artefact_key: The key identifying the artefact type
         field_path: Tuple of field names forming the path to this field
-        value_type: The primitive type (e.g., 'string', 'integer', 'boolean')
+        value_type: The primitive type (e.g., ValueType.STRING, ValueType.INTEGER, ValueType.BOOLEAN)
 
     Returns:
         A SearchableField descriptor for the scalar field
@@ -219,29 +220,29 @@ def _create_scalar_field(
     return SearchableField(
         id=field_id,
         label=label,
-        value_type=value_type,  # type: ignore[arg-type]
+        value_type=value_type,
         section=section,
-        kind="scalar",
+        kind=FieldKind.SCALAR,
         artefact_key=artefact_key,
         field_path=field_path,
     )
 
 
 def _create_array_field(
-    section: str,
+    section: Section,
     artefact_key: str,
     array_path: tuple[str, ...],
     element_field_path: tuple[str, ...],
-    value_type: str
+    value_type: ValueType
 ) -> SearchableField:
     """Create a searchable field descriptor for an array field.
 
     Args:
-        section: The artefact section (e.g., 'facts' or 'metrics')
+        section: The artefact section (e.g., Section.FACTS or Section.METRICS)
         artefact_key: The key identifying the artefact type
         array_path: Path components including "[]" markers indicating arrays
         element_field_path: Path to the field within array elements
-        value_type: The primitive type (e.g., 'string', 'integer', 'boolean')
+        value_type: The primitive type (e.g., ValueType.STRING, ValueType.INTEGER, ValueType.BOOLEAN)
 
     Returns:
         A SearchableField descriptor for the array field
@@ -252,9 +253,9 @@ def _create_array_field(
     return SearchableField(
         id=field_id,
         label=label,
-        value_type=value_type,  # type: ignore[arg-type]
+        value_type=value_type,
         section=section,
-        kind="array",
+        kind=FieldKind.ARRAY,
         artefact_key=artefact_key,
         field_path=(),
         array_path=array_path,
@@ -263,7 +264,7 @@ def _create_array_field(
 
 
 def _collect_list_element_fields(
-    section: str,
+    section: Section,
     artefact_key: str,
     element_model: type[BaseModel],
     base_path: tuple[str, ...],
@@ -303,7 +304,7 @@ def _collect_list_element_fields(
             field = _create_array_field(
                 section,
                 artefact_key,
-                base_path + (field_name, "[]"),
+                base_path + (field_name, ARRAY_MARKER),
                 element_base_path + (element_field_name,),
                 value_type
             )
@@ -318,7 +319,7 @@ def _collect_list_element_fields(
                 section,
                 artefact_key,
                 annotation,
-                base_path + (field_name, "[]"),
+                base_path + (field_name, ARRAY_MARKER),
                 element_field_name,
                 element_base_path,
                 model_chain
@@ -340,7 +341,7 @@ def _collect_list_element_fields(
                     section,
                     artefact_key,
                     nested_element_type,
-                    base_path + (field_name, "[]"),
+                    base_path + (field_name, ARRAY_MARKER),
                     element_field_name,
                     model_chain=model_chain
                 )
@@ -352,7 +353,7 @@ def _collect_list_element_fields(
                     field = _create_array_field(
                         section,
                         artefact_key,
-                        base_path + (field_name, "[]", element_field_name, "[]"),
+                        base_path + (field_name, ARRAY_MARKER, element_field_name, ARRAY_MARKER),
                         (),
                         primitive_value_type
                     )
@@ -362,7 +363,7 @@ def _collect_list_element_fields(
 
 
 def _collect_model_fields(
-    section: str,
+    section: Section,
     artefact_key: str,
     model: type[BaseModel],
     base_path: tuple[str, ...] = (),
@@ -377,7 +378,7 @@ def _collect_model_fields(
     - Deeply nested list structures
 
     Args:
-        section: The artefact section (e.g., 'facts' or 'metrics')
+        section: The artefact section (e.g., Section.FACTS or Section.METRICS)
         artefact_key: The key identifying the artefact type
         model: The Pydantic BaseModel class to introspect
         base_path: Current path context for nested fields
@@ -447,7 +448,7 @@ def _collect_model_fields(
                     field = _create_array_field(
                         section,
                         artefact_key,
-                        base_path + (field_name, "[]"),
+                        base_path + (field_name, ARRAY_MARKER),
                         (),
                         primitive_value_type
                     )
@@ -457,7 +458,7 @@ def _collect_model_fields(
 
 
 def _collect_top_level_list_fields(
-    section: str,
+    section: Section,
     artefact_key: str,
     element_model: type[BaseModel]
 ) -> list[SearchableField]:
@@ -481,7 +482,7 @@ def _collect_top_level_list_fields(
         field = _create_array_field(
             section,
             artefact_key,
-            ("[]",),
+            (ARRAY_MARKER,),
             (field_name,),
             value_type
         )
@@ -497,7 +498,7 @@ def _collect_top_level_list_fields(
                 field = _create_array_field(
                     section,
                     artefact_key,
-                    ("[]", element_field_name, "[]"),
+                    (ARRAY_MARKER, element_field_name, ARRAY_MARKER),
                     (nested_field_name,),
                     nested_value_type
                 )
@@ -515,7 +516,7 @@ def _collect_top_level_list_fields(
                         field = _create_array_field(
                             section,
                             artefact_key,
-                            ("[]", element_field_name, "[]"),
+                            (ARRAY_MARKER, element_field_name, ARRAY_MARKER),
                             (nested_field_name,),
                             nested_value_type
                         )
@@ -527,7 +528,7 @@ def _collect_top_level_list_fields(
                         field = _create_array_field(
                             section,
                             artefact_key,
-                            ("[]", element_field_name, "[]"),
+                            (ARRAY_MARKER, element_field_name, ARRAY_MARKER),
                             (),
                             primitive_value_type
                         )
@@ -591,7 +592,7 @@ def get_searchable_fields() -> list[SearchableField]:
                     field = _create_array_field(
                         section,
                         artefact_key,
-                        ("[]",),
+                        (ARRAY_MARKER,),
                         (),
                         primitive_value_type
                     )

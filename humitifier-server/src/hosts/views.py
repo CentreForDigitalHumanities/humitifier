@@ -37,8 +37,14 @@ from .forms import (
 )
 from .models import DataSource, Host, OperatingSystem, SavedSearch
 from .scan_visualizers import get_scan_visualizer
-from .search import get_searchable_fields, search_hosts_by_scan_fields, \
-    get_scan_field_values, parse_query
+from .search import (
+    get_language_spec,
+    get_scan_field_values,
+    get_searchable_fields,
+    parse_query,
+    search_hosts_by_scan_fields,
+)
+from .search.constants import EXPORT_FILENAME_PREFIX, ExportType, SearchFormParam
 from .tables import (
     DataSourcesTable,
     HostsTable,
@@ -327,7 +333,7 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
 
     def get(self, request, *args, **kwargs):
         # Check if we're loading a saved search
-        load_id = request.GET.get('load')
+        load_id = request.GET.get(SearchFormParam.LOAD)
         if load_id:
             try:
                 saved_search = SavedSearch.objects.filter(
@@ -345,9 +351,9 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         # Detect export actions from POST: buttons named export-csv/json/txt
         post = self.request.POST
         export_type = None
-        for key in ("export-csv", "export-json", "export-txt"):
-            if key in post:
-                export_type = key.split("-", 1)[1]
+        for exp in ExportType:
+            if f"export-{exp.value}" in post:
+                export_type = exp
                 break
 
         if not export_type:
@@ -370,7 +376,7 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         # Build filename timestamp
         ts = datetime.utcnow().strftime("%Y%m%d-%H%M%S")
 
-        if export_type == "txt":
+        if export_type == ExportType.TXT:
             # Only hostnames, one per line
             lines = []
             for item in data:
@@ -380,17 +386,17 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
                     lines.append(fqdn)
             body = "\n".join(lines)
             resp = HttpResponse(body, content_type="text/plain; charset=utf-8")
-            resp["Content-Disposition"] = f"attachment; filename=humitifier-advanced-export-{ts}.txt"
+            resp["Content-Disposition"] = f"attachment; filename={EXPORT_FILENAME_PREFIX}{ts}.txt"
             return resp
 
-        if export_type == "json":
+        if export_type == ExportType.JSON:
             rows = list(iter_rows())
             body = json.dumps(rows, indent=2, default=str)
             resp = HttpResponse(body, content_type="application/json")
-            resp["Content-Disposition"] = f"attachment; filename=humitifier-advanced-export-{ts}.json"
+            resp["Content-Disposition"] = f"attachment; filename={EXPORT_FILENAME_PREFIX}{ts}.json"
             return resp
 
-        if export_type == "csv":
+        if export_type == ExportType.CSV:
             # Header: FQDN + requested field ids (in chosen order)
             headers = ["FQDN"] + list(requested_columns)
             sio = StringIO()
@@ -406,7 +412,7 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
                         normalized[k] = v
                 writer.writerow(normalized)
             resp = HttpResponse(sio.getvalue(), content_type="text/csv; charset=utf-8")
-            resp["Content-Disposition"] = f"attachment; filename=humitifier-advanced-export-{ts}.csv"
+            resp["Content-Disposition"] = f"attachment; filename={EXPORT_FILENAME_PREFIX}{ts}.csv"
             return resp
 
         # Fallback to normal rendering
@@ -416,7 +422,7 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         if not self.request.POST:
             return False
 
-        return 'include-archived' in self.request.POST
+        return SearchFormParam.INCLUDE_ARCHIVED in self.request.POST
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -434,10 +440,11 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         else:
             requested_columns = self._parse_requested_columns(searchable_fields)
             if self.request.POST:
-                search_string = self.request.POST.get('search-string', '')
+                search_string = self.request.POST.get(SearchFormParam.SEARCH_STRING, '')
                 context['search_string'] = search_string
 
         context['searchable_fields'] = searchable_fields
+        context['language_spec'] = get_language_spec()
         context['requested_columns'] = requested_columns
         context['data'] = self._get_data(
             search_string,
@@ -473,7 +480,7 @@ class AdvancedSearchView(LoginRequiredMixin, SuperuserRequiredMixin, TemplateVie
         if not self.request.POST:
             return []
 
-        column_string = self.request.POST.get('columns', '')
+        column_string = self.request.POST.get(SearchFormParam.COLUMNS, '')
 
         if not column_string:
             return {}
