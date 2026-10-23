@@ -720,7 +720,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="meta.fqdn", operator="contains", value="web"
+                field_id="meta.fqdn", operator="CONTAINS", value="web"
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -732,7 +732,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="meta.department", operator="eq", value="Engineering"
+                field_id="meta.department", operator="EQ", value="Engineering"
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -743,7 +743,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="meta.archived", operator="eq", value=True
+                field_id="meta.archived", operator="EQ", value=True
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -755,7 +755,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="meta.billable", operator="eq", value=False
+                field_id="meta.billable", operator="EQ", value=False
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -768,7 +768,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
             type="criterion",
             criterion=SearchCriterion(
                 field_id="facts.generic.HostnameCtl.os",
-                operator="contains",
+                operator="CONTAINS",
                 value="Ubuntu",
             ),
         )
@@ -780,7 +780,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="facts.generic.Hardware.num_cpus", operator="eq", value=8
+                field_id="facts.generic.Hardware.num_cpus", operator="EQ", value=8
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -792,7 +792,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="facts.generic.Hardware.num_cpus", operator="gte", value=12
+                field_id="facts.generic.Hardware.num_cpus", operator="GTE", value=12
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -806,7 +806,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="facts.generic.Hardware.num_cpus", operator="lt", value=8
+                field_id="facts.generic.Hardware.num_cpus", operator="LT", value=8
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -819,7 +819,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
             type="criterion",
             criterion=SearchCriterion(
                 field_id="facts.generic.Hardware.total_memory_gb",
-                operator="gte",
+                operator="GTE",
                 value=32,
             ),
         )
@@ -835,7 +835,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
             type="criterion",
             criterion=SearchCriterion(
                 field_id="facts.generic.HostnameCtl.virtualization",
-                operator="eq",
+                operator="EQ",
                 value="vmware",
             ),
         )
@@ -849,7 +849,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="facts.generic.SELinux.enabled", operator="eq", value=True
+                field_id="facts.generic.SELinux.enabled", operator="EQ", value=True
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -861,7 +861,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="facts.server.PuppetAgent.enabled", operator="eq", value=True
+                field_id="facts.server.PuppetAgent.enabled", operator="EQ", value=True
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -873,7 +873,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
             type="criterion",
             criterion=SearchCriterion(
                 field_id="facts.server.PuppetAgent.environment",
-                operator="eq",
+                operator="EQ",
                 value="production",
             ),
         )
@@ -885,7 +885,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="metrics.generic.Memory.used_mb", operator="gte", value=20000
+                field_id="metrics.generic.Memory.used_mb", operator="GTE", value=20000
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -897,7 +897,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="facts.generic.Hardware.num_cpus", operator="eq", value=999
+                field_id="facts.generic.Hardware.num_cpus", operator="EQ", value=999
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -908,7 +908,7 @@ class SimpleSearchTests(AdvancedSearchTestCase):
         query = ComplexQuery(
             type="criterion",
             criterion=SearchCriterion(
-                field_id="meta.customer", operator="eq", value="acme-corp"
+                field_id="meta.customer", operator="EQ", value="acme-corp"
             ),
         )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
@@ -928,6 +928,17 @@ class ComplexSearchTests(AdvancedSearchTestCase):
         result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
         self.assertEqual(result.count(), 3)
 
+    def test_and_query_case_insensitive(self):
+        """Test AND operator works case-insensitively (AND, and, And) and produces uppercase AST."""
+        for op in ["and", "And", "AND"]:
+            query_string = (
+                f'meta.department = "Engineering" {op} facts.generic.Hardware.num_cpus >= 8'
+            )
+            parsed_query = parse_query(query_string)
+            self.assertEqual(parsed_query.type, "AND")
+            result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+            self.assertEqual(result.count(), 3)
+
     def test_or_query_with_parser(self):
         """Test OR query using query parser."""
         query_string = (
@@ -935,8 +946,68 @@ class ComplexSearchTests(AdvancedSearchTestCase):
             'facts.generic.HostnameCtl.os contains "Debian"'
         )
         parsed_query = parse_query(query_string)
+        self.assertEqual(parsed_query.type, "OR")
         result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
         self.assertEqual(result.count(), 3)
+
+    def test_or_query_case_insensitive(self):
+        """Test OR operator works case-insensitively (OR, or, Or) and produces uppercase AST."""
+        for op in ["or", "Or", "OR"]:
+            query_string = (
+                f'facts.generic.HostnameCtl.os contains "Ubuntu" {op} '
+                f'facts.generic.HostnameCtl.os contains "Debian"'
+            )
+            parsed_query = parse_query(query_string)
+            self.assertEqual(parsed_query.type, "OR")
+            result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+            self.assertEqual(result.count(), 3)
+
+    def test_contains_operator_case_insensitive(self):
+        """Test contains operator works case-insensitively (contains, CONTAINS, Contains) and produces uppercase AST."""
+        for op in ["contains", "CONTAINS", "Contains", "CoNtAiNs"]:
+            query_string = f'facts.generic.HostnameCtl.os {op} "Ubuntu"'
+            parsed_query = parse_query(query_string)
+            self.assertEqual(parsed_query.criterion.operator, "CONTAINS")
+            result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+            self.assertEqual(result.count(), 2)
+
+    def test_combined_case_insensitive_operators(self):
+        """Test mixed-case AND, OR, and CONTAINS together in a query."""
+        query_string = (
+            '{facts.generic.HostnameCtl.os CONTAINS "Ubuntu" or '
+            'facts.generic.HostnameCtl.os CoNtAiNs "Debian"} and '
+            'facts.generic.Hardware.num_cpus >= 8'
+        )
+        parsed_query = parse_query(query_string)
+        self.assertEqual(parsed_query.type, "AND")
+        self.assertEqual(parsed_query.children[0].type, "OR")
+        self.assertEqual(parsed_query.children[0].children[0].criterion.operator, "CONTAINS")
+        self.assertEqual(parsed_query.children[0].children[1].criterion.operator, "CONTAINS")
+        self.assertEqual(parsed_query.children[1].criterion.operator, "GTE")
+        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+        self.assertEqual(result.count(), 3)
+
+    def test_all_operators_processed_uppercase_internally(self):
+        """Test that all comparison and logical operators are uppercase in the AST."""
+        ops_test = [
+            ('meta.department = "Engineering"', "EQ"),
+            ('facts.generic.Hardware.num_cpus > 8', "GT"),
+            ('facts.generic.Hardware.num_cpus >= 8', "GTE"),
+            ('facts.generic.Hardware.num_cpus < 8', "LT"),
+            ('facts.generic.Hardware.num_cpus <= 8', "LTE"),
+            ('facts.generic.HostnameCtl.os contains "Ubuntu"', "CONTAINS"),
+            ('facts.generic.HostnameCtl.os CONTAINS "Ubuntu"', "CONTAINS"),
+        ]
+        for query_str, expected_op in ops_test:
+            parsed = parse_query(query_str)
+            self.assertEqual(parsed.type, "criterion")
+            self.assertEqual(parsed.criterion.operator, expected_op)
+
+        and_query = parse_query('meta.department = "Engineering" and facts.generic.Hardware.num_cpus >= 8')
+        self.assertEqual(and_query.type, "AND")
+
+        or_query = parse_query('meta.department = "Engineering" or facts.generic.Hardware.num_cpus >= 8')
+        self.assertEqual(or_query.type, "OR")
 
     def test_nested_and_or_query(self):
         """Test nested AND/OR query."""
