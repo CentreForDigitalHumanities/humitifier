@@ -30,7 +30,8 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
             field_name = field.field_path[0]
             lookup = op.to_lookup(field.value_type)
             lookup_suffix = f"__{lookup}" if lookup != "exact" else ""
-            return Q(**{f"{field_name}{lookup_suffix}": rhs.value})
+            q = Q(**{f"{field_name}{lookup_suffix}": rhs.value})
+            return ~q if getattr(op, "negated", False) else q
 
         # Scalar JSON fields in last_scan_cache
         if field.kind == FieldKind.SCALAR:
@@ -38,7 +39,8 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
             lookup_suffix = f"__{lookup}" if lookup != "exact" else ""
             field_path_str = "__".join(field.field_path)
             lookup_path = f"last_scan_cache__{field.section}__{field.artefact_key}__{field_path_str}"
-            return Q(**{f"{lookup_path}{lookup_suffix}": rhs.value})
+            q = Q(**{f"{lookup_path}{lookup_suffix}": rhs.value})
+            return ~q if getattr(op, "negated", False) else q
 
         # Array fields in last_scan_cache without aggregation (element match)
         if field.kind == FieldKind.ARRAY:
@@ -81,6 +83,15 @@ def compile_node(node: BoolNode, ctx: CompileContext) -> Q:
             for child in node.children[1:]:
                 q |= compile_node(child, ctx)
             return q
+        elif node.operator == LogicalOperator.NOT:
+            if not node.children:
+                return Q()
+            if len(node.children) == 1:
+                return ~compile_node(node.children[0], ctx)
+            q = Q()
+            for child in node.children:
+                q &= compile_node(child, ctx)
+            return ~q
 
     if isinstance(node, FunctionCall):
         compiled = node.function.compile(node.args, ctx)

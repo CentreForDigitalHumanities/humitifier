@@ -9,7 +9,7 @@ from .constants import FieldKind, Section, ValueType
 
 
 # Comparison operators for search criteria
-ComparisonOperator = Literal["EQ", "GT", "GTE", "LT", "LTE", "CONTAINS"]
+ComparisonOperator = Literal["EQ", "GT", "GTE", "LT", "LTE", "CONTAINS", "NE"]
 
 # Aggregation functions for array fields
 AggregationFunction = Literal["min", "max", "sum", "concat", "count"]

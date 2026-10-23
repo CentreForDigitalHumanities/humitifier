@@ -15,7 +15,7 @@ def get_language_spec() -> dict[str, Any]:
 
     Includes:
     - Comparison operators with symbols and descriptions
-    - Logical keywords (AND, OR)
+    - Logical keywords (AND, OR, NOT)
     - Grouping bracket tokens
     - Registered search functions with parameter specifications and examples
     - Searchable fields with identifiers and value types
