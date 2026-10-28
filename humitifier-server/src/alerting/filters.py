@@ -74,6 +74,20 @@ class AlertFilters(django_filters.FilterSet):
         empty_label="Exclude acknowledged alerts",
     )
 
+    os = django_filters.MultipleChoiceFilter(
+        label="Operating System",
+        field_name="host__os",
+        choices=lambda: _get_choices(Host, "os"),
+        widget=MultipleChoiceFilterWidget,
+    )
+
+    customer = django_filters.MultipleChoiceFilter(
+        label="Customer",
+        field_name="host__customer",
+        choices=lambda: _get_choices(Host, "customer"),
+        widget=MultipleChoiceFilterWidget,
+    )
+
 
 class AlertAcknowledgmentFilters(django_filters.FilterSet):
     class Meta:
