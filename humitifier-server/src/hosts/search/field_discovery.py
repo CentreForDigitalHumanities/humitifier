@@ -78,6 +78,43 @@ def _get_meta_fields() -> list[SearchableField]:
     return fields
 
 
+def _get_alert_fields() -> list[SearchableField]:
+    """Get searchable fields for host alerts.
+
+    Returns:
+        List of SearchableField descriptors for alert fields.
+    """
+    alert_field_definitions = [
+        ("severity", ValueType.STRING),
+        ("short_message", ValueType.STRING),
+        ("message", ValueType.STRING),
+        ("creator", ValueType.STRING),
+        ("custom_identifier", ValueType.STRING),
+        ("acknowledged", ValueType.BOOLEAN),
+    ]
+
+    fields: list[SearchableField] = []
+
+    for field_name, value_type in alert_field_definitions:
+        field_id = f"{Section.ALERTS}{ARRAY_MARKER}.{field_name}"
+        label = f"{field_id} ({value_type})"
+
+        field = SearchableField(
+            id=field_id,
+            label=label,
+            value_type=value_type,
+            section=Section.ALERTS,
+            kind=FieldKind.ARRAY,
+            artefact_key="",
+            field_path=(field_name,),
+            array_path=(ARRAY_MARKER,),
+            element_field_path=(field_name,),
+        )
+        fields.append(field)
+
+    return fields
+
+
 def _unwrap_optional(ann: Any) -> Any:
     """Return the inner annotation for Optional[X] or Union[X, None]."""
     origin = get_origin(ann)
@@ -570,6 +607,9 @@ def get_searchable_fields() -> list[SearchableField]:
 
     # Add meta fields from Host model
     fields.extend(_get_meta_fields())
+
+    # Add alert fields
+    fields.extend(_get_alert_fields())
 
     for section, artefact_class, artefact_key in _iter_artefacts():
         # Handle BaseModel artefacts

@@ -122,6 +122,8 @@ def _compile_element_set_column(elem_set: ElementSet, ctx: CompileContext) -> Sq
     )
     subquery_params = val_params + from_clause.params + where_joined.params
     subquery = SqlFragment(subquery_sql, subquery_params)
+    if elem_set.source.section == Section.ALERTS:
+        return subquery
     return _wrap_version_check(subquery, ctx)
 
 
@@ -144,6 +146,10 @@ def compile_column_expr(expr: Expr | BoolNode | Any, ctx: CompileContext) -> Sql
             field_name = field.field_path[0]
             model_col = Host._meta.get_field(field_name).column
             return SqlFragment(f'to_jsonb("{ctx.table_name}"."{model_col}")', ())
+
+        if field.section == Section.ALERTS:
+            elem_set = ctx.to_element_set(expr)
+            return _compile_element_set_column(elem_set, ctx)
 
         if field.kind == FieldKind.SCALAR:
             path = [field.section, field.artefact_key] + list(field.field_path)
@@ -169,6 +175,11 @@ def compile_column_expr(expr: Expr | BoolNode | Any, ctx: CompileContext) -> Sql
             return _compile_element_set_column(compiled, ctx)
         if isinstance(compiled, ScalarSql):
             subquery = SqlFragment(f"to_jsonb({compiled.fragment.sql})", compiled.fragment.params)
+            if any(
+                isinstance(a, FieldRef) and a.field.section == Section.ALERTS
+                for a in expr.args
+            ):
+                return subquery
             return _wrap_version_check(subquery, ctx)
         if isinstance(compiled, SqlFragment):
             subquery = SqlFragment(f"to_jsonb({compiled.sql})", compiled.params)

@@ -33,6 +33,45 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
             q = Q(**{f"{field_name}{lookup_suffix}": rhs.value})
             return ~q if getattr(op, "negated", False) else q
 
+        # Alert fields: Alert model attributes
+        if field.section == Section.ALERTS:
+            from alerting.models import Alert, AlertAcknowledgment
+            from django.db.models import Exists, OuterRef
+
+            field_name = field.field_path[0]
+            ack_exists = Exists(
+                AlertAcknowledgment.objects.filter(
+                    Q(_alert=OuterRef("pk"))
+                    | Q(
+                        host=OuterRef("host_id"),
+                        _creator=OuterRef("_creator"),
+                        custom_identifier=OuterRef("custom_identifier"),
+                    )
+                )
+            )
+
+            if field_name == "acknowledged":
+                is_acknowledged = rhs.value if not getattr(op, "negated", False) else (not rhs.value)
+                if is_acknowledged:
+                    subq = Alert.objects.filter(ack_exists, host=OuterRef("pk"))
+                else:
+                    subq = Alert.objects.filter(~ack_exists, host=OuterRef("pk"))
+                return Q(Exists(subq))
+
+            orm_field = "_creator" if field_name == "creator" else field_name
+            lookup = op.to_lookup(field.value_type)
+            lookup_suffix = f"__{lookup}" if lookup != "exact" else ""
+            filter_kwargs = {
+                f"{orm_field}{lookup_suffix}": rhs.value,
+            }
+            subq = Alert.objects.filter(
+                ~ack_exists,
+                host=OuterRef("pk"),
+                **filter_kwargs,
+            )
+            q = Q(Exists(subq))
+            return ~q if getattr(op, "negated", False) else q
+
         # Scalar JSON fields in last_scan_cache
         if field.kind == FieldKind.SCALAR:
             lookup = op.to_lookup(field.value_type)
