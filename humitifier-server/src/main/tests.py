@@ -19,13 +19,7 @@ class DashboardStatsFilterTest(TestCase):
             customer="Acme",
             otap_stage="production",
             data_source=self.ds,
-            last_scan_cache={
-                "facts": {
-                    "generic.HostnameCtl": {
-                        "os": "Ubuntu 22.04"
-                    }
-                }
-            },
+            last_scan_cache={"facts": {"generic.HostnameCtl": {"os": "Ubuntu 22.04"}}},
         )
         self.alert1 = Alert.objects.create(
             host=self.host1,
@@ -42,7 +36,7 @@ class DashboardStatsFilterTest(TestCase):
 
         self.assertIn("?severity=info#alerts", content)
         self.assertIn("otap_stage=production", content)
-        self.assertIn("os=%22Ubuntu+22.04%22", content)
+        self.assertIn("os=Ubuntu+22.04", content)
         self.assertIn("customer=Acme", content)
         self.assertIn(f"data_source={self.ds.id}", content)
 
@@ -62,7 +56,7 @@ class DashboardStatsFilterTest(TestCase):
         self.assertIn("customer=Acme&otap_stage=production", content)
 
         # OS chart link preserves customer filter
-        self.assertIn("customer=Acme&os=%22Ubuntu+22.04%22", content)
+        self.assertIn("customer=Acme&os=Ubuntu+22.04", content)
 
         # Data source chart link preserves customer filter
         self.assertIn(f"customer=Acme&data_source={self.ds.id}", content)
@@ -90,7 +84,9 @@ class DashboardStatsFilterTest(TestCase):
         content = response.content.decode("utf-8")
 
         # Dashboard alert links keep dashboard filter names (severity, type, customer)
-        self.assertIn("severity=warning&type=Disk+full&page=2&customer=Acme#alerts", content)
+        self.assertIn(
+            "severity=warning&type=Disk+full&page=2&customer=Acme#alerts", content
+        )
 
         # Host list links preserve only stats filters (customer=Acme) plus the stat dimension,
         # without leaking alert filters (severity, type) or alert pagination (page=2)
@@ -99,7 +95,7 @@ class DashboardStatsFilterTest(TestCase):
             content,
         )
         self.assertIn(
-            "'/hosts/?customer=Acme&os=%22Ubuntu+22.04%22'",
+            "'/hosts/?customer=Acme&os=Ubuntu+22.04'",
             content,
         )
         self.assertIn(
@@ -133,7 +129,9 @@ class TemplateTagsTest(TestCase):
 
         factory = RequestFactory()
         # Request has customer and os (which belong to StatsFilters) plus unrelated GET params
-        request = factory.get("/dashboard/?customer=Acme&os=Ubuntu+22.04&severity=critical&page=3&foo=bar")
+        request = factory.get(
+            "/dashboard/?customer=Acme&os=Ubuntu+22.04&severity=critical&page=3&foo=bar"
+        )
         filterset = StatsFilters(request.GET, queryset=Host.objects.all())
 
         # Calling filter_params extracts only StatsFilters fields (customer, os) and adds otap_stage
