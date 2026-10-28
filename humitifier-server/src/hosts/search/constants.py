@@ -9,6 +9,7 @@ class Section(StrEnum):
     FACTS = "facts"
     METRICS = "metrics"
     META = "meta"
+    ALERTS = "alerts"
 
 
 class FieldKind(StrEnum):

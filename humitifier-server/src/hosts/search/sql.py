@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Iterable, Union
 
-from .constants import ARRAY_MARKER, SCAN_CACHE_FIELD, ValueType
+from .constants import ARRAY_MARKER, SCAN_CACHE_FIELD, Section, ValueType
 from .types import SearchableField
 
 
@@ -47,7 +47,26 @@ class ElementSource:
         artefact_key: str,
         array_path: tuple[str, ...],
         table_name: str = "hosts_host",
+        unacknowledged_only: bool = True,
     ) -> ElementSource:
+        if section == Section.ALERTS:
+            from_sql = (
+                '"alerting_alert" a LEFT JOIN "alerting_alertacknowledgment" ack '
+                'ON (ack."_alert_id" = a."id" OR (ack."host_id" = a."host_id" AND ack."_creator" = a."_creator" AND ack."custom_identifier" = a."custom_identifier"))'
+            )
+            if unacknowledged_only:
+                type_check_sql = f'a."host_id" = "{table_name}"."id" AND ack."id" IS NULL'
+            else:
+                type_check_sql = f'a."host_id" = "{table_name}"."id"'
+            return cls(
+                section=section,
+                artefact_key=artefact_key,
+                array_path=array_path,
+                from_clause=SqlFragment(from_sql, ()),
+                type_check=SqlFragment(type_check_sql, ()),
+                element_expr="a",
+            )
+
         initial_params: list[Any] = [section, artefact_key]
         base_expression = f'"{table_name}"."{SCAN_CACHE_FIELD}"->%s->%s'
         current_expression = base_expression
@@ -145,13 +164,20 @@ class CompileContext:
         self._sources: dict[tuple[str, str, tuple[str, ...]], ElementSource] = {}
 
     def get_element_source(self, field: SearchableField) -> ElementSource:
-        key = (field.section, field.artefact_key, field.array_path or (ARRAY_MARKER,))
+        is_alert_ack = (
+            field.section == Section.ALERTS
+            and bool(field.field_path)
+            and field.field_path[0] == "acknowledged"
+        )
+        unack = not is_alert_ack
+        key = (field.section, field.artefact_key, field.array_path or (ARRAY_MARKER,), unack)
         if key not in self._sources:
             self._sources[key] = ElementSource.create(
                 section=field.section,
                 artefact_key=field.artefact_key,
                 array_path=field.array_path or (ARRAY_MARKER,),
                 table_name=self.table_name,
+                unacknowledged_only=unack,
             )
         return self._sources[key]
 
@@ -160,6 +186,13 @@ class CompileContext:
     ) -> SqlFragment:
         if source is None:
             source = self.get_element_source(field)
+
+        if field.section == Section.ALERTS:
+            field_name = field.field_path[0] if field.field_path else ""
+            if field_name == "acknowledged":
+                return SqlFragment('(ack."id" IS NOT NULL)', ())
+            col = "_creator" if field_name == "creator" else field_name
+            return SqlFragment(f'{source.element_expr}."{col}"', ())
 
         element_expr = source.element_expr
         path = field.element_field_path or ()
