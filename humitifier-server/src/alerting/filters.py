@@ -58,14 +58,14 @@ class AlertFilters(django_filters.FilterSet):
     type = django_filters.MultipleChoiceFilter(
         label="Alert type",
         field_name="short_message",
-        choices=lambda: _get_choices(Alert, "short_message", strip_quotes=False),
+        choices=lambda: _get_choices(Alert, "short_message"),
         widget=MultipleChoiceFilterWidget,
     )
 
     exclude_type = django_filters.MultipleChoiceFilter(
         label="Alert type (exclude)",
         field_name="short_message",
-        choices=lambda: _get_choices(Alert, "short_message", strip_quotes=False),
+        choices=lambda: _get_choices(Alert, "short_message"),
         widget=MultipleChoiceFilterWidget,
         exclude=True,
     )
@@ -98,7 +98,7 @@ class AlertAcknowledgmentFilters(django_filters.FilterSet):
     alert_type = django_filters.MultipleChoiceFilter(
         label="Department",
         field_name="department",
-        choices=lambda: _get_choices(Host, "department", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "department"),
         widget=MultipleChoiceFilterWidget,
     )
 
