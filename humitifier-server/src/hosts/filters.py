@@ -208,28 +208,28 @@ class HostFilters(django_filters.FilterSet):
     department = django_filters.MultipleChoiceFilter(
         label="Department",
         field_name="department",
-        choices=lambda: _get_choices(Host, "department", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "department"),
         widget=MultipleChoiceFilterWidget,
     )
 
     customer = django_filters.MultipleChoiceFilter(
         label="Customer",
         field_name="customer",
-        choices=lambda: _get_choices(Host, "customer", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "customer"),
         widget=MultipleChoiceFilterWidget,
     )
 
     contact = django_filters.MultipleChoiceFilter(
         label="Contact",
         field_name="contact",
-        choices=lambda: _get_choices(Host, "contact", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "contact"),
         widget=MultipleChoiceFilterWidget,
     )
 
     otap_stage = django_filters.MultipleChoiceFilter(
         label="OTAP",
         field_name="otap_stage",
-        choices=lambda: _get_choices(Host, "otap_stage", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "otap_stage"),
         widget=MultipleChoiceFilterWidget,
     )
 

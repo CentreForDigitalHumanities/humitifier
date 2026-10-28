@@ -1,5 +1,4 @@
 import dataclasses
-import json
 import uuid
 from datetime import datetime
 from functools import cached_property
@@ -7,6 +6,7 @@ from typing import Optional
 
 from django.db import models
 from django.db.models import Case, F, Value, When
+from django.db.models.fields.json import KeyTransform, KeyTextTransform
 from django.utils import timezone
 from django.utils.safestring import mark_safe
 
@@ -17,7 +17,6 @@ from hosts.json import HostJSONDecoder, HostJSONEncoder
 from humitifier_common.scan_data import ScanInput, ScanOutput
 from humitifier_server.logger import logger
 from main.models import User
-from main.templatetags.strip_quotes import strip_quotes
 from scanning.models import ScanSpec
 
 
@@ -84,10 +83,18 @@ def _json_value(field: str):
     :param field:
     :return:
     """
+    keys = field.split("__")
+    expression = keys[0]
+
+    for key in keys[1:-1]:
+        expression = KeyTransform(key, expression)
+
+    expression = KeyTextTransform(keys[-1], expression)
+
     return Case(
-        When(**{field: "null", "then": Value(None)}),
-        When(**{field: None, "then": Value(None)}),
-        default=F(field),
+        When(**{f"{field}": "null", "then": Value(None)}),
+        When(**{f"{field}": None, "then": Value(None)}),
+        default=expression,
     )
 
 
@@ -445,27 +452,27 @@ class Host(models.Model):
     def get_department_display(self):
         if not self.department:
             return mark_safe("<span class='italic'>Unknown</span>")
-        return strip_quotes(self.department)
+        return self.department
 
     def get_customer_display(self):
         if not self.customer:
             return mark_safe("<span class='italic'>Unknown</span>")
-        return strip_quotes(self.customer)
+        return self.customer
 
     def get_contact_display(self):
         if not self.contact:
             return mark_safe("<span class='italic'>Unknown</span>")
-        return strip_quotes(self.contact)
+        return self.contact
 
     def get_os_display(self):
         if not self.os:
             return mark_safe("<span class='italic'>Unknown</span>")
-        return strip_quotes(self.os)
+        return self.os
 
     def get_hypervisor_display(self):
         if not self.hypervisor:
             return mark_safe("<span class='italic'>Unknown/Bare metal</span>")
-        return strip_quotes(self.hypervisor)
+        return self.hypervisor
 
     def get_scan_spec_display(self):
         if self.scan_spec_override:

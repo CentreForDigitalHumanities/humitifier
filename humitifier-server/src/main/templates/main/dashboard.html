@@ -1,6 +1,5 @@
 {% extends "base/base_page_template.html" %}
 {% load static %}
-{% load strip_quotes %}
 
 {% load humanize %}
 {% load param_replace %}
@@ -48,7 +47,7 @@
             );
 
             initDashboardChart('osChart', 'pie', 'Server OS distribution',
-                [{% for os in os_stats %}'{{ os.os|strip_quotes|escapejs }}',{% endfor %}],
+                [{% for os in os_stats %}'{{ os.os|escapejs }}',{% endfor %}],
                 [{
                     label: 'Operating Systems',
                     data: [{% for os in os_stats %}{{ os.count }},{% endfor %}],
@@ -58,7 +57,7 @@
             );
 
             initDashboardChart('customerChart', 'pie', 'Servers by customer',
-                [{% for os in customer_stats %}'{{ os.customer|strip_quotes|escapejs }}',{% endfor %}],
+                [{% for os in customer_stats %}'{{ os.customer|escapejs }}',{% endfor %}],
                 [{
                     label: 'Operating Systems',
                     data: [{% for os in customer_stats %}{{ os.count }},{% endfor %}],
@@ -69,7 +68,7 @@
             );
 
             initDashboardChart('datasourceChart', 'pie', 'Hosts by data source',
-                [{% for ds in datasource_counts %}'{{ ds.data_source__name|strip_quotes|escapejs }}',{% endfor %}],
+                [{% for ds in datasource_counts %}'{{ ds.data_source__name|escapejs }}',{% endfor %}],
                 [{
                     label: 'Hosts per data source',
                     data: [{% for ds in datasource_counts %}{{ ds.count }},{% endfor %}],

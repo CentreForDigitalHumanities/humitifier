@@ -17,7 +17,7 @@ from main.models import AccessProfile, User
 #
 
 
-def _get_choices(model, field, strip_quotes=True):
+def _get_choices(model, field):
     # The empty order_by() is required to remove the default ordering
     # which would otherwise mess up the distinct() call.
     # (It would add the ordering field to the SELECT list, which means postgres
@@ -30,8 +30,6 @@ def _get_choices(model, field, strip_quotes=True):
     for db_value in db_values:
         if db_value:
             human_label = db_value
-            if strip_quotes:
-                human_label = human_label[1:-1]
 
             values.append((db_value, human_label))
 
@@ -285,14 +283,14 @@ class TaskResultFilters(django_filters.FilterSet):
     task_name = django_filters.MultipleChoiceFilter(
         label="Task name",
         field_name="task_name",
-        choices=lambda: _get_choices(TaskResult, "task_name", strip_quotes=False),
+        choices=lambda: _get_choices(TaskResult, "task_name"),
         widget=MultipleChoiceFilterWidget,
     )
 
     worker = django_filters.MultipleChoiceFilter(
         label="Worker",
         field_name="worker",
-        choices=lambda: _get_choices(TaskResult, "worker", strip_quotes=False),
+        choices=lambda: _get_choices(TaskResult, "worker"),
         widget=MultipleChoiceFilterWidget,
     )
 
@@ -329,6 +327,6 @@ class StatsFilters(django_filters.FilterSet):
     customer = django_filters.MultipleChoiceFilter(
         label="Customer",
         field_name="customer",
-        choices=lambda: _get_choices(Host, "customer", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "customer"),
         widget=MultipleChoiceFilterWidget,
     )
