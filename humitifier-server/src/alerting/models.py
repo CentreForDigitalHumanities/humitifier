@@ -16,7 +16,7 @@ class AlertManager(models.Manager):
         if user.is_anonymous:
             return self.get_queryset().none()
 
-        if user.is_superuser:
+        if user.is_superuser or user.is_financial_operator:
             return self.get_queryset()
 
         if user.access_profiles.exists():
@@ -122,9 +122,30 @@ class Alert(models.Model):
         return self._can_acknowledge
 
 
+class AlertAcknowledgmentManager(models.Manager):
+
+    def get_for_user(self, user: User):
+        if user.is_anonymous:
+            return self.get_queryset().none()
+
+        if user.is_superuser or user.is_financial_operator:
+            return self.get_queryset()
+
+        if user.access_profiles.exists():
+            return self.get_queryset().filter(
+                host__customer__in=user.customers_for_filter
+            )
+
+        # When a non-superuser has no access profile, THEY GET NOTHING
+        # They lose! Good day sir!
+        return self.get_queryset().none()
+
+
 class AlertAcknowledgment(models.Model):
     class Meta:
         unique_together = ("host", "_creator", "custom_identifier")
+
+    objects = AlertAcknowledgmentManager()
 
     ##
     ## Identifiers
