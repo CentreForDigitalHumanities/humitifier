@@ -22,6 +22,8 @@ A humitifier user has the following properties:
 * doesn't need fancy graphs and metrics, just facts and numbers and maybe some red exclamation marks
 * wants to track not just server data, but also if it is time to retire a server and who to contact in that case
 
+## Tips
+In the UI the regular 'package' filter has a neat trick: `<package_name>~=<partial_version>` ie. `php~=8.2`
 
 ## Fundamental technology choices
 
