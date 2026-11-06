@@ -767,7 +767,7 @@ wmi = ["wmi (>=1.5.1) ; sys_platform == \"win32\""]
 
 [[package]]
 name = "humitifier-common"
-version = "5.1.1"
+version = "5.1.2"
 description = ""
 optional = false
 python-versions = "^3.14"

@@ -1152,7 +1152,7 @@ tests = ["freezegun", "pytest (>=9)", "pytest-benchmark", "pytest-codspeed", "py
 
 [[package]]
 name = "humitifier-common"
-version = "5.1.1"
+version = "5.1.2"
 description = ""
 optional = false
 python-versions = "^3.14"
