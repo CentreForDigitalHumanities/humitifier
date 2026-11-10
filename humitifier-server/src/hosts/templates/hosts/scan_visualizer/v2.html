@@ -78,9 +78,9 @@
                 <input placeholder="Search metrics" class="input w-48 py-1.5" x-model="componentSearch">
             </div>
             <div class="stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-3 px-2">
-                {% for component, content in metrics.items %}
-                    <div x-data="{ title: '{{ component }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
-                        {{ content }}
+                {% for item in metrics %}
+                    <div data-slot-index="{{ item.order_index }}" x-data="{ title: '{{ item.title }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
+                        {{ item.content }}
                     </div>
                 {% endfor %}
             </div>
@@ -97,9 +97,9 @@
             </div>
 
             <div class="stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-3 px-2">
-                {% for component, content in facts.items %}
-                    <div x-data="{ title: '{{ component }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
-                        {{ content }}
+                {% for item in facts %}
+                    <div data-slot-index="{{ item.order_index }}" x-data="{ title: '{{ item.title }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
+                        {{ item.content }}
                     </div>
                 {% endfor %}
             </div>
@@ -123,9 +123,9 @@
 
 <script>
     (function () {
-        // Stable multi-column layout: items are assigned to a fixed column
-        // (round-robin by index), so they don't jump between columns when
-        // their height changes (e.g. when collapsing/expanding components).
+        // Stable multi-column layout: items are assigned to a predictable column
+        // based on their static slot index (slotIndex % columnCount), ensuring consistent
+        // positioning across hosts regardless of which components are present.
         // The column count matches the Tailwind breakpoints on the container:
         // 1 column by default, 2 from 'xl' (80rem), 3 from 'ultrawide' (100rem).
         const twoColumnQuery = window.matchMedia('(min-width: 80rem)');
@@ -140,13 +140,15 @@
         function distribute(container, items) {
             const columnCount = getColumnCount();
 
-            const columns = [];
-            for (let i = 0; i < columnCount; i++) {
-                columns.push(document.createElement('div'));
-            }
+            const columns = Array.from({ length: columnCount }, () => {
+                const col = document.createElement('div');
+                col.className = 'flex flex-col gap-3';
+                return col;
+            });
 
-            items.forEach(function (item, index) {
-                columns[index % columnCount].appendChild(item);
+            items.forEach(function (item) {
+                const slotIndex = parseInt(item.dataset.slotIndex || '0', 10);
+                columns[slotIndex % columnCount].appendChild(item);
             });
 
             container.replaceChildren(...columns);

@@ -1,3 +1,6 @@
+from dataclasses import dataclass
+from typing import Any
+
 from django.template.loader import render_to_string
 
 from hosts.models import Host, ScanData
@@ -35,6 +38,13 @@ class ScanVisualizer:
         raise NotImplementedError()
 
 
+@dataclass
+class _Component:
+    title: str
+    content: str
+    order_index: int
+
+
 class ComponentScanVisualizer(ScanVisualizer):
     template = None
 
@@ -58,14 +68,20 @@ class ComponentScanVisualizer(ScanVisualizer):
 
     def render_components(
         self, components: list[type[ArtefactVisualizer]]
-    ) -> dict[str, str]:
-        output = {}
-        for component in components:
+    ) -> list[_Component]:
+        output = []
+        for index, component in enumerate(components):
             data = self.get_artefact_data(component.artefact)
             if data:
                 cmp = component(data, self.scan_data.scan_date)
                 if cmp.show():
-                    output[component.title] = cmp.render()
+                    output.append(
+                        _Component(
+                            title=component.title,
+                            content=cmp.render() or "Something went wrong",
+                            order_index=index,
+                        )
+                    )
 
         return output
 
