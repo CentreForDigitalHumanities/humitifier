@@ -35,6 +35,7 @@ from humitifier_common.artefacts import (
     RpmRepository,
     IPTables,
     IPTablesChain,
+    IPTablesPortAccess,
 )
 from ..parsers.iptables import resolve_iptables_dns, summarize_port_access
 from ..constants import DEB_OS_LIST, RPM_OS_LIST, SELINUX_OS_LIST
@@ -999,7 +1000,7 @@ class SystemDFactCollector(ShellCollector):
         return Systemd(units=units)
 
 
-class IPTableFactCollector(ShellCollector):
+class IPTablesFactCollector(ShellCollector):
     fact = IPTables
 
     def collect_from_shell(

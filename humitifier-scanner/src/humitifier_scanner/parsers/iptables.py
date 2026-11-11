@@ -617,6 +617,3 @@ def summarize_port_access(
     INPUT chain.
     """
     return IPTablesPortAccessSummarizer.summarize(chains, dns_cache=dns_cache)
-
-
-_summarize_port_access = summarize_port_access
