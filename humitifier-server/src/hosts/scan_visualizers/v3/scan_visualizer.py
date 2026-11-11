@@ -33,4 +33,7 @@ class V3ScanVisualizer(V2ScanVisualizer):
         v2_visualizers.UsersVisualizer,
         v2_visualizers.GroupsVisualizer,
         v2_visualizers.SystemdUnitsVisualizer,
+        v3_visualizers.DockerComposeVisualizer,
+        v3_visualizers.DockerImageVisualizer,
+        v3_visualizers.DockerContainerVisualizer,
     ]

@@ -23,8 +23,11 @@ class ArtefactVisualizer:
     def show(self):
         return self.artefact_data is not None
 
+    def get_title(self):
+        return self.title
+
     def get_context(self, **kwargs) -> dict:
-        kwargs["title"] = self.title
+        kwargs["title"] = self.get_title()
         kwargs["is_metric"] = self.artefact.__artefact_type__ == ArtefactType.METRIC
         kwargs["alpinejs_settings"] = {}
 

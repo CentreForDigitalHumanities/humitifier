@@ -16,6 +16,10 @@ from humitifier_scanner.executor.linux_files import LinuxFilesExecutor
 from humitifier_common.artefacts import (
     DNS,
     DNSLookup,
+    Docker,
+    DockerComposeProject,
+    DockerContainer,
+    DockerImage,
     HostMeta,
     HostnameCtl,
     IsWordpress,
@@ -30,7 +34,7 @@ from humitifier_common.artefacts import (
 )
 from humitifier_scanner.parsers.apache import ApacheConfigParser
 from humitifier_scanner.parsers.nginx import NginxConfigParser
-from humitifier_scanner.utils import os_in_list
+from humitifier_scanner.utils import os_in_list, parse_human_readable_filesize
 from ..logger import logger
 
 
@@ -433,3 +437,225 @@ class RebootPolicyFactCollector(FileCollector):
                     setattr(output, item, val)
 
         return output
+
+
+class DockerFactCollector(ShellCollector):
+    fact = Docker
+    required_facts = [PackageManagerInfo]
+
+    def collect_from_shell(
+        self, shell_executor: LinuxShellExecutor, info: CollectInfo
+    ) -> Docker | None:
+
+        # Check if docker is even installed
+        package_info: PackageManagerInfo | None = info.required_facts.get(
+            PackageManagerInfo
+        )
+        if not package_info:
+            return None
+
+        # OS differences, debian calls docker 'docker-ce' while the RHEL family calls it 'docker'
+        # We check for the existence of the cli package mostly because of OS differences as well
+        if not package_info.is_package_installed(
+            ("docker-ce-cli", "docker-cli", "docker.io", "docker")
+        ):
+            return None
+
+        output = Docker()
+
+        if package_info.is_package_installed(
+            ("docker-compose", "docker-compose-plugin")
+        ):
+            output.compose_projects = self.get_compose_projects(shell_executor)
+
+        output.containers = self.get_containers(shell_executor)
+        output.images = self.get_images(shell_executor)
+
+        return output
+
+    def get_compose_projects(
+        self, shell_executor: LinuxShellExecutor
+    ) -> list[DockerComposeProject]:
+
+        cmd = shell_executor.execute("sudo docker compose ls --format json")
+
+        if cmd.return_code != 0:
+            return []
+
+        try:
+            # docker compose ls's json output is sane, and gives us one json-list with
+            # all objects inside it.
+            data = json.loads(cmd.stdout_str)
+        except ValueError:
+            self.add_error("Failed to parse docker compose ls output")
+            return []
+
+        output = []
+
+        for project in data:
+            try:
+                status, running = None, None
+
+                status_str = project.get("Status", None)
+                if status_str and "(" in status_str:
+                    try:
+                        status, running = status_str.split("(", maxsplit=1)
+                        running = running.rstrip(")")
+                        running = int(running)
+                    except ValueError:
+                        pass
+
+                config_files = project.get("ConfigFiles", None)
+                if config_files:
+                    config_files = config_files.split(",")
+
+                output.append(
+                    DockerComposeProject(
+                        name=project.get("Name", "Unknown project"),
+                        status_str=status_str,
+                        status=status,
+                        running_containers=running,
+                        config_files=config_files,
+                    )
+                )
+            except ValueError:
+                self.add_error("Failed to parse docker compose ls output item")
+
+        return output
+
+    def get_containers(
+        self, shell_executor: LinuxShellExecutor
+    ) -> list[DockerContainer]:
+
+        cmd = shell_executor.execute(
+            "sudo docker container ls --format json --no-trunc"
+        )
+
+        if cmd.return_code != 0:
+            return []
+
+        containers = []
+
+        for line in cmd.stdout:
+            # Unlike docker compose, the json output of container ls is a single json object per line
+            try:
+                container_info = json.loads(line)
+            except ValueError:
+                self.add_error("Failed to parse docker container ls output item")
+                continue
+
+            container = DockerContainer(container_id=container_info.get("ID"))
+
+            container.command = container_info.get("Command")
+            container.health_status = container_info.get("HealthStatus")
+            container.running_for = container_info.get("RunningFor")
+            container.size_str = container_info.get("Size")
+            if container.size_str is not None:
+                container.size_bytes = parse_human_readable_filesize(container.size_str)
+            container.state = container_info.get("State")
+            container.status = container_info.get("Status")
+
+            try:
+                created_at = container_info.get("CreatedAt")
+                created_at = datetime.strptime(
+                    created_at.rsplit(" ", 1)[0],
+                    "%Y-%m-%d %H:%M:%S %z",
+                )
+                container.created_at = created_at
+            except (ValueError, AttributeError):
+                self.add_error(
+                    f"Failed to parse created_at date for container '{container.container_id}'"
+                )
+
+            container.image_str = container_info.get("Image")
+            if container.image_str and ":" in container.image_str:
+                image, tag = container.image_str.rsplit(":", maxsplit=1)
+                container.image_name = image
+                container.image_tag = tag
+
+            if labels := container_info.get("Labels"):
+                # Use regex to split labels into key-value pairs instead of simple splits
+                # The labels syntax is 'key=value,key=value,...' but with no escaping
+                # of any commas in the value. So a regex is needed here.
+                # (You can have 'key1=value, comma,key2=value2'; found out the hard way)
+                parts = re.split(r",(?=[A-Za-z_][A-Za-z0-9_.\-/]*=)", labels)
+                container.labels = dict(
+                    part.split("=", maxsplit=1) for part in parts if "=" in part
+                )
+
+            if mounts := container_info.get("Mounts"):
+                container.mounts = mounts.split(",")
+
+            if names := container_info.get("Names"):
+                container.names = names.split(",")
+
+            if networks := container_info.get("Networks"):
+                container.networks = networks.split(",")
+
+            if ports := container_info.get("Ports"):
+                container.exposed_ports = [x.strip() for x in ports.split(",")]
+
+            if platform := container_info.get("Platform"):
+                container.platform_arch = platform.get("architecture")
+                container.platform_os = platform.get("os")
+
+            containers.append(container)
+
+        return containers
+
+    def get_images(self, shell_executor: LinuxShellExecutor) -> list[DockerImage]:
+
+        cmd = shell_executor.execute("sudo docker image ls -a --format json --no-trunc")
+
+        if cmd.return_code != 0:
+            return []
+
+        images = []
+
+        for line in cmd.stdout:
+            # Unlike docker compose, the json output of image ls is a single json object per line
+            try:
+                image_info = json.loads(line)
+            except ValueError:
+                self.add_error("Failed to parse docker image ls output item")
+                continue
+
+            image = DockerImage(image_id=image_info.get("ID"))
+
+            image.digest = image_info.get("Digest")
+            image.created_since = image_info.get("CreatedSince")
+            image.repository = image_info.get("Repository")
+            image.tag = image_info.get("Tag")
+
+            # Docker image ls returns "<none>" for fields that should be None
+            for none_field in ["tag", "digest", "repository"]:
+                value = getattr(image, none_field)
+                if value == "<none>":
+                    setattr(image, none_field, None)
+
+            image.size_str = image_info.get("Size")
+            if image.size_str:
+                image.size_bytes = parse_human_readable_filesize(image.size_str)
+
+            try:
+                image.used_by_n_containers = int(image_info.get("Containers"))
+            except (ValueError, TypeError):
+                self.add_error(
+                    f"Failed to parse 'Containers' for image '{image.image_id}'"
+                )
+
+            try:
+                created_at = image_info.get("CreatedAt")
+                created_at = datetime.strptime(
+                    created_at.rsplit(" ", 1)[0],
+                    "%Y-%m-%d %H:%M:%S %z",
+                )
+                image.created_at = created_at
+            except (ValueError, AttributeError):
+                self.add_error(
+                    f"Failed to parse created_at date for image '{image.image_id}'"
+                )
+
+            images.append(image)
+
+        return images

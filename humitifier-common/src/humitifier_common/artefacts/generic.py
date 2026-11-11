@@ -253,6 +253,17 @@ class PackageManagerInfo(BaseModel):
     last_transaction_dt: datetime | None = None
     last_transaction_changed: int | None = None
 
+    def is_package_installed(
+        self, package_name: str | list[str] | tuple[str, ...]
+    ) -> bool:
+        """Helper function to check if a package is installed; can be given a tuple/list
+        of package names if due to OS differences, a package may be called different things
+        """
+        if isinstance(package_name, list) or isinstance(package_name, tuple):
+            return any(self.is_package_installed(package) for package in package_name)
+
+        return any(package.name == package_name for package in self.installed_packages)
+
 
 ##
 ## Network info

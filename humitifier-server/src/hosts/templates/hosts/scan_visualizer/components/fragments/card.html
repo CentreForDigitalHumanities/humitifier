@@ -1,5 +1,5 @@
 <div
-    class="rounded-md bg-gray-50 dark:bg-gray-800/60 p-3 mb-2 last:mb-0 border border-gray-200 dark:border-gray-700"
+    class="rounded-md bg-gray-50 dark:bg-gray-800/60 p-3 mb-2 last:mb-0 border border-gray-200 dark:border-gray-700 overflow-x-auto"
     x-data="{searchValue: '{{ item.search_value }}'}"
     x-bind:class="searchValue.toLowerCase().includes(search.toLowerCase()) ? '' : 'hidden' "
 >

@@ -1,16 +1,18 @@
 import ipaddress
-import re
 import socket
 from django.template.defaultfilters import date
+from django.utils.html import escape
 from django.utils.safestring import mark_safe
 
 from hosts.scan_visualizers.base_components import (
     ArtefactVisualizer,
     Card,
     SearchableCardsWithHeaderVisualizer,
+    SearchableCardsVisualizer,
 )
 from hosts.templatetags.host_tags import uptime
 from humitifier_common.artefacts import (
+    Docker,
     V3Uptime,
     PackageManagerInfo,
     RpmRepository,
@@ -19,6 +21,7 @@ from humitifier_common.artefacts import (
     IPTablesChain,
     IPTablesPortAccess,
     IPTablesPortAccessSource,
+    DockerContainer,
 )
 
 
@@ -394,3 +397,203 @@ class IPTablesVisualizer(ArtefactVisualizer):
             return "red"
 
         return "gray"
+
+
+class DockerComposeVisualizer(SearchableCardsVisualizer):
+    title = "Docker Compose projects"
+    artefact = Docker
+
+    def get_items(self) -> list[Card]:
+        artefact_data: Docker = self.artefact_data
+
+        output = []
+
+        for project in artefact_data.compose_projects:
+            output.append(
+                Card(
+                    title=project.name,
+                    search_value=project.name,
+                    content_items={
+                        "Status": project.status or project.status_str or "",
+                        "Running containers": str(project.running_containers) or "",
+                        "Config files": ", ".join(project.config_files or []),
+                    },
+                )
+            )
+
+        return output
+
+
+class DockerImageVisualizer(SearchableCardsWithHeaderVisualizer):
+    title = "Docker images"
+    artefact = Docker
+
+    def get_header_content(self) -> list[dict[str, str]] | str:
+        artefact_data: Docker = self.artefact_data
+
+        num_non_used_images = len(
+            [image for image in artefact_data.images if image.used_by_n_containers == 0]
+        )
+
+        return [
+            {
+                "label": "Number of images",
+                "value": str(len(artefact_data.images)),
+            },
+            {
+                "label": "Images not used by containers",
+                "value": str(num_non_used_images),
+            },
+        ]
+
+    def get_items(self) -> list[Card]:
+        artefact_data: Docker = self.artefact_data
+
+        output = []
+
+        for image in artefact_data.images:
+            name = image.image_id
+
+            if image.repository:
+                name = image.repository
+                if image.tag:
+                    name += ":" + image.tag
+
+            created_at = ""
+            if image.created_at:
+                created_at = date(image.created_at)
+
+            output.append(
+                Card(
+                    title=name,
+                    content_items={
+                        "Image ID": image.image_id,
+                        "Digest": image.digest or "",
+                        "Repository": image.repository or "",
+                        "Tag": image.tag or "",
+                        "Created": created_at,
+                        "Containers using image": str(image.used_by_n_containers),
+                    },
+                    search_value=f"{name} {image.image_id} {image.digest} {image.repository} {image.tag} {created_at} {image.used_by_n_containers}",
+                )
+            )
+
+        return output
+
+
+class DockerContainerVisualizer(SearchableCardsWithHeaderVisualizer):
+    title = "Docker containers"
+    artefact = Docker
+
+    def get_header_content(self) -> list[dict[str, str]] | str:
+        artefact_data: Docker = self.artefact_data
+
+        number_of_running_containers = len(
+            [
+                container
+                for container in artefact_data.containers
+                if container.state == "running"
+            ]
+        )
+
+        return [
+            {
+                "label": "Number of containers",
+                "value": str(len(artefact_data.containers)),
+            },
+            {
+                "label": "Number of running containers",
+                "value": str(number_of_running_containers),
+            },
+        ]
+
+    def get_items(self) -> list[Card]:
+        artefact_data: Docker = self.artefact_data
+
+        output = []
+
+        for container in artefact_data.containers:
+            name = container.container_id
+
+            if container.names:
+                name = container.names[0]
+                if len(container.names) > 1:
+                    name += f" ({', '.join(container.names[1:])})"
+
+            content_items = {}
+
+            self._add_item_if_set(content_items, container, "state", "State")
+            self._add_item_if_set(content_items, container, "command", "Command")
+            self._add_item_if_set(
+                content_items, container, "health_status", "Health status"
+            )
+            self._add_item_if_set(
+                content_items, container, "running_for", "Running for"
+            )
+
+            if container.image_name:
+                content_items["Image"] = container.image_name
+                if container.image_tag:
+                    content_items["Image"] += f":{container.image_tag}"
+            elif container.image_str:
+                content_items["Image"] = container.image_str
+
+            self._add_list_if_set(content_items, container, "mounts", "Mounts")
+            self._add_list_if_set(content_items, container, "networks", "Networks")
+            self._add_list_if_set(content_items, container, "exposed_ports", "Ports")
+
+            search_terms = [
+                name,
+                container.container_id,
+                container.image_str,
+                container.status,
+                container.command,
+            ]
+            search_value = " ".join(str(term) for term in search_terms if term)
+
+            output.append(
+                Card(
+                    title=name,
+                    aside=container.status,
+                    content_items=content_items,
+                    search_value=search_value,
+                )
+            )
+
+        return output
+
+    def _add_item_if_set(
+        self,
+        content_items: dict[str, str],
+        container: DockerContainer,
+        field: str,
+        label: str,
+    ):
+        if not hasattr(container, field):
+            return
+
+        value = getattr(container, field)
+        if value:
+            content_items[label] = value
+
+    def _add_list_if_set(
+        self,
+        content_items: dict[str, str],
+        container: DockerContainer,
+        field: str,
+        label: str,
+    ):
+        if not hasattr(container, field):
+            return
+
+        value = getattr(container, field)
+        if not value:
+            return
+
+        if len(value) == 1:
+            content_items[label] = value[0]
+        else:
+            output = "<ul>"
+            output += "".join([f"<li>{escape(item)}</li>" for item in value])
+            output += "</ul>"
+            content_items[label] = mark_safe(output)
