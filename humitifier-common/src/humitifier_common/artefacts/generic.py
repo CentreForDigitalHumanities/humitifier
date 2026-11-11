@@ -5,7 +5,7 @@ A collection of facts that are generic and can be collected on any system.
 from datetime import datetime
 from typing import Literal, Annotated, Union
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from humitifier_common.artefacts.groups import GENERIC
 from humitifier_common.artefacts.registry import fact, metric
@@ -341,6 +341,21 @@ class IPTableRules(BaseModel):
     source: str
     destination: str
     options: str = ""
+
+    @field_validator("prot", mode="before")
+    @classmethod
+    def map_protocol(cls, v):
+        try:
+            v = int(v)
+        except ValueError:
+            return v
+
+        protocol_map = {0: "all", 1: "icmp", 6: "tcp", 17: "udp"}
+
+        if v not in protocol_map:
+            return v
+
+        return protocol_map[v]
 
 
 class IPTablesChain(BaseModel):
