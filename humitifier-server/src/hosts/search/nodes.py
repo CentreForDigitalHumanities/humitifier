@@ -54,7 +54,7 @@ class FieldRef(Expr):
 
 @dataclass(frozen=True)
 class Literal(Expr):
-    """Literal constant value (string, integer, boolean)."""
+    """Literal constant value (string, integer, boolean, null)."""
 
     value: Any
     value_type: ValueType

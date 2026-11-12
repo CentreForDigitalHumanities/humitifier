@@ -1299,6 +1299,215 @@ class NegatedSearchTests(AdvancedSearchTestCase):
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "web01.example.com")
 
+    def test_search_meta_field_null(self):
+        """Test searching meta fields with = null and = none."""
+        unmanaged = Host.objects.create(
+            fqdn="unmanaged.example.com",
+            department=None,
+            customer=None,
+            contact=None,
+            archived=False,
+            billable=False,
+        )
+        self._create_scan(
+            unmanaged,
+            {
+                "version": artefact_registry.latest_version,
+                "scan_date": self.now.isoformat(),
+                "hostname": "unmanaged.example.com",
+                "original_input": {"hostname": "unmanaged.example.com", "artefacts": {}},
+                "facts": {},
+            },
+        )
+
+        query_null = parse_query("meta.department = null")
+        result_null = search_hosts_by_scan_fields(Host.objects.all(), query_null)
+        self.assertEqual(result_null.count(), 1)
+        self.assertEqual(result_null.first().fqdn, "unmanaged.example.com")
+
+        query_none = parse_query("meta.contact = none")
+        result_none = search_hosts_by_scan_fields(Host.objects.all(), query_none)
+        self.assertEqual(result_none.count(), 1)
+        self.assertEqual(result_none.first().fqdn, "unmanaged.example.com")
+
+        query_nil = parse_query("meta.customer = nil")
+        result_nil = search_hosts_by_scan_fields(Host.objects.all(), query_nil)
+        self.assertEqual(result_nil.count(), 1)
+        self.assertEqual(result_nil.first().fqdn, "unmanaged.example.com")
+
+    def test_search_meta_field_not_null(self):
+        """Test searching meta fields with != null and != none."""
+        unmanaged = Host.objects.create(
+            fqdn="unmanaged.example.com",
+            department=None,
+            customer="acme-corp",
+            contact=None,
+            archived=False,
+            billable=False,
+        )
+        self._create_scan(
+            unmanaged,
+            {
+                "version": artefact_registry.latest_version,
+                "scan_date": self.now.isoformat(),
+                "hostname": "unmanaged.example.com",
+                "original_input": {"hostname": "unmanaged.example.com", "artefacts": {}},
+                "facts": {},
+            },
+        )
+
+        query = parse_query("meta.department != null")
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 4)
+        fqdns = {h.fqdn for h in result}
+        self.assertNotIn("unmanaged.example.com", fqdns)
+
+        query_none = parse_query("meta.customer != none")
+        result_none = search_hosts_by_scan_fields(Host.objects.all(), query_none)
+        self.assertEqual(result_none.count(), 5)
+
+    def test_search_scalar_json_field_null(self):
+        """Test searching scalar JSON scan cache fields with null comparison."""
+        baremetal = Host.objects.create(
+            fqdn="metal01.example.com",
+            department="Engineering",
+            customer="internal",
+            contact="ops@example.com",
+            archived=False,
+            billable=True,
+        )
+        self._create_scan(
+            baremetal,
+            {
+                "version": artefact_registry.latest_version,
+                "scan_date": self.now.isoformat(),
+                "hostname": "metal01.example.com",
+                "original_input": {"hostname": "metal01.example.com", "artefacts": {}},
+                "facts": {
+                    "generic.HostnameCtl": {
+                        "hostname": "metal01",
+                        "os": "Debian GNU/Linux 12 (bookworm)",
+                    }
+                },
+            },
+        )
+
+        query = parse_query("facts.generic.HostnameCtl.virtualization = null")
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "metal01.example.com")
+
+    def test_search_scalar_json_field_not_null(self):
+        """Test searching scalar JSON scan cache fields with != null."""
+        baremetal = Host.objects.create(
+            fqdn="metal01.example.com",
+            department="Engineering",
+            customer="internal",
+            contact="ops@example.com",
+            archived=False,
+            billable=True,
+        )
+        self._create_scan(
+            baremetal,
+            {
+                "version": artefact_registry.latest_version,
+                "scan_date": self.now.isoformat(),
+                "hostname": "metal01.example.com",
+                "original_input": {"hostname": "metal01.example.com", "artefacts": {}},
+                "facts": {
+                    "generic.HostnameCtl": {
+                        "hostname": "metal01",
+                        "os": "Debian GNU/Linux 12 (bookworm)",
+                    }
+                },
+            },
+        )
+
+        query = parse_query("facts.generic.HostnameCtl.virtualization != null")
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 4)
+        fqdns = {h.fqdn for h in result}
+        self.assertNotIn("metal01.example.com", fqdns)
+
+    def test_search_array_field_element_null(self):
+        """Test searching array elements for missing or null properties."""
+        host_with_null_shell = Host.objects.create(
+            fqdn="noshell.example.com",
+            department="Engineering",
+            customer="internal",
+            contact="sec@example.com",
+            archived=False,
+            billable=True,
+        )
+        self._create_scan(
+            host_with_null_shell,
+            {
+                "version": artefact_registry.latest_version,
+                "scan_date": self.now.isoformat(),
+                "hostname": "noshell.example.com",
+                "original_input": {"hostname": "noshell.example.com", "artefacts": {}},
+                "facts": {
+                    "generic.Users": [
+                        {
+                            "name": "sync",
+                            "uid": 4,
+                            "gid": 65534,
+                            "info": "sync",
+                            "home": "/bin",
+                        }
+                    ]
+                },
+            },
+        )
+
+        query = parse_query("facts.generic.Users[].shell = null")
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "noshell.example.com")
+
+        query_not_null = parse_query("facts.generic.Users[].shell != none")
+        result_not_null = search_hosts_by_scan_fields(Host.objects.all(), query_not_null)
+        self.assertEqual(result_not_null.count(), 4)
+        fqdns = {h.fqdn for h in result_not_null}
+        self.assertNotIn("noshell.example.com", fqdns)
+
+    def test_search_complex_boolean_with_null_checks(self):
+        """Test complex logical expressions combining null checks and group braces."""
+        unmanaged = Host.objects.create(
+            fqdn="unmanaged01.example.com",
+            department=None,
+            customer=None,
+            contact="admin@example.com",
+            archived=False,
+            billable=True,
+        )
+        self._create_scan(
+            unmanaged,
+            {
+                "version": artefact_registry.latest_version,
+                "scan_date": self.now.isoformat(),
+                "hostname": "unmanaged01.example.com",
+                "original_input": {"hostname": "unmanaged01.example.com", "artefacts": {}},
+                "facts": {},
+            },
+        )
+
+        query1 = parse_query("meta.department = null AND meta.archived = false")
+        result1 = search_hosts_by_scan_fields(Host.objects.all(), query1)
+        self.assertEqual(result1.count(), 1)
+        self.assertEqual(result1.first().fqdn, "unmanaged01.example.com")
+
+        query2 = parse_query("{meta.customer = null OR meta.contact = null} AND meta.billable = true")
+        result2 = search_hosts_by_scan_fields(Host.objects.all(), query2)
+        self.assertEqual(result2.count(), 1)
+        self.assertEqual(result2.first().fqdn, "unmanaged01.example.com")
+
+        query3 = parse_query("NOT {meta.department = null}")
+        result3 = search_hosts_by_scan_fields(Host.objects.all(), query3)
+        self.assertEqual(result3.count(), 4)
+        fqdns = {h.fqdn for h in result3}
+        self.assertNotIn("unmanaged01.example.com", fqdns)
+
 
 class AdvancedSearchViewTests(TestCase):
     """Test the AdvancedSearchView endpoint, context data, and rendered help."""
@@ -1320,6 +1529,8 @@ class AdvancedSearchViewTests(TestCase):
         self.assertIn("operators", spec)
         self.assertIn("functions", spec)
         self.assertIn("fields", spec)
+        self.assertIn("null_keywords", spec)
+        self.assertEqual(spec["null_keywords"], ["null", "none", "nil"])
         self.assertIn("NOT", spec["logical_operators"])
         self.assertTrue(any(op["symbol"] == "!=" for op in spec["operators"]))
 

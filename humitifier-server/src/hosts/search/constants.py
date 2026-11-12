@@ -21,6 +21,7 @@ class ValueType(StrEnum):
     STRING = "string"
     INTEGER = "integer"
     BOOLEAN = "boolean"
+    NULL = "null"
 
 
 class Cardinality(StrEnum):
@@ -39,6 +40,7 @@ class TokenType(StrEnum):
     STRING = "string"
     NUMBER = "number"
     BOOLEAN = "boolean"
+    NULL = "null"
     OPERATOR = "operator"
     LOGICAL = "logical"
     ALIAS = "alias"
@@ -47,6 +49,9 @@ class TokenType(StrEnum):
     LBRACE = "lbrace"
     RBRACE = "rbrace"
     COMMA = "comma"
+
+
+NULL_KEYWORDS = ("null", "none", "nil")
 
 
 ALIAS_KEYWORD = "AS"

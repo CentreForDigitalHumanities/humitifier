@@ -158,6 +158,8 @@ def tokenize(query: str) -> list[Token]:
                 tokens.append(Token(TokenType.BOOLEAN, True, start_pos))
             elif word_upper == "FALSE":
                 tokens.append(Token(TokenType.BOOLEAN, False, start_pos))
+            elif word_upper in ("NULL", "NONE", "NIL"):
+                tokens.append(Token(TokenType.NULL, None, start_pos))
             else:
                 tokens.append(Token(TokenType.IDENT, word, start_pos))
             continue

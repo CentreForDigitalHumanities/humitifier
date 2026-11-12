@@ -170,7 +170,12 @@ class _Parser:
 
             lhs_type = lhs.expr_type.value_type
             rhs_type = rhs.value_type
-            if lhs_type != rhs_type:
+            if rhs_type == ValueType.NULL:
+                if op_cls.symbol not in ("=", "!="):
+                    raise ValueError(
+                        f"Operator '{op_cls.symbol}' is not supported for null comparisons at position {op_tok.position}"
+                    )
+            elif lhs_type != rhs_type:
                 raise ValueError(
                     f"Type mismatch: cannot compare {lhs_type.value} with {rhs_type.value} at position {rhs.position}"
                 )
@@ -199,11 +204,12 @@ class _Parser:
                 TokenType.STRING,
                 TokenType.NUMBER,
                 TokenType.BOOLEAN,
+                TokenType.NULL,
             ):
                 rhs = self.parse_literal()
                 lhs_type = lhs.expr_type.value_type
                 rhs_type = rhs.value_type
-                if lhs_type != rhs_type:
+                if rhs_type != ValueType.NULL and lhs_type != rhs_type:
                     raise ValueError(
                         f"Type mismatch: cannot compare {lhs_type.value} with {rhs_type.value} at position {rhs.position}"
                     )
@@ -294,7 +300,12 @@ class _Parser:
         if tok is None:
             raise ValueError("Unexpected end of query in function arguments")
 
-        if tok.type in (TokenType.STRING, TokenType.NUMBER, TokenType.BOOLEAN):
+        if tok.type in (
+            TokenType.STRING,
+            TokenType.NUMBER,
+            TokenType.BOOLEAN,
+            TokenType.NULL,
+        ):
             return self.parse_literal()
 
         if tok.type == TokenType.IDENT:
@@ -320,6 +331,8 @@ class _Parser:
             return Literal(tok.value, ValueType.INTEGER, tok.position)
         if tok.type == TokenType.BOOLEAN:
             return Literal(tok.value, ValueType.BOOLEAN, tok.position)
+        if tok.type == TokenType.NULL:
+            return Literal(None, ValueType.NULL, tok.position)
 
         raise ValueError(f"Expected literal value at position {tok.position}")
 

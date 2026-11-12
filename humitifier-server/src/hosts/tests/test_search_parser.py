@@ -377,3 +377,60 @@ class SearchParserTestCase(SimpleTestCase):
         with self.assertRaises(ValueError) as ctx:
             self._parse('{meta.fqdn = "a"')
         self.assertIn("Unclosed '{'", str(ctx.exception))
+
+    def test_tokenize_null_and_none_literals(self):
+        tokens = tokenize("null NONE Nil nUlL")
+        self.assertEqual(len(tokens), 4)
+        for tok in tokens:
+            self.assertEqual(tok.type, TokenType.NULL)
+            self.assertIsNone(tok.value)
+
+        # Quoted "null" must be a string literal
+        str_tokens = tokenize('"null" \'none\'')
+        self.assertEqual(len(str_tokens), 2)
+        self.assertEqual(str_tokens[0].type, TokenType.STRING)
+        self.assertEqual(str_tokens[0].value, "null")
+        self.assertEqual(str_tokens[1].type, TokenType.STRING)
+        self.assertEqual(str_tokens[1].value, "none")
+
+    def test_parse_null_comparisons_equality_and_inequality(self):
+        cases = [
+            ("meta.fqdn = null", Equals),
+            ("meta.fqdn != none", NotEquals),
+            ("meta.fqdn = nil", Equals),
+            ("facts.hardware.cpus = null", Equals),
+            ("facts.hardware.cpus != none", NotEquals),
+            ("meta.archived = null", Equals),
+            ("meta.archived != none", NotEquals),
+            ("facts.users[].name = null", Equals),
+            ("facts.users[].name != none", NotEquals),
+        ]
+        for query, expected_op in cases:
+            ast = self._parse(query)
+            self.assertIsInstance(ast, Comparison)
+            self.assertEqual(ast.operator, expected_op)
+            self.assertEqual(ast.rhs.value_type, ValueType.NULL)
+            self.assertIsNone(ast.rhs.value)
+
+        # Negated null comparison
+        ast_not = self._parse("NOT meta.fqdn = null")
+        self.assertIsInstance(ast_not, Logical)
+        self.assertEqual(ast_not.operator, LogicalOperator.NOT)
+        self.assertEqual(len(ast_not.children), 1)
+        self.assertIsInstance(ast_not.children[0], Comparison)
+        self.assertEqual(ast_not.children[0].operator, Equals)
+
+    def test_parse_null_comparison_invalid_operators_error(self):
+        invalid_queries = [
+            "meta.fqdn > null",
+            "meta.fqdn < none",
+            "meta.fqdn >= nil",
+            "meta.fqdn <= null",
+            "meta.fqdn CONTAINS null",
+            "facts.hardware.cpus > null",
+            "meta.archived CONTAINS none",
+        ]
+        for query in invalid_queries:
+            with self.assertRaises(ValueError) as ctx:
+                self._parse(query)
+            self.assertIn("not supported for null comparisons", str(ctx.exception))

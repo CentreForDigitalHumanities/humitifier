@@ -63,12 +63,16 @@ class Equals(ComparisonOperator):
 
     @classmethod
     def to_lookup(cls, value_type: ValueType) -> str:
+        if value_type == ValueType.NULL:
+            return "isnull"
         if value_type == ValueType.STRING:
             return "iexact"
         return "exact"
 
     @classmethod
     def to_sql(cls, lhs: SqlFragment, rhs: Any, value_type: ValueType) -> SqlFragment:
+        if rhs is None or value_type == ValueType.NULL:
+            return SqlFragment(f"({lhs.sql}) IS NULL", lhs.params)
         if value_type == ValueType.STRING:
             return SqlFragment(f"LOWER({lhs.sql}) = LOWER(%s)", lhs.params + (str(rhs),))
         val = str(rhs).lower() if isinstance(rhs, bool) else rhs
@@ -84,12 +88,16 @@ class NotEquals(ComparisonOperator):
 
     @classmethod
     def to_lookup(cls, value_type: ValueType) -> str:
+        if value_type == ValueType.NULL:
+            return "isnull"
         if value_type == ValueType.STRING:
             return "iexact"
         return "exact"
 
     @classmethod
     def to_sql(cls, lhs: SqlFragment, rhs: Any, value_type: ValueType) -> SqlFragment:
+        if rhs is None or value_type == ValueType.NULL:
+            return SqlFragment(f"({lhs.sql}) IS NOT NULL", lhs.params)
         if value_type == ValueType.STRING:
             return SqlFragment(f"LOWER({lhs.sql}) != LOWER(%s)", lhs.params + (str(rhs),))
         val = str(rhs).lower() if isinstance(rhs, bool) else rhs

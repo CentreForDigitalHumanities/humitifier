@@ -27,6 +27,7 @@ function advancedSearchQuery() {
 
         // Defaults populated from spec
         aliasKeyword: 'AS',
+        nullKeywords: ['null', 'none', 'nil'],
         operators: ['=', '!=', '>', '>=', '<', '<=', 'CONTAINS'],
         operatorObjects: [],
         logicalOperators: ['AND', 'OR', 'NOT'],
@@ -38,6 +39,7 @@ function advancedSearchQuery() {
             if (!spec) return;
             this.spec = spec;
             this.aliasKeyword = spec.alias_keyword || 'AS';
+            this.nullKeywords = spec.null_keywords || ['null', 'none', 'nil'];
             this.operatorObjects = spec.operators || [];
             this.operators = this.operatorObjects.map(o => o.symbol);
             this.logicalOperators = spec.logical_operators || ['AND', 'OR', 'NOT'];
@@ -194,6 +196,7 @@ function advancedSearchQuery() {
                     }
 
                     const wordUpper = word.toUpperCase();
+                    const wordLower = word.toLowerCase();
                     if (isAlias(word)) {
                         tokens.push({ type: 'alias', value: word });
                     } else if (this.logicalOperators.map(o => o.toUpperCase()).includes(wordUpper)) {
@@ -204,6 +207,8 @@ function advancedSearchQuery() {
                         tokens.push({ type: 'function', value: word, func: isFunc(word) });
                     } else if (word === 'true' || word === 'false') {
                         tokens.push({ type: 'boolean', value: word });
+                    } else if ((this.nullKeywords || ['null', 'none', 'nil']).map(k => k.toLowerCase()).includes(wordLower)) {
+                        tokens.push({ type: 'null', value: word });
                     } else if (/^-?\d+(\.\d+)?$/.test(word)) {
                         tokens.push({ type: 'number', value: word });
                     } else {
@@ -453,6 +458,7 @@ function advancedSearchQuery() {
 
                 case 'operator':
                     let valueType = null;
+                    const opSymbol = lastToken ? lastToken.value : null;
                     // Check if preceding expression is a closed function call (ended with rparen)
                     if (tokens.length >= 2 && tokens[tokens.length - 2].type === 'rparen') {
                         let parenDepth = 1;
@@ -480,11 +486,12 @@ function advancedSearchQuery() {
                             }
                         }
                     }
-                    return { type: 'expect_value', partial: currentPartial, fieldType: valueType };
+                    return { type: 'expect_value', partial: currentPartial, fieldType: valueType, operator: opSymbol };
 
                 case 'string':
                 case 'number':
                 case 'boolean':
+                case 'null':
                     if (enclosing) {
                         return { type: 'after_arg', partial: currentPartial, enclosing };
                     }
@@ -822,6 +829,16 @@ function advancedSearchQuery() {
 
             else if (context.type === 'expect_value') {
                 const fieldType = context.fieldType;
+                const op = context.operator;
+
+                if (!op || op === '=' || op === '!=') {
+                    if (partialLower === '' || 'null'.startsWith(partialLower)) {
+                        suggestions.push({ id: 'null', label: 'null — unset/missing', insertValue: 'null', type: 'value' });
+                    }
+                    if (partialLower === '' || 'none'.startsWith(partialLower)) {
+                        suggestions.push({ id: 'none', label: 'none — unset/missing', insertValue: 'none', type: 'value' });
+                    }
+                }
 
                 if ((fieldType === 'string' || !fieldType) && (partialLower === '' || '"value"'.startsWith(partialLower))) {
                     suggestions.push({
@@ -1029,6 +1046,7 @@ function advancedSearchQuery() {
                 string: 'text-green-600 dark:text-green-300',
                 number: 'text-blue-600 dark:text-blue-300',
                 boolean: 'text-red-600 dark:text-red-300',
+                null: 'text-orange-600 dark:text-orange-300 font-semibold',
                 bracket: 'text-orange-500 dark:text-orange-400',
                 function: 'text-yellow-800 dark:text-yellow-300',
                 paren: 'text-yellow-800 dark:text-yellow-300',
@@ -1128,6 +1146,7 @@ function advancedSearchQuery() {
                     }
 
                     const wordUpper = word.toUpperCase();
+                    const wordLower = word.toLowerCase();
                     if (isAlias(word)) {
                         pushToken(word, 'alias');
                     } else if (this.logicalOperators.map(o => o.toUpperCase()).includes(wordUpper)) {
@@ -1138,6 +1157,8 @@ function advancedSearchQuery() {
                         pushToken(word, 'function');
                     } else if (word === 'true' || word === 'false') {
                         pushToken(word, 'boolean');
+                    } else if ((this.nullKeywords || ['null', 'none', 'nil']).map(k => k.toLowerCase()).includes(wordLower)) {
+                        pushToken(word, 'null');
                     } else if (/^-?\d+(\.\d+)?$/.test(word)) {
                         pushToken(word, 'number');
                     } else {

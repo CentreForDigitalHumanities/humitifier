@@ -8,7 +8,7 @@ from django.db.models import BooleanField, Q, QuerySet
 from django.db.models.expressions import RawSQL
 from humitifier_common.artefacts import registry as artefact_registry
 
-from .constants import FieldKind, LogicalOperator, Section
+from .constants import FieldKind, LogicalOperator, Section, ValueType
 from .nodes import BoolNode, Comparison, FieldRef, FunctionCall, Logical
 from .sql import CompileContext, ElementSet, ScalarSql, SqlFragment
 
@@ -28,6 +28,9 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
         # Meta fields: Host model attributes
         if field.section == Section.META:
             field_name = field.field_path[0]
+            if rhs.value_type == ValueType.NULL:
+                is_null = not getattr(op, "negated", False)
+                return Q(**{f"{field_name}__isnull": is_null})
             lookup = op.to_lookup(field.value_type)
             lookup_suffix = f"__{lookup}" if lookup != "exact" else ""
             q = Q(**{f"{field_name}{lookup_suffix}": rhs.value})
@@ -59,6 +62,15 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
                 return Q(Exists(subq))
 
             orm_field = "_creator" if field_name == "creator" else field_name
+            if rhs.value_type == ValueType.NULL:
+                is_null = not getattr(op, "negated", False)
+                subq = Alert.objects.filter(
+                    ~ack_exists,
+                    host=OuterRef("pk"),
+                    **{f"{orm_field}__isnull": is_null},
+                )
+                return Q(Exists(subq))
+
             lookup = op.to_lookup(field.value_type)
             lookup_suffix = f"__{lookup}" if lookup != "exact" else ""
             filter_kwargs = {
@@ -74,31 +86,41 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
 
         # Scalar JSON fields in last_scan_cache
         if field.kind == FieldKind.SCALAR:
-            lookup = op.to_lookup(field.value_type)
-            lookup_suffix = f"__{lookup}" if lookup != "exact" else ""
             field_path_str = "__".join(field.field_path)
             lookup_path = f"last_scan_cache__{field.section}__{field.artefact_key}__{field_path_str}"
+            if rhs.value_type == ValueType.NULL:
+                is_null = not getattr(op, "negated", False)
+                return Q(**{f"{lookup_path}__isnull": is_null})
+            lookup = op.to_lookup(field.value_type)
+            lookup_suffix = f"__{lookup}" if lookup != "exact" else ""
             q = Q(**{f"{lookup_path}{lookup_suffix}": rhs.value})
             return ~q if getattr(op, "negated", False) else q
 
         # Array fields in last_scan_cache without aggregation (element match)
         if field.kind == FieldKind.ARRAY:
             elem_set = ctx.to_element_set(lhs)
-            cond = op.to_sql(elem_set.value, rhs.value, field.value_type)
+            cond = op.to_sql(
+                elem_set.value,
+                rhs.value,
+                rhs.value_type if rhs.value_type == ValueType.NULL else field.value_type,
+            )
             exists_frag = elem_set.to_exists(extra_condition=cond)
             return Q(RawSQL(exists_frag.sql, exists_frag.params, output_field=BooleanField()))
 
     if isinstance(lhs, FunctionCall):
         compiled = lhs.function.compile(lhs.args, ctx)
+        val_type = rhs.value_type if rhs.value_type == ValueType.NULL else (
+            compiled.value_type if hasattr(compiled, "value_type") else lhs.expr_type.value_type
+        )
         if isinstance(compiled, ElementSet):
-            cond = op.to_sql(compiled.value, rhs.value, compiled.value_type)
+            cond = op.to_sql(compiled.value, rhs.value, val_type)
             exists_frag = compiled.to_exists(extra_condition=cond)
             return Q(RawSQL(exists_frag.sql, exists_frag.params, output_field=BooleanField()))
         elif isinstance(compiled, ScalarSql):
-            cond = op.to_sql(compiled.fragment, rhs.value, compiled.value_type)
+            cond = op.to_sql(compiled.fragment, rhs.value, val_type)
             return Q(RawSQL(cond.sql, cond.params, output_field=BooleanField()))
         elif isinstance(compiled, SqlFragment):
-            cond = op.to_sql(compiled, rhs.value, lhs.expr_type.value_type)
+            cond = op.to_sql(compiled, rhs.value, val_type)
             return Q(RawSQL(cond.sql, cond.params, output_field=BooleanField()))
 
     raise ValueError(f"Unsupported comparison LHS: {type(lhs)}")
