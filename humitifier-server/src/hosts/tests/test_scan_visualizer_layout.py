@@ -1,18 +1,26 @@
 from datetime import datetime
 
-from django.test import TestCase
+from django.test import RequestFactory, TestCase
 
 from hosts.models import Host, ScanData
+import hosts.scan_visualizers.v2.artefact_visualizers as v2_visualizers
+import hosts.scan_visualizers.v3.artefact_visualizers as v3_visualizers
 from hosts.scan_visualizers.v2.scan_visualizer import V2ScanVisualizer
 from hosts.scan_visualizers.v3.scan_visualizer import V3ScanVisualizer
 from humitifier_common.artefacts import (
+    DNS,
+    DNSLookup,
+    Hardware,
+    HostnameCtl,
     Memory,
+    NetworkInterfaces,
     Uptime,
     User,
     Users,
     V3Uptime,
 )
 from humitifier_common.scan_data import ScanInput, ScanOutput
+from main.models import User as UserModel
 
 
 class ScanVisualizerLayoutTestCase(TestCase):
@@ -97,35 +105,147 @@ class ScanVisualizerLayoutTestCase(TestCase):
         )
         self.assertEqual(users_item.order_index, users_static_idx)
 
-    def test_multi_host_consistency_with_missing_artefacts(self):
+    def test_category_metadata_on_visualizers(self):
         """
-        Verify that when a host is missing preceding artefacts (e.g. Uptime is missing),
-        the remaining artefacts (e.g. Memory) still receive the exact same static order_index.
+        Verify that artefact visualizers have their category attribute configured correctly.
         """
-        memory = Memory(
-            total_mb=16384,
-            used_mb=6144,
-            free_mb=10240,
-            swap_total_mb=2048,
-            swap_used_mb=0,
-            swap_free_mb=2048,
+        self.assertEqual(v2_visualizers.HardwareVisualizer.category, "hardware")
+        self.assertEqual(v2_visualizers.LshwVisualizer.category, "hardware")
+        self.assertEqual(v2_visualizers.HostnameCtlVisualizer.category, "os")
+        self.assertEqual(v2_visualizers.RebootPolicyVisualizer.category, "os")
+        self.assertEqual(v2_visualizers.SELinuxVisualizer.category, "os")
+        self.assertEqual(v2_visualizers.SystemdUnitsVisualizer.category, "os")
+        self.assertEqual(v2_visualizers.NetworkInterfacesVisualizer.category, "network")
+        self.assertEqual(v2_visualizers.DNSVisualizer.category, "network")
+        self.assertEqual(v2_visualizers.WebserverVisualizer.category, "software")
+        self.assertEqual(v2_visualizers.IsWordpressVisualizer.category, "web")
+        self.assertEqual(v2_visualizers.PackageListVisualizer.category, "software")
+        self.assertEqual(v2_visualizers.UsersVisualizer.category, "users")
+        self.assertEqual(v2_visualizers.GroupsVisualizer.category, "users")
+        self.assertEqual(v2_visualizers.PuppetAgentVisualizer.category, "automation")
+        self.assertEqual(v2_visualizers.PyInfraReportVisualizer.category, "automation")
+        self.assertEqual(v2_visualizers.HostMetaVisualizer.category, "metadata")
+
+        self.assertEqual(v3_visualizers.IPTablesVisualizer.category, "network")
+        self.assertEqual(v3_visualizers.PackageListVisualizer.category, "software")
+        self.assertEqual(
+            v3_visualizers.PackageManagerInfoVisualizer.category, "software"
+        )
+        self.assertEqual(v3_visualizers.DockerComposeVisualizer.category, "containers")
+        self.assertEqual(v3_visualizers.DockerImageVisualizer.category, "containers")
+        self.assertEqual(
+            v3_visualizers.DockerContainerVisualizer.category, "containers"
         )
 
-        # Host 2 has only Memory (Uptime and Blocks are missing)
-        scan_data_partial = self._create_scan_data(
-            metrics={
-                Memory.__artefact_name__: memory.model_dump(mode="json"),
-            }
+    def test_v3_get_fact_sections_and_slot_indexing(self):
+        """
+        Verify that get_fact_sections groups components by category and assigns
+        deterministic slot index within each section.
+        """
+        user = User(
+            name="alice",
+            uid=1000,
+            gid=1000,
+            info="Alice",
+            home="/home/alice",
+            shell="/bin/bash",
+        )
+        dns = DNS(
+            dns_lookups=[
+                DNSLookup(
+                    name="example.com",
+                    a_records=["93.184.216.34"],
+                    cname_records=[],
+                )
+            ]
+        )
+        hostname_ctl = HostnameCtl(
+            hostname="server1",
+            os="Ubuntu 24.04",
+            cpe_os_name="ubuntu",
+            kernel="6.8.0",
+            virtualization="kvm",
         )
 
-        visualizer_partial = V2ScanVisualizer(self.host, scan_data_partial, {})
-        rendered_metrics = visualizer_partial.render_components(
-            visualizer_partial.metric_visualizers
+        scan_data = self._create_scan_data(
+            facts={
+                Users.__artefact_name__: [user.model_dump(mode="json")],
+                DNS.__artefact_name__: dns.model_dump(mode="json"),
+                HostnameCtl.__artefact_name__: hostname_ctl.model_dump(mode="json"),
+            },
+            version=3,
         )
 
-        self.assertEqual(len(rendered_metrics), 1)
-        self.assertEqual(rendered_metrics[0].title, "Memory usage")
-        self.assertEqual(rendered_metrics[0].order_index, 2)
+        visualizer = V3ScanVisualizer(self.host, scan_data, {})
+        sections = visualizer.get_artefact_sections()
+
+        section_titles = [s.title for s in sections]
+        self.assertIn("Operating System", section_titles)
+        self.assertIn("Network & Security", section_titles)
+        self.assertIn("Users & Groups", section_titles)
+        # Empty sections must be omitted
+        self.assertNotIn("Hardware", section_titles)
+        self.assertNotIn("Containers", section_titles)
+        self.assertNotIn("Web", section_titles)
+
+        os_section = next(s for s in sections if s.title == "Operating System")
+        self.assertEqual(len(os_section.components), 1)
+        self.assertEqual(os_section.components[0].title, "Host metadata")
+
+        network_section = next(s for s in sections if s.title == "Network & Security")
+        self.assertEqual(len(network_section.components), 1)
+        self.assertEqual(network_section.components[0].title, "DNS")
+        # In network section, network_visualizers are: [NetworkInterfaces (idx 0), IPTables (idx 1), DNS (idx 2)]
+        self.assertEqual(network_section.components[0].order_index, 2)
+
+    def test_v3_context_categorized_preference(self):
+        """
+        Verify that V3ScanVisualizer checks user.categorized_scan_visualizer.
+        """
+        user_categorized = UserModel.objects.create_user(
+            username="cat_user", password="password", categorized_scan_visualizer=True
+        )
+        user_flat = UserModel.objects.create_user(
+            username="flat_user", password="password", categorized_scan_visualizer=False
+        )
+
+        scan_data = self._create_scan_data(
+            facts={
+                Users.__artefact_name__: [
+                    User(
+                        name="root",
+                        uid=0,
+                        gid=0,
+                        info="root",
+                        home="/root",
+                        shell="/bin/bash",
+                    ).model_dump(mode="json")
+                ]
+            },
+            version=3,
+        )
+
+        factory = RequestFactory()
+
+        # Categorized enabled
+        request_cat = factory.get("/")
+        request_cat.user = user_categorized
+        visualizer_cat = V3ScanVisualizer(self.host, scan_data, {})
+        visualizer_cat.request = request_cat
+        ctx_cat = visualizer_cat.get_context()
+        self.assertTrue(ctx_cat["categorized_scan_visualizer"])
+        self.assertTrue(len(ctx_cat["artefact_sections"]) > 0)
+
+        # Categorized disabled (flat mode)
+        request_flat = factory.get("/")
+        request_flat.user = user_flat
+        visualizer_flat = V3ScanVisualizer(self.host, scan_data, {})
+        visualizer_flat.request = request_flat
+        ctx_flat = visualizer_flat.get_context()
+        self.assertFalse(ctx_flat["categorized_scan_visualizer"])
+        self.assertEqual(len(ctx_flat["artefact_sections"]), 2)
+        self.assertEqual(ctx_flat["artefact_sections"][0].title, "Metrics")
+        self.assertEqual(ctx_flat["artefact_sections"][1].title, "Facts")
 
     def test_template_rendering_data_slot_index(self):
         """
@@ -176,3 +296,90 @@ class ScanVisualizerLayoutTestCase(TestCase):
 
         self.assertIn('data-slot-index="0"', html)
         self.assertIn("Visualizer version: 3", html)
+
+    def test_v3_template_rendering_categorized_and_flat(self):
+        """
+        Verify that v3.html renders section headers when categorized mode is enabled,
+        and renders a flat Facts header when categorized mode is disabled.
+        """
+        user = User(
+            name="bob",
+            uid=1001,
+            gid=1001,
+            info="Bob",
+            home="/home/bob",
+            shell="/bin/bash",
+        )
+        scan_data = self._create_scan_data(
+            facts={
+                Users.__artefact_name__: [user.model_dump(mode="json")],
+            },
+            version=3,
+        )
+
+        user_cat = UserModel.objects.create_user(
+            username="v3_cat_user",
+            password="password",
+            categorized_scan_visualizer=True,
+        )
+        user_flat = UserModel.objects.create_user(
+            username="v3_flat_user",
+            password="password",
+            categorized_scan_visualizer=False,
+        )
+
+        factory = RequestFactory()
+
+        # Categorized view: renders section title "Users & Groups"
+        req_cat = factory.get("/")
+        req_cat.user = user_cat
+        viz_cat = V3ScanVisualizer(self.host, scan_data, {})
+        viz_cat.request = req_cat
+        html_cat = viz_cat.render()
+        self.assertIn("Users &amp; Groups", html_cat)
+        self.assertIn("Search users &amp; groups", html_cat)
+        self.assertIn("collapsed: false", html_cat)
+        self.assertIn('@click="collapsed = !collapsed"', html_cat)
+        self.assertIn('x-show="!collapsed"', html_cat)
+        self.assertIn("toggle-layout", html_cat)
+        self.assertIn("translate-x-4", html_cat)
+        self.assertNotIn("Switch to Classic Facts Layout", html_cat)
+
+        # Flat view: renders generic "Facts" title
+        req_flat = factory.get("/")
+        req_flat.user = user_flat
+        viz_flat = V3ScanVisualizer(self.host, scan_data, {})
+        viz_flat.request = req_flat
+        html_flat = viz_flat.render()
+        self.assertIn("Facts", html_flat)
+        self.assertIn("Search facts", html_flat)
+        self.assertIn("collapsed: false", html_flat)
+        self.assertIn('@click="collapsed = !collapsed"', html_flat)
+        self.assertIn('x-show="!collapsed"', html_flat)
+        self.assertIn("toggle-layout", html_flat)
+        self.assertIn("translate-x-0", html_flat)
+        self.assertNotIn("Switch to Categorized Layout", html_flat)
+
+    def test_toggle_visualizer_layout_view(self):
+        """
+        Verify that ToggleVisualizerLayoutView inverts user preference and redirects to host.
+        """
+        user = UserModel.objects.create_superuser(
+            username="toggle_view_user",
+            password="password",
+            categorized_scan_visualizer=True,
+        )
+        self.client.force_login(user)
+
+        toggle_url = f"/hosts/host/{self.host.fqdn}/toggle-layout/?scan=latest"
+        response = self.client.get(toggle_url)
+
+        user.refresh_from_db()
+        self.assertFalse(user.categorized_scan_visualizer)
+        self.assertRedirects(response, f"/hosts/host/{self.host.fqdn}/?scan=latest")
+
+        # Toggle back
+        response = self.client.get(toggle_url)
+        user.refresh_from_db()
+        self.assertTrue(user.categorized_scan_visualizer)
+        self.assertRedirects(response, f"/hosts/host/{self.host.fqdn}/?scan=latest")

@@ -51,6 +51,7 @@ from humitifier_common.artefacts import (
 class HostMetaVisualizer(ItemizedArtefactVisualizer):
     artefact = HostMeta
     title = "GenDoc metadata"
+    category = "metadata"
     attributes = {
         "update_policy": "Update policy",
         "fileservers": "Fileservers",
@@ -97,6 +98,7 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
 class HostMetaVHostsVisualizer(SearchableCardsVisualizer):
     artefact = HostMeta
     title = "Apache vhosts"
+    category = "web"
 
     def show(self):
         if not super().show():
@@ -136,6 +138,7 @@ class HostMetaVHostsVisualizer(SearchableCardsVisualizer):
 class WebserverVisualizer(SearchableCardsVisualizer):
     artefact = Webserver
     title = "Webserver"
+    category = "software"
 
     def show(self):
         if self.artefact_data.hosts:
@@ -169,6 +172,7 @@ class WebserverVisualizer(SearchableCardsVisualizer):
 class DNSVisualizer(SearchableCardsVisualizer):
     artefact = DNS
     title = "DNS"
+    category = "network"
 
     def get_items(self) -> list[Card]:
         dns_lookups: list[DNSLookup] | None = self.artefact_data.dns_lookups
@@ -209,6 +213,7 @@ class DNSVisualizer(SearchableCardsVisualizer):
 class HostnameCtlVisualizer(ItemizedArtefactVisualizer):
     artefact = HostnameCtl
     title = "Host metadata"
+    category = "os"
     attributes = {
         "hostname": "Hostname",
         "os": "OS",
@@ -220,6 +225,7 @@ class HostnameCtlVisualizer(ItemizedArtefactVisualizer):
 
 class UptimeVisualizer(ArtefactVisualizer):
     title = "Host uptime"
+    category = "metrics"
     artefact = Uptime
 
     def get_context(self, **kwargs):
@@ -239,6 +245,7 @@ class UptimeVisualizer(ArtefactVisualizer):
 
 class MemoryVisualizer(BarsArtefactVisualizer):
     title = "Memory usage"
+    category = "metrics"
     artefact = Memory
 
     def get_bar_items(self) -> list[Bar]:
@@ -275,6 +282,7 @@ class MemoryVisualizer(BarsArtefactVisualizer):
 
 class BlocksVisualizer(BarsArtefactVisualizer):
     title = "Disk usage"
+    category = "metrics"
     artefact = Blocks
 
     def get_bar_items(self) -> list[Bar]:
@@ -295,6 +303,7 @@ class BlocksVisualizer(BarsArtefactVisualizer):
 
 class UsersVisualizer(SearchableCardsVisualizer):
     title = "Users"
+    category = "users"
     artefact = Users
     search_placeholder = "Search groups"
 
@@ -321,6 +330,7 @@ class UsersVisualizer(SearchableCardsVisualizer):
 
 class GroupsVisualizer(SearchableCardsVisualizer):
     title = "Groups"
+    category = "users"
     artefact = Groups
     search_placeholder = "Search groups"
 
@@ -341,6 +351,7 @@ class GroupsVisualizer(SearchableCardsVisualizer):
 
 class PackageListVisualizer(SearchableCardsVisualizer):
     title = "Packages"
+    category = "software"
     artefact = PackageList
     search_placeholder = "Search packages"
 
@@ -360,6 +371,7 @@ class PackageListVisualizer(SearchableCardsVisualizer):
 
 class PuppetAgentVisualizer(ArtefactVisualizer):
     title = "Puppet Agent"
+    category = "automation"
     artefact = PuppetAgent
 
     template = "hosts/scan_visualizer/components/puppet_component.html"
@@ -379,6 +391,7 @@ class PuppetAgentVisualizer(ArtefactVisualizer):
 
 class PyInfraReportVisualizer(ArtefactVisualizer):
     title = "PyInfra"
+    category = "automation"
     artefact = PyInfraReport
 
     template = "hosts/scan_visualizer/components/pyinfra_component.html"
@@ -398,6 +411,7 @@ class PyInfraReportVisualizer(ArtefactVisualizer):
 
 class IsWordpressVisualizer(ArtefactVisualizer):
     title = "Is Wordpress?"
+    category = "web"
     artefact = IsWordpress
 
     def show(self):
@@ -414,6 +428,7 @@ class IsWordpressVisualizer(ArtefactVisualizer):
 
 class HardwareVisualizer(ArtefactVisualizer):
     title = "Hardware (overview)"
+    category = "hardware"
     artefact = Hardware
     template = "hosts/scan_visualizer/components/hardware_component.html"
 
@@ -430,6 +445,7 @@ class HardwareVisualizer(ArtefactVisualizer):
 
 class LshwVisualizer(TreeVisualizer):
     title = "Hardware (detailed)"
+    category = "hardware"
     artefact = Lshw
     search_placeholder = "Search devices"
     # The system node and whatever is bolted onto it directly (usually the
@@ -534,6 +550,7 @@ class LshwVisualizer(TreeVisualizer):
 
 class NetworkInterfacesVisualizer(SearchableCardsVisualizer):
     title = "Network Interfaces"
+    category = "network"
     artefact = NetworkInterfaces
 
     def get_items(self) -> list[Card]:
@@ -564,6 +581,7 @@ class NetworkInterfacesVisualizer(SearchableCardsVisualizer):
 
 class ZFSVisualizer(ArtefactVisualizer):
     title = "ZFS"
+    category = "metrics"
     artefact = ZFS
     template = "hosts/scan_visualizer/components/zfs_component.html"
 
@@ -577,6 +595,7 @@ class ZFSVisualizer(ArtefactVisualizer):
 
 class RebootPolicyVisualizer(ArtefactVisualizer):
     title = "Reboot Policy"
+    category = "os"
     artefact = RebootPolicy
     template = "hosts/scan_visualizer/components/reboot_policy.html"
 
@@ -615,6 +634,7 @@ class RebootPolicyVisualizer(ArtefactVisualizer):
 class SELinuxVisualizer(ItemizedArtefactVisualizer):
     artefact = SELinux
     title = "SELinux"
+    category = "os"
     attributes = {
         "enabled": "Enabled",
         "mode": "Enforcement mode",
@@ -645,6 +665,7 @@ class SELinuxVisualizer(ItemizedArtefactVisualizer):
 class SystemdUnitsVisualizer(SearchableCardsVisualizer):
     artefact = Systemd
     title = "Systemd Units"
+    category = "os"
 
     def get_items(self) -> list[Card]:
         items = []

@@ -162,3 +162,47 @@ class TemplateTagsTest(TestCase):
         # Passing None or empty filterset
         result_empty = filter_params(None, otap_stage="test")
         self.assertEqual(result_empty, "otap_stage=test")
+
+
+class UserPreferenceTest(TestCase):
+    def test_user_categorized_scan_visualizer_default(self):
+        user = User.objects.create_user(username="testuser", password="password")
+        self.assertFalse(user.categorized_scan_visualizer)
+
+    def test_user_form_updates_preference(self):
+        from main.forms import UserForm
+
+        user = User.objects.create_user(username="formuser", password="password")
+        form = UserForm(
+            data={
+                "username": "formuser",
+                "email": "formuser@example.com",
+                "first_name": "Form",
+                "last_name": "User",
+                "wild_wasteland_mode": False,
+                "categorized_scan_visualizer": False,
+                "default_home": "hosts",
+            },
+            instance=user,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        saved_user = form.save()
+        self.assertFalse(saved_user.categorized_scan_visualizer)
+
+    def test_user_profile_form_updates_preference(self):
+        from main.forms import UserProfileForm
+
+        user = User.objects.create_user(username="profileuser", password="password")
+        form = UserProfileForm(
+            data={
+                "wild_wasteland_mode": True,
+                "categorized_scan_visualizer": False,
+                "default_home": "dashboard",
+            },
+            instance=user,
+        )
+        self.assertTrue(form.is_valid(), form.errors)
+        saved_user = form.save()
+        self.assertFalse(saved_user.categorized_scan_visualizer)
+        self.assertTrue(saved_user.wild_wasteland_mode)
+        self.assertEqual(saved_user.default_home, "dashboard")

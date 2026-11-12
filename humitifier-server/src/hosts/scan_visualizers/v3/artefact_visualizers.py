@@ -27,6 +27,7 @@ from humitifier_common.artefacts import (
 
 class UptimeVisualizer(ArtefactVisualizer):
     title = "Host uptime"
+    category = "metrics"
     artefact = V3Uptime
 
     def get_context(self, **kwargs):
@@ -52,6 +53,7 @@ class UptimeVisualizer(ArtefactVisualizer):
 
 class PackageListVisualizer(SearchableCardsWithHeaderVisualizer):
     title = "Packages"
+    category = "software"
     artefact = PackageManagerInfo
     search_placeholder = "Search packages"
 
@@ -104,6 +106,7 @@ class PackageListVisualizer(SearchableCardsWithHeaderVisualizer):
 
 class PackageManagerInfoVisualizer(SearchableCardsWithHeaderVisualizer):
     title = "Package manager info"
+    category = "software"
     artefact = PackageManagerInfo
     search_placeholder = "Search repositories"
 
@@ -212,6 +215,7 @@ class IPTablesVisualizer(ArtefactVisualizer):
     """
 
     title = "Firewall"
+    category = "network"
     artefact = IPTables
     template = "hosts/scan_visualizer/components/iptables_component.html"
 
@@ -401,6 +405,7 @@ class IPTablesVisualizer(ArtefactVisualizer):
 
 class DockerComposeVisualizer(SearchableCardsVisualizer):
     title = "Docker Compose projects"
+    category = "containers"
     artefact = Docker
 
     def get_items(self) -> list[Card]:
@@ -426,6 +431,7 @@ class DockerComposeVisualizer(SearchableCardsVisualizer):
 
 class DockerImageVisualizer(SearchableCardsWithHeaderVisualizer):
     title = "Docker images"
+    category = "containers"
     artefact = Docker
 
     def get_header_content(self) -> list[dict[str, str]] | str:
@@ -483,6 +489,7 @@ class DockerImageVisualizer(SearchableCardsWithHeaderVisualizer):
 
 class DockerContainerVisualizer(SearchableCardsWithHeaderVisualizer):
     title = "Docker containers"
+    category = "containers"
     artefact = Docker
 
     def get_header_content(self) -> list[dict[str, str]] | str:

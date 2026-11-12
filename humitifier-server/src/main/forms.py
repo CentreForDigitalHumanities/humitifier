@@ -21,6 +21,7 @@ class UserForm(forms.ModelForm):
             "first_name",
             "last_name",
             "wild_wasteland_mode",
+            "categorized_scan_visualizer",
             "default_home",
             "is_superuser",
             "is_financial_operator",
@@ -65,10 +66,12 @@ class UserProfileForm(forms.ModelForm):
         model = User
         fields = [
             "wild_wasteland_mode",
+            "categorized_scan_visualizer",
             "default_home",
         ]
         widgets = {
             "wild_wasteland_mode": forms.CheckboxInput,
+            "categorized_scan_visualizer": forms.CheckboxInput,
         }
 
 

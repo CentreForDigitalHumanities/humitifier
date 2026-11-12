@@ -176,6 +176,31 @@ class HostExportView(LoginRequiredMixin, FilteredListView):
         return buffer.getvalue()
 
 
+class ToggleVisualizerLayoutView(LoginRequiredMixin, View):
+    def get(self, request, fqdn=None, *args, **kwargs):
+        request.user.categorized_scan_visualizer = (
+            not request.user.categorized_scan_visualizer
+        )
+        request.user.save(update_fields=["categorized_scan_visualizer"])
+
+        if fqdn:
+            target_url = reverse("hosts:detail", kwargs={"fqdn": fqdn})
+            query = request.GET.urlencode()
+            if query:
+                target_url = f"{target_url}?{query}"
+            return HttpResponseRedirect(target_url)
+
+        next_url = (
+            request.GET.get("next")
+            or request.META.get("HTTP_REFERER")
+            or reverse("hosts:list")
+        )
+        return HttpResponseRedirect(next_url)
+
+    def post(self, request, fqdn=None, *args, **kwargs):
+        return self.get(request, fqdn, *args, **kwargs)
+
+
 class HostDetailView(LoginRequiredMixin, TemplateView):
     template_name = "hosts/host_detail.html"
 

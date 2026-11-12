@@ -51,9 +51,6 @@ class V2ScanVisualizer(ComponentScanVisualizer):
     def get_context(self, **kwargs):
         context = super().get_context(**kwargs)
 
-        context['visualizer_version'] = self.VERSION
-        context['scan_format_version'] = self.scan_data.version
-
         context["static_data"] = []
 
         for attr, label in self.static_data.items():

@@ -14,6 +14,7 @@ T = TypeVar("T")
 class ArtefactVisualizer:
     artefact: type[T] = None
     title: str
+    category: str = "general"
     template: str = "hosts/scan_visualizer/components/base_component.html"
 
     def __init__(self, artefact_data: T, scan_date: datetime):
