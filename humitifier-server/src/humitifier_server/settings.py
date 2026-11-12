@@ -97,6 +97,11 @@ if ENABLE_WHITENOISE:
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
     MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    DEBUG_TOOLBAR_CONFIG = {
+        # To limit memory usage; the visualizers are expensive....
+        "RESULTS_CACHE_SIZE": 3,
+        "SHOW_COLLAPSED": True,
+    }
 
 ROOT_URLCONF = "humitifier_server.urls"
 
