@@ -129,7 +129,7 @@ class ComponentScanVisualizer(ScanVisualizer):
                 continue
 
             components = []
-            for index, visualizer in enumerate(cat_visualizers):
+            for visualizer in cat_visualizers:
                 data = self.get_artefact_data(visualizer.artefact)
                 if data:
                     cmp = visualizer(data, self.scan_data.scan_date)
@@ -138,7 +138,7 @@ class ComponentScanVisualizer(ScanVisualizer):
                             _Component(
                                 title=visualizer.title,
                                 content=cmp.render() or "Something went wrong",
-                                order_index=index,
+                                order_index=len(components),
                                 category=category.id,
                             )
                         )

@@ -15,7 +15,10 @@ from humitifier_common.artefacts import (
     Hardware,
     HostnameCtl,
     Memory,
+    MemoryRange,
     NetworkInterfaces,
+    NetworkInterface,
+    SELinux,
     Uptime,
     User,
     Users,
@@ -197,8 +200,133 @@ class ScanVisualizerLayoutTestCase(TestCase):
         network_section = next(s for s in sections if s.title == "Network & Security")
         self.assertEqual(len(network_section.components), 1)
         self.assertEqual(network_section.components[0].title, "DNS")
-        # In network section, network_visualizers are: [NetworkInterfaces (idx 0), IPTables (idx 1), DNS (idx 2)]
-        self.assertEqual(network_section.components[0].order_index, 2)
+        # In categorized mode, components receive local sequential order_index starting at 0
+        self.assertEqual(network_section.components[0].order_index, 0)
+
+    def test_categorized_sections_assign_local_slot_indices(self):
+        """
+        Verify that sparse categorized sections assign consecutive local slot indices
+        [0, 1, 2...] to maximize column utilization and prevent empty columns,
+        while flat mode preserves static global slot indexing.
+        """
+        hardware = Hardware(
+            num_cpus=4,
+            memory=[
+                MemoryRange(
+                    range="0x0000000000000000-0x000000007fffffff",
+                    size=2147483648,
+                    state="online",
+                    removable=False,
+                    block="memory0",
+                )
+            ],
+            block_devices=[],
+            pci_devices=[],
+            usb_devices=[],
+            total_memory_gb=2,
+        )
+        hostname_ctl = HostnameCtl(
+            hostname="server1",
+            os="Ubuntu 24.04",
+            cpe_os_name="ubuntu",
+            kernel="6.8.0",
+            virtualization="kvm",
+        )
+        selinux = SELinux(enabled=False, policy_name=None, mode=None)
+        network_interfaces = [
+            NetworkInterface(
+                name="eth0",
+                altnames=[],
+                link_type="ether",
+                mac_address="00:00:00:00:00:00",
+                flags=["up"],
+                addresses=[],
+            ),
+        ]
+        dns = DNS(
+            dns_lookups=[
+                DNSLookup(
+                    name="example.com",
+                    a_records=["93.184.216.34"],
+                    cname_records=[],
+                )
+            ]
+        )
+
+        # In V3 General category:
+        # visualizers: [Hardware (0), Lshw (1), RebootPolicy (2), HostMeta (3), HostnameCtl (4), SELinux (5)]
+        # We supply Hardware, HostnameCtl, and SELinux (3 non-consecutive visualizers).
+        # In V3 Network & Security category:
+        # visualizers: [NetworkInterfaces (0), IPTables (1), DNS (2)]
+        # We supply NetworkInterfaces and DNS (2 non-consecutive visualizers).
+        scan_data = self._create_scan_data(
+            facts={
+                Hardware.__artefact_name__: hardware.model_dump(mode="json"),
+                HostnameCtl.__artefact_name__: hostname_ctl.model_dump(mode="json"),
+                SELinux.__artefact_name__: selinux.model_dump(mode="json"),
+                NetworkInterfaces.__artefact_name__: [
+                    ni.model_dump(mode="json") for ni in network_interfaces
+                ],
+                DNS.__artefact_name__: dns.model_dump(mode="json"),
+            },
+            version=3,
+        )
+
+        visualizer = V3ScanVisualizer(self.host, scan_data, {})
+
+        # 1. Categorized mode inspection
+        sections = visualizer.get_artefact_sections()
+        general_sec = next(s for s in sections if s.title == "General")
+        self.assertEqual(len(general_sec.components), 3)
+        self.assertEqual(
+            [c.order_index for c in general_sec.components],
+            [0, 1, 2],
+        )
+
+        network_sec = next(s for s in sections if s.title == "Network & Security")
+        self.assertEqual(len(network_sec.components), 2)
+        self.assertEqual(
+            [c.order_index for c in network_sec.components],
+            [0, 1],
+        )
+
+        # 2. Template rendering in categorized mode produces local data-slot-index values
+        user_cat = UserModel.objects.create_user(
+            username="sparse_cat_user",
+            password="password",
+            categorized_scan_visualizer=True,
+        )
+        factory = RequestFactory()
+        req_cat = factory.get("/")
+        req_cat.user = user_cat
+        visualizer.request = req_cat
+        html_cat = visualizer.render()
+
+        # Check data-slot-index values exist sequentially
+        self.assertIn('data-slot-index="0"', html_cat)
+        self.assertIn('data-slot-index="1"', html_cat)
+        self.assertIn('data-slot-index="2"', html_cat)
+
+        # 3. Flat / non-categorized mode preserves static global indexing
+        user_flat = UserModel.objects.create_user(
+            username="sparse_flat_user",
+            password="password",
+            categorized_scan_visualizer=False,
+        )
+        req_flat = factory.get("/")
+        req_flat.user = user_flat
+        visualizer.request = req_flat
+        ctx_flat = visualizer.get_context()
+        flat_facts_sec = next(
+            s for s in ctx_flat["artefact_sections"] if s.title == "Facts"
+        )
+
+        # Hardware is at static index 0 in fact_visualizers
+        # HostnameCtl, SELinux, NetworkInterfaces, DNS have static indices in fact_visualizers
+        fact_vis_titles = [v.title for v in visualizer.fact_visualizers]
+        for cmp in flat_facts_sec.components:
+            expected_static_index = fact_vis_titles.index(cmp.title)
+            self.assertEqual(cmp.order_index, expected_static_index)
 
     def test_v3_context_categorized_preference(self):
         """
@@ -271,12 +399,26 @@ class ScanVisualizerLayoutTestCase(TestCase):
         )
 
         visualizer = V2ScanVisualizer(self.host, scan_data, {})
+        # Categorized view (default): Uptime and Memory receive local sequential slot indices 0 and 1
         html = visualizer.render()
-
         self.assertIn('data-slot-index="0"', html)
-        self.assertIn('data-slot-index="2"', html)
+        self.assertIn('data-slot-index="1"', html)
         self.assertIn("stable-columns", html)
         self.assertIn("flex flex-col gap-3", html)
+
+        # Flat view: non-categorized rendering preserves static global slot indices (0 and 2 for Uptime and Memory)
+        user_flat = UserModel.objects.create_user(
+            username="v2_flat_slot_user",
+            password="password",
+            categorized_scan_visualizer=False,
+        )
+        factory = RequestFactory()
+        req_flat = factory.get("/")
+        req_flat.user = user_flat
+        visualizer.request = req_flat
+        html_flat = visualizer.render()
+        self.assertIn('data-slot-index="0"', html_flat)
+        self.assertIn('data-slot-index="2"', html_flat)
 
     def test_v3_visualizer_deterministic_slots(self):
         """
