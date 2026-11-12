@@ -111,12 +111,12 @@ class ScanVisualizerLayoutTestCase(TestCase):
         """
         Verify that artefact visualizers have their category attribute configured correctly.
         """
-        self.assertEqual(v2_visualizers.HardwareVisualizer.category, "hardware")
-        self.assertEqual(v2_visualizers.LshwVisualizer.category, "hardware")
-        self.assertEqual(v2_visualizers.HostnameCtlVisualizer.category, "os")
-        self.assertEqual(v2_visualizers.RebootPolicyVisualizer.category, "os")
-        self.assertEqual(v2_visualizers.SELinuxVisualizer.category, "os")
-        self.assertEqual(v2_visualizers.SystemdUnitsVisualizer.category, "os")
+        self.assertEqual(v2_visualizers.HardwareVisualizer.category, "general")
+        self.assertEqual(v2_visualizers.LshwVisualizer.category, "general")
+        self.assertEqual(v2_visualizers.HostnameCtlVisualizer.category, "general")
+        self.assertEqual(v2_visualizers.RebootPolicyVisualizer.category, "general")
+        self.assertEqual(v2_visualizers.SELinuxVisualizer.category, "general")
+        self.assertEqual(v2_visualizers.SystemdUnitsVisualizer.category, "software")
         self.assertEqual(v2_visualizers.NetworkInterfacesVisualizer.category, "network")
         self.assertEqual(v2_visualizers.DNSVisualizer.category, "network")
         self.assertEqual(v2_visualizers.WebserverVisualizer.category, "software")
@@ -182,7 +182,7 @@ class ScanVisualizerLayoutTestCase(TestCase):
         sections = visualizer.get_artefact_sections()
 
         section_titles = [s.title for s in sections]
-        self.assertIn("Operating System", section_titles)
+        self.assertIn("General", section_titles)
         self.assertIn("Network & Security", section_titles)
         self.assertIn("Users & Groups", section_titles)
         # Empty sections must be omitted
@@ -190,7 +190,7 @@ class ScanVisualizerLayoutTestCase(TestCase):
         self.assertNotIn("Containers", section_titles)
         self.assertNotIn("Web", section_titles)
 
-        os_section = next(s for s in sections if s.title == "Operating System")
+        os_section = next(s for s in sections if s.title == "General")
         self.assertEqual(len(os_section.components), 1)
         self.assertEqual(os_section.components[0].title, "Host metadata")
 
