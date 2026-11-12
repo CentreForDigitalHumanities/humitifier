@@ -162,6 +162,28 @@ class ColumnEvaluationTests(AdvancedSearchTestCase):
         pkgs = results[0]["fields"]["Apache"]
         self.assertEqual(pkgs, ["apache2"])
 
+    def test_evaluate_filter_function_boolean(self):
+        spec = parse_column(
+            'filter(facts.generic.PackageManagerInfo.installed_packages[].upgrade_available, true) AS "Upgradable"'
+        )
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="storage01.example.com"), [spec]
+        )
+        self.assertEqual(len(results), 1)
+        upgradable = results[0]["fields"]["Upgradable"]
+        self.assertEqual(upgradable, [True])
+
+    def test_evaluate_filter_function_integer(self):
+        spec = parse_column(
+            'filter(facts.generic.Hardware.memory[].size, 2147483648) AS "2GB Memory"'
+        )
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), [spec]
+        )
+        self.assertEqual(len(results), 1)
+        mem = results[0]["fields"]["2GB Memory"]
+        self.assertEqual(mem, [2147483648, 2147483648])
+
     def test_evaluate_count_function(self):
         spec = parse_column('count(facts.generic.Users[].name) AS "User Count"')
         results = evaluate_columns(

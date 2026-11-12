@@ -175,6 +175,17 @@ class SearchParserTestCase(SimpleTestCase):
                 array_path=("[]",),
                 element_field_path=("name",),
             ),
+            SearchableField(
+                id="facts.ports[].open",
+                label="facts.ports[].open (boolean)",
+                value_type=ValueType.BOOLEAN,
+                section=Section.FACTS,
+                kind=FieldKind.ARRAY,
+                artefact_key="ports",
+                field_path=(),
+                array_path=("[]",),
+                element_field_path=("open",),
+            ),
         ]
 
     def _parse(self, query: str):
@@ -342,6 +353,38 @@ class SearchParserTestCase(SimpleTestCase):
         self.assertEqual(filter_call.function, Filter)
         self.assertEqual(filter_call.args[0].field.id, "facts.users[].name")
         self.assertEqual(filter_call.args[1].value, "^admin")
+
+    def test_filter_integer_and_boolean(self):
+        ast_int = self._parse("count(filter(facts.hardware.memory[].size, 1024)) > 0")
+        self.assertIsInstance(ast_int, Comparison)
+        count_int = ast_int.lhs
+        filter_int = count_int.args[0]
+        self.assertEqual(filter_int.function, Filter)
+        self.assertEqual(filter_int.args[0].field.id, "facts.hardware.memory[].size")
+        self.assertEqual(filter_int.args[1].value, 1024)
+        self.assertEqual(filter_int.args[1].value_type, ValueType.INTEGER)
+
+        ast_bool = self._parse("count(filter(facts.ports[].open, true)) > 0")
+        self.assertIsInstance(ast_bool, Comparison)
+        count_bool = ast_bool.lhs
+        filter_bool = count_bool.args[0]
+        self.assertEqual(filter_bool.function, Filter)
+        self.assertEqual(filter_bool.args[0].field.id, "facts.ports[].open")
+        self.assertEqual(filter_bool.args[1].value, True)
+        self.assertEqual(filter_bool.args[1].value_type, ValueType.BOOLEAN)
+
+    def test_error_filter_type_mismatch(self):
+        with self.assertRaises(ValueError) as ctx:
+            self._parse('filter(facts.hardware.memory[].size, "1024") = 1024')
+        self.assertIn("Type mismatch: cannot filter integer array with string", str(ctx.exception))
+
+        with self.assertRaises(ValueError) as ctx:
+            self._parse('filter(facts.users[].name, 1024) = "admin"')
+        self.assertIn("Type mismatch: cannot filter string array with integer", str(ctx.exception))
+
+        with self.assertRaises(ValueError) as ctx:
+            self._parse('filter(facts.ports[].open, "true") = true')
+        self.assertIn("Type mismatch: cannot filter boolean array with string", str(ctx.exception))
 
     def test_error_type_mismatch_in_comparison(self):
         with self.assertRaises(ValueError) as ctx:

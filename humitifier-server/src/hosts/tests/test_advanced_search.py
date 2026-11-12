@@ -1106,6 +1106,34 @@ class ArrayFieldSearchTests(AdvancedSearchTestCase):
         # All hosts should have openssh-server
         self.assertEqual(result.count(), 4)
 
+    def test_filter_boolean_exact_lookup(self):
+        """Test filtering array by boolean exact lookup."""
+        query_string = "count(filter(facts.generic.PackageManagerInfo.installed_packages[].upgrade_available, true)) > 0"
+        parsed_query = parse_query(query_string)
+        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "storage01.example.com")
+
+        query_false = "count(filter(facts.generic.PackageManagerInfo.installed_packages[].upgrade_available, false)) >= 5"
+        parsed_query_false = parse_query(query_false)
+        result_false = search_hosts_by_scan_fields(Host.objects.all(), parsed_query_false)
+        self.assertEqual(result_false.count(), 2)
+
+    def test_filter_integer_exact_lookup(self):
+        """Test filtering array by integer exact lookup."""
+        query_string = "count(filter(facts.generic.Hardware.memory[].size, 2147483648)) >= 2"
+        parsed_query = parse_query(query_string)
+        result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "web01.example.com")
+
+        # Direct comparison on filtered integer array
+        query_direct = "filter(facts.generic.Hardware.memory[].size, 2147483648) = 2147483648"
+        parsed_query_direct = parse_query(query_direct)
+        result_direct = search_hosts_by_scan_fields(Host.objects.all(), parsed_query_direct)
+        self.assertEqual(result_direct.count(), 1)
+        self.assertEqual(result_direct.first().fqdn, "web01.example.com")
+
     def test_array_search_with_other_conditions(self):
         """Test combining array search with other conditions."""
         query_string = (

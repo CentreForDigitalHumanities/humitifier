@@ -75,7 +75,7 @@ class Equals(ComparisonOperator):
             return SqlFragment(f"({lhs.sql}) IS NULL", lhs.params)
         if value_type == ValueType.STRING:
             return SqlFragment(f"LOWER({lhs.sql}) = LOWER(%s)", lhs.params + (str(rhs),))
-        val = str(rhs).lower() if isinstance(rhs, bool) else rhs
+        val = str(rhs).lower() if isinstance(rhs, bool) else str(rhs)
         return SqlFragment(f"{lhs.sql} = %s", lhs.params + (val,))
 
 
@@ -100,7 +100,7 @@ class NotEquals(ComparisonOperator):
             return SqlFragment(f"({lhs.sql}) IS NOT NULL", lhs.params)
         if value_type == ValueType.STRING:
             return SqlFragment(f"LOWER({lhs.sql}) != LOWER(%s)", lhs.params + (str(rhs),))
-        val = str(rhs).lower() if isinstance(rhs, bool) else rhs
+        val = str(rhs).lower() if isinstance(rhs, bool) else str(rhs)
         return SqlFragment(f"{lhs.sql} != %s", lhs.params + (val,))
 
 
