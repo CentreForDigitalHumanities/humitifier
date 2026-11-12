@@ -20,6 +20,11 @@ from hosts.scan_visualizers.base_components import (
     TreeNode,
     TreeVisualizer,
 )
+from main.templatetags.indicator_pills import (
+    red_indicator_pill,
+    green_indicator_pill,
+    indicator_pill,
+)
 
 from hosts.templatetags.host_tags import size_from_mb, uptime
 from humitifier_common.artefacts import (
@@ -213,7 +218,7 @@ class DNSVisualizer(SearchableCardsVisualizer):
 class HostnameCtlVisualizer(ItemizedArtefactVisualizer):
     artefact = HostnameCtl
     title = "Host metadata"
-    category = "os"
+    category = "general"
     attributes = {
         "hostname": "Hostname",
         "os": "OS",
@@ -428,7 +433,7 @@ class IsWordpressVisualizer(ArtefactVisualizer):
 
 class HardwareVisualizer(ArtefactVisualizer):
     title = "Hardware (overview)"
-    category = "hardware"
+    category = "general"
     artefact = Hardware
     template = "hosts/scan_visualizer/components/hardware_component.html"
 
@@ -445,7 +450,7 @@ class HardwareVisualizer(ArtefactVisualizer):
 
 class LshwVisualizer(TreeVisualizer):
     title = "Hardware (detailed)"
-    category = "hardware"
+    category = "general"
     artefact = Lshw
     search_placeholder = "Search devices"
     # The system node and whatever is bolted onto it directly (usually the
@@ -593,11 +598,38 @@ class ZFSVisualizer(ArtefactVisualizer):
         return context
 
 
-class RebootPolicyVisualizer(ArtefactVisualizer):
+class RebootPolicyVisualizer(ItemizedArtefactVisualizer):
     title = "Reboot Policy"
-    category = "os"
+    category = "general"
     artefact = RebootPolicy
-    template = "hosts/scan_visualizer/components/reboot_policy.html"
+    # template = "hosts/scan_visualizer/components/reboot_policy.html"
+
+    def get_items(self) -> list[dict[str, str]]:
+
+        items = [
+            {
+                "label": "Configured",
+                "value": (
+                    green_indicator_pill("Configured")
+                    if self.artefact_data.configured
+                    else red_indicator_pill("Not configured")
+                ),
+            },
+            {
+                "label": "Enabled",
+                "value": (
+                    green_indicator_pill("Enabled")
+                    if self.artefact_data.enabled
+                    else red_indicator_pill("Disabled")
+                ),
+            },
+            {
+                "label": "Schedule",
+                "value": self.parse_cron(),
+            },
+        ]
+
+        return items
 
     def parse_cron(self) -> str:
         if not (
@@ -634,7 +666,7 @@ class RebootPolicyVisualizer(ArtefactVisualizer):
 class SELinuxVisualizer(ItemizedArtefactVisualizer):
     artefact = SELinux
     title = "SELinux"
-    category = "os"
+    category = "general"
     attributes = {
         "enabled": "Enabled",
         "mode": "Enforcement mode",
@@ -643,29 +675,21 @@ class SELinuxVisualizer(ItemizedArtefactVisualizer):
 
     def get_enabled_display(self, value):
         if value:
-            return self._get_button_str("Enabled", "green")
+            return green_indicator_pill("Enabled")
         else:
-            return self._get_button_str("Disabled", "red")
+            return red_indicator_pill("Disabled")
 
     def get_mode_display(self, value: str):
         if value == "enforcing":
-            return self._get_button_str("Enforcing", "green")
+            return green_indicator_pill("Enforcing")
         else:
-            return self._get_button_str(value, "orange")
-
-    def _get_button_str(self, value, color):
-        css_colors = f"border border-{color}-500/40 bg-{color}-200 dark:bg-{color}-900 text-{color}-950 dark:text-{color}-100"
-        return mark_safe(f"""
-            <div class="px-3 py-1 inline-block mr-auto rounded-sm {css_colors} font-semibold">
-                {value.capitalize()}
-            </div>
-            """)
+            return indicator_pill("orange", value)
 
 
 class SystemdUnitsVisualizer(SearchableCardsVisualizer):
     artefact = Systemd
     title = "Systemd Units"
-    category = "os"
+    category = "software"
 
     def get_items(self) -> list[Card]:
         items = []

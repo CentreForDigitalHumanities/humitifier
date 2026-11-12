@@ -108,7 +108,7 @@
 
                 </div>
 
-                <div x-show="!collapsed" class="stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-3 px-2">
+                <div x-show="!collapsed" class="stable-columns grid grid-cols-1{% if section.components|length > 1 %} xl:grid-cols-2{% endif %}{% if section.components|length > 2 %} ultrawide:grid-cols-3{% endif %} items-start gap-3 px-2">
                     {% for item in section.components %}
                         <div data-slot-index="{{ item.order_index }}" x-data="{ title: '{{ item.title }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
                             {{ item.content }}
@@ -151,7 +151,8 @@
         }
 
         function distribute(container, items) {
-            const columnCount = getColumnCount();
+            const columnCount = Math.min(items.length, getColumnCount()) || 1;
+            container.style.gridTemplateColumns = `repeat(${columnCount}, minmax(0, 1fr))`;
 
             const columns = Array.from({ length: columnCount }, () => {
                 const col = document.createElement('div');

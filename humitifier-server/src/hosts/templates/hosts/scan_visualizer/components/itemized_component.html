@@ -1,9 +1,12 @@
 {% extends 'hosts/scan_visualizer/components/base_component.html' %}
 
 {% block content %}
-    <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3">
+    <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-center gap-y-2 gap-3">
         {% for item in data %}
             {% include "hosts/scan_visualizer/components/fragments/item.html" %}
+            {% if not forloop.last %}
+                <div class="col-span-2 border-b border-gray-300 dark:border-gray-700"></div>
+            {% endif %}
         {% endfor %}
     </div>
 {% endblock %}

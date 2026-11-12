@@ -1,21 +1,26 @@
 <div class="text-gray-700 dark:text-gray-300">
 
     <div
-        class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-1 gap-3 mt-3">
+        class="grid grid-cols-1 md:grid-cols-[200px_1fr] items-top gap-y-2 gap-3">
 
         {% if host.hostname_aliases %}
             <div class="font-semibold">Host aliases</div>
             <div>{{ host.hostname_aliases|join:", " }}</div>
+
+            <div class="col-span-2 border-b border-gray-300 dark:border-gray-700"></div>
         {% endif %}
 
         <div class="font-semibold">Webserver</div>
         <div>{{ host.webserver|capfirst }}</div>
 
+        <div class="col-span-2 border-b border-gray-300 dark:border-gray-700"></div>
+
         {% if host.document_root %}
             <div class="font-semibold">Document root</div>
             <div>{{ host.document_root }}</div>
-        {% endif %}
 
+            <div class="col-span-2 border-b border-gray-300 dark:border-gray-700"></div>
+        {% endif %}
 
         {% if host.locations %}
             <div class="col-span-2 ">
@@ -23,12 +28,11 @@
             </div>
 
             {% for path, location in host.locations.items %}
-                <div class="col-span-2 py-3 px-2 bg-gray-200 dark:bg-gray-800 border border-gray-400 dark:border-gray-600 rounded-sm mb-1">
-                    <div class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-1 gap-3">
-
-                        <div class="font-bold col-span-2 mb-3">{{ path }}</div>
-
-
+                <div class="col-span-2 bg-gray-200 dark:bg-gray-800 border border-gray-400 dark:border-gray-600 rounded-sm mb-1">
+                    <div class="py-3 px-2 bg-black/5 dark:bg-white/5 font-bold border-b border-gray-400 dark:border-gray-600">
+                        {{ path }}
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-[200px_1fr] items-center gap-y-2 gap-3 py-3 px-2">
                         {% if location.document_root %}
                             <div class="font-semibold">Document root</div>
                             <div>{{ location.document_root }}</div>
@@ -89,6 +93,8 @@
                     </div>
                 </div>
             {% endfor %}
+
+            <div class="col-span-2 border-b border-gray-300 dark:border-gray-700"></div>
         {% endif %}
 
         {% if host.rewrite_rules %}
@@ -104,11 +110,9 @@
                 <div class="font-semibold pl-5">Rule</div>
                 <div class="pl-5">{{ rule.rule }}</div>
             {% endfor %}
-        {% endif %}
 
-        <div class="col-span-2 py-3 px-2">
-            <div class=" border-b border-gray-400"></div>
-        </div>
+            <div class="col-span-2 border-b border-gray-300 dark:border-gray-700"></div>
+        {% endif %}
 
         <div class="font-semibold">Config file</div>
         <div>
@@ -116,6 +120,8 @@
         </div>
 
         {% if host.includes %}
+            <div class="col-span-2 border-b border-gray-300 dark:border-gray-700"></div>
+
             <div class="font-semibold">Included files</div>
             <div class="col-span-2">
                 <ul class="list-['-'] pl-5 space-y-1">

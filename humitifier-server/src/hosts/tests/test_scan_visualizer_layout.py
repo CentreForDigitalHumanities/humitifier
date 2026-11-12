@@ -8,6 +8,8 @@ import hosts.scan_visualizers.v3.artefact_visualizers as v3_visualizers
 from hosts.scan_visualizers.v2.scan_visualizer import V2ScanVisualizer
 from hosts.scan_visualizers.v3.scan_visualizer import V3ScanVisualizer
 from humitifier_common.artefacts import (
+    Block,
+    Blocks,
     DNS,
     DNSLookup,
     Hardware,
@@ -383,3 +385,122 @@ class ScanVisualizerLayoutTestCase(TestCase):
         user.refresh_from_db()
         self.assertTrue(user.categorized_scan_visualizer)
         self.assertRedirects(response, f"/hosts/host/{self.host.fqdn}/?scan=latest")
+
+    def test_column_downsizing_template_classes_and_script(self):
+        """
+        Verify that template outputs downsized grid classes according to component count:
+        - 1 component: grid-cols-1 without xl:grid-cols-2 or ultrawide:grid-cols-3
+        - 2 components: grid-cols-1 xl:grid-cols-2 without ultrawide:grid-cols-3
+        - 3+ components: grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3
+        Also verify that the distribution script contains the dynamic column count calculation
+        and gridTemplateColumns styling.
+        """
+        uptime = 864000.0
+        memory = Memory(
+            total_mb=16384,
+            used_mb=6144,
+            free_mb=10240,
+            swap_total_mb=2048,
+            swap_used_mb=0,
+            swap_free_mb=2048,
+        )
+        blocks = [
+            Block(
+                name="sda",
+                size_mb=512000,
+                used_mb=256000,
+                available_mb=256000,
+                use_percent=50,
+                mount="/",
+            )
+        ]
+
+        # 1. Single component section (1 metric)
+        scan_data_1 = self._create_scan_data(
+            metrics={
+                Uptime.__artefact_name__: uptime,
+            }
+        )
+        viz_1 = V2ScanVisualizer(self.host, scan_data_1, {})
+        html_1 = viz_1.render()
+        self.assertIn("stable-columns grid grid-cols-1 items-start gap-3 px-2", html_1)
+        self.assertNotIn("grid-cols-1 xl:grid-cols-2", html_1)
+        self.assertNotIn("ultrawide:grid-cols-3", html_1)
+
+        # 2. Dual component section (2 metrics)
+        scan_data_2 = self._create_scan_data(
+            metrics={
+                Uptime.__artefact_name__: uptime,
+                Memory.__artefact_name__: memory.model_dump(mode="json"),
+            }
+        )
+        viz_2 = V2ScanVisualizer(self.host, scan_data_2, {})
+        html_2 = viz_2.render()
+        self.assertIn(
+            "stable-columns grid grid-cols-1 xl:grid-cols-2 items-start gap-3 px-2",
+            html_2,
+        )
+        self.assertNotIn("ultrawide:grid-cols-3", html_2)
+
+        # 3. Multi component section (3 metrics)
+        scan_data_3 = self._create_scan_data(
+            metrics={
+                Uptime.__artefact_name__: uptime,
+                Blocks.__artefact_name__: [b.model_dump(mode="json") for b in blocks],
+                Memory.__artefact_name__: memory.model_dump(mode="json"),
+            }
+        )
+        viz_3 = V2ScanVisualizer(self.host, scan_data_3, {})
+        html_3 = viz_3.render()
+        self.assertIn(
+            "stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-3 px-2",
+            html_3,
+        )
+
+        # 4. Distribution script verification
+        self.assertIn("Math.min(items.length, getColumnCount()) || 1", html_3)
+        self.assertIn("container.style.gridTemplateColumns =", html_3)
+        self.assertIn("slotIndex % columnCount", html_3)
+
+    def test_v3_categorized_column_downsizing(self):
+        """
+        Verify column downsizing in V3 categorized mode across multiple category sections.
+        """
+        uptime = V3Uptime(
+            uptime=864000.0,
+            since=datetime(2026, 11, 1, 0, 0, 0),
+        )
+        user = User(
+            name="bob",
+            uid=1001,
+            gid=1001,
+            info="Bob",
+            home="/home/bob",
+            shell="/bin/bash",
+        )
+        scan_data = self._create_scan_data(
+            metrics={
+                V3Uptime.__artefact_name__: uptime.model_dump(mode="json"),
+            },
+            facts={
+                Users.__artefact_name__: [user.model_dump(mode="json")],
+            },
+            version=3,
+        )
+        user_cat = UserModel.objects.create_user(
+            username="v3_downsize_user",
+            password="password",
+            categorized_scan_visualizer=True,
+        )
+        factory = RequestFactory()
+        req = factory.get("/")
+        req.user = user_cat
+
+        viz = V3ScanVisualizer(self.host, scan_data, {})
+        viz.request = req
+        html = viz.render()
+
+        # Both General (Uptime) and Users & Groups (Users) sections have 1 component each
+        self.assertIn("stable-columns grid grid-cols-1 items-start gap-3 px-2", html)
+        self.assertNotIn("xl:grid-cols-2", html)
+        self.assertNotIn("ultrawide:grid-cols-3", html)
