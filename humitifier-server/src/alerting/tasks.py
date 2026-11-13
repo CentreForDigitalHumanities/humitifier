@@ -20,7 +20,7 @@ def generate_alerts(scan_output: ScanOutput) -> ScanOutput | None:
     """Main task for generating alerts for a given ScanOutput."""
 
     # We only support latest version of scan output
-    if scan_output.version != registry.lastest_version:
+    if scan_output.version != registry.latest_version:
         return scan_output
 
     try:
