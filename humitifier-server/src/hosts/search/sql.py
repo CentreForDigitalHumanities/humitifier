@@ -67,43 +67,50 @@ class ElementSource:
                 element_expr="a",
             )
 
-        initial_params: list[Any] = [section, artefact_key]
-        base_expression = f'"{table_name}"."{SCAN_CACHE_FIELD}"->%s->%s'
-        current_expression = base_expression
-        from_clauses: list[str] = []
+        current_frag = SqlFragment(
+            f'"{table_name}"."{SCAN_CACHE_FIELD}"->%s->%s',
+            (section, artefact_key),
+        )
+        from_clauses: list[SqlFragment] = []
         nesting_level = 0
-        first_array_expression = None
-        params_before_first_array: list[Any] = []
+        first_array_frag: SqlFragment | None = None
 
         for path_token in array_path:
             if path_token == ARRAY_MARKER:
                 element_alias = f"e{nesting_level}"
-                if first_array_expression is None:
-                    first_array_expression = current_expression
-                    params_before_first_array = list(initial_params)
-                from_clauses.append(
-                    f"jsonb_array_elements({current_expression}) AS {element_alias}"
+                if first_array_frag is None:
+                    first_array_frag = current_frag
+                clause_sql = (
+                    f"jsonb_array_elements(CASE WHEN jsonb_typeof({current_frag.sql}) = 'array' "
+                    f"THEN {current_frag.sql} ELSE '[]'::jsonb END) AS {element_alias}"
                 )
-                current_expression = element_alias
+                from_clauses.append(
+                    SqlFragment(clause_sql, current_frag.params + current_frag.params)
+                )
+                current_frag = SqlFragment(element_alias, ())
                 nesting_level += 1
             else:
-                current_expression = f"{current_expression}->%s"
-                initial_params.append(path_token)
+                current_frag = SqlFragment(
+                    f"{current_frag.sql}->%s",
+                    current_frag.params + (path_token,),
+                )
 
         if not from_clauses:
             element_alias = f"e{nesting_level}"
-            first_array_expression = current_expression
-            params_before_first_array = list(initial_params)
-            from_clauses.append(
-                f"jsonb_array_elements({current_expression}) AS {element_alias}"
+            first_array_frag = current_frag
+            clause_sql = (
+                f"jsonb_array_elements(CASE WHEN jsonb_typeof({current_frag.sql}) = 'array' "
+                f"THEN {current_frag.sql} ELSE '[]'::jsonb END) AS {element_alias}"
             )
-            current_expression = element_alias
+            from_clauses.append(
+                SqlFragment(clause_sql, current_frag.params + current_frag.params)
+            )
+            current_frag = SqlFragment(element_alias, ())
 
-        from_sql = " CROSS JOIN LATERAL ".join(from_clauses)
-        from_fragment = SqlFragment(from_sql, tuple(initial_params))
+        from_fragment = SqlFragment.join(" CROSS JOIN LATERAL ", from_clauses)
 
-        type_check_sql = f"jsonb_typeof({first_array_expression}) = 'array'"
-        type_check_fragment = SqlFragment(type_check_sql, tuple(params_before_first_array))
+        type_check_sql = f"jsonb_typeof({first_array_frag.sql}) = 'array'"
+        type_check_fragment = SqlFragment(type_check_sql, first_array_frag.params)
 
         return cls(
             section=section,
@@ -111,7 +118,7 @@ class ElementSource:
             array_path=array_path,
             from_clause=from_fragment,
             type_check=type_check_fragment,
-            element_expr=current_expression,
+            element_expr=current_frag.sql,
         )
 
 

@@ -1536,6 +1536,89 @@ class NegatedSearchTests(AdvancedSearchTestCase):
         fqdns = {h.fqdn for h in result3}
         self.assertNotIn("unmanaged01.example.com", fqdns)
 
+    def test_search_nested_array_with_null_and_non_array_values(self):
+        """Test nested array expansions when intermediate or leaf arrays contain null or non-array values."""
+        docker_host_null_mounts = Host.objects.create(
+            fqdn="docker-null-mounts.example.com",
+            department="Engineering",
+            customer="internal",
+            contact="devops@example.com",
+            archived=False,
+            billable=True,
+        )
+        self._create_scan(
+            docker_host_null_mounts,
+            {
+                "version": artefact_registry.latest_version,
+                "scan_date": self.now.isoformat(),
+                "hostname": "docker-null-mounts.example.com",
+                "original_input": {"hostname": "docker-null-mounts.example.com", "artefacts": {}},
+                "facts": {
+                    "server.Docker": {
+                        "containers": [
+                            {
+                                "container_id": "c1",
+                                "mounts": None,
+                            },
+                            {
+                                "container_id": "c2",
+                            },
+                        ],
+                    },
+                },
+            },
+        )
+
+        docker_host_with_mounts = Host.objects.create(
+            fqdn="docker-with-mounts.example.com",
+            department="Engineering",
+            customer="internal",
+            contact="devops@example.com",
+            archived=False,
+            billable=True,
+        )
+        self._create_scan(
+            docker_host_with_mounts,
+            {
+                "version": artefact_registry.latest_version,
+                "scan_date": self.now.isoformat(),
+                "hostname": "docker-with-mounts.example.com",
+                "original_input": {"hostname": "docker-with-mounts.example.com", "artefacts": {}},
+                "facts": {
+                    "server.Docker": {
+                        "containers": [
+                            {
+                                "container_id": "c3",
+                                "mounts": None,
+                            },
+                            {
+                                "container_id": "c4",
+                                "mounts": ["/var/lib/docker", "/mnt/data"],
+                            },
+                        ],
+                    },
+                },
+            },
+        )
+
+        # Querying facts.server.Docker.containers.mounts[] should not fail and should find docker-with-mounts
+        query = parse_query('facts.server.Docker.containers.mounts[] = "/mnt/data"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "docker-with-mounts.example.com")
+
+        # Regex search on nested array
+        query_contains = parse_query('facts.server.Docker.containers.mounts[] contains "lib"')
+        result_contains = search_hosts_by_scan_fields(Host.objects.all(), query_contains)
+        self.assertEqual(result_contains.count(), 1)
+        self.assertEqual(result_contains.first().fqdn, "docker-with-mounts.example.com")
+
+        # Aggregate count on nested array
+        query_count = parse_query("count(facts.server.Docker.containers.mounts[]) > 0")
+        result_count = search_hosts_by_scan_fields(Host.objects.all(), query_count)
+        self.assertEqual(result_count.count(), 1)
+        self.assertEqual(result_count.first().fqdn, "docker-with-mounts.example.com")
+
 
 class RegexSearchTests(AdvancedSearchTestCase):
     """Test suite covering regex string searches across meta, JSONB scalar, and JSONB array fields."""
