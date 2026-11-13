@@ -72,7 +72,9 @@ def resolve_hostname_with_dns(ip: str) -> str | None:
 _resolve_hostname_with_dns = resolve_hostname_with_dns
 
 
-def parse_human_readable_filesize(size_str: str) -> int | None:
+def parse_human_readable_filesize(
+    size_str: str, *, decimal: bool = False
+) -> int | None:
     """Parse a human readable filesize string into a bytes value."""
     # We need a string of at least 2 characters ('0B' being the shortest valid value)
     if not size_str or len(size_str) <= 1:
@@ -98,14 +100,14 @@ def parse_human_readable_filesize(size_str: str) -> int | None:
     unit = unit.upper()
     multipliers = {
         "B": 1,
-        "K": 1024,
-        "KB": 1024,
-        "M": 1024**2,
-        "MB": 1024**2,
-        "G": 1024**3,
-        "GB": 1024**3,
-        "T": 1024**4,
-        "TB": 1024**4,
+        "K": 1000 if decimal else 1024,
+        "KB": 1000 if decimal else 1024,
+        "M": 1000**2 if decimal else 1024**2,
+        "MB": 1000**2 if decimal else 1024**2,
+        "G": 1000**3 if decimal else 1024**3,
+        "GB": 1000**3 if decimal else 1024**3,
+        "T": 1000**4 if decimal else 1024**4,
+        "TB": 1000**4 if decimal else 1024**4,
     }
 
     if unit not in multipliers:

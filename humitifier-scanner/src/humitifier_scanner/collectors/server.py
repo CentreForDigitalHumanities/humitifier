@@ -551,7 +551,9 @@ class DockerFactCollector(ShellCollector):
             container.running_for = container_info.get("RunningFor")
             container.size_str = container_info.get("Size")
             if container.size_str is not None:
-                container.size_bytes = parse_human_readable_filesize(container.size_str)
+                container.size_bytes = parse_human_readable_filesize(
+                    container.size_str, decimal=True
+                )
             container.state = container_info.get("State")
             container.status = container_info.get("Status")
 
@@ -635,7 +637,9 @@ class DockerFactCollector(ShellCollector):
 
             image.size_str = image_info.get("Size")
             if image.size_str:
-                image.size_bytes = parse_human_readable_filesize(image.size_str)
+                image.size_bytes = parse_human_readable_filesize(
+                    image.size_str, decimal=True
+                )
 
             try:
                 image.used_by_n_containers = int(image_info.get("Containers"))
