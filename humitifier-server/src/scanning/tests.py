@@ -1,8 +1,12 @@
+from unittest import mock
+
 from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.test import TestCase
 from django.urls import reverse
 from humitifier_common.artefacts import registry
 
+from hosts.models import DataSource, Host, ScanScheduling
 from scanning.forms import ScanSpecForm
 from scanning.models import ScanSpec, ArtefactSpec
 
@@ -282,3 +286,87 @@ class ScanSpecViewsTestCase(TestCase):
             content,
             r'<input[^>]*value="server"[^>]*checked',
         )
+
+
+class StartHostScanViewTestCase(TestCase):
+
+    def setUp(self):
+        self.superuser = User.objects.create_superuser(
+            username="admin", password="password", email="admin@example.com"
+        )
+        self.regular_user = User.objects.create_user(
+            username="user", password="password", email="user@example.com"
+        )
+        self.data_source = DataSource.objects.create(
+            name="Test DataSource",
+            scan_scheduling=ScanScheduling.SCHEDULED,
+        )
+        self.host_schedulable = Host.objects.create(
+            fqdn="schedulable.example.com",
+            data_source=self.data_source,
+        )
+        self.host_non_schedulable = Host.objects.create(
+            fqdn="non-schedulable.example.com",
+        )
+
+    def test_anonymous_user_redirected(self):
+        url = reverse("scanning:start_scan_host", args=[self.host_schedulable.fqdn])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.url)
+
+    @mock.patch("scanning.views.start_full_scan")
+    def test_regular_user_forbidden(self, mock_start_scan):
+        self.client.force_login(self.regular_user)
+        url = reverse("scanning:start_scan_host", args=[self.host_schedulable.fqdn])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.url)
+        response_post = self.client.post(url)
+        self.assertEqual(response_post.status_code, 302)
+        self.assertIn("/login", response_post.url)
+        mock_start_scan.assert_not_called()
+
+    @mock.patch("scanning.views.start_full_scan")
+    def test_get_is_non_mutating(self, mock_start_scan):
+        self.client.force_login(self.superuser)
+        url = (
+            reverse("scanning:start_scan_host", args=[self.host_schedulable.fqdn])
+            + "?scan=latest"
+        )
+        response = self.client.get(url)
+        mock_start_scan.assert_not_called()
+        self.assertRedirects(
+            response, f"/hosts/host/{self.host_schedulable.fqdn}/?scan=latest"
+        )
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 0)
+
+    @mock.patch("scanning.views.start_full_scan")
+    def test_post_queues_scan_for_schedulable_host(self, mock_start_scan):
+        self.client.force_login(self.superuser)
+        url = (
+            reverse("scanning:start_scan_host", args=[self.host_schedulable.fqdn])
+            + "?scan=latest"
+        )
+        response = self.client.post(url)
+        mock_start_scan.assert_called_once_with(self.host_schedulable)
+        self.assertRedirects(
+            response, f"/hosts/host/{self.host_schedulable.fqdn}/?scan=latest"
+        )
+        messages = [str(m) for m in get_messages(response.wsgi_request)]
+        self.assertIn("Scan scheduled. It may take a few minutes to complete.", messages)
+
+    @mock.patch("scanning.views.start_full_scan")
+    def test_post_fails_for_non_schedulable_host(self, mock_start_scan):
+        self.client.force_login(self.superuser)
+        url = reverse(
+            "scanning:start_scan_host", args=[self.host_non_schedulable.fqdn]
+        )
+        response = self.client.post(url)
+        mock_start_scan.assert_not_called()
+        self.assertRedirects(
+            response, f"/hosts/host/{self.host_non_schedulable.fqdn}/"
+        )
+        messages = [str(m) for m in get_messages(response.wsgi_request)]
+        self.assertIn("Scans cannot be scheduled for this host.", messages)

@@ -10,9 +10,12 @@
             This host has not been scanned yet, or the scan has not been completed yet/failed.
         </p>
         {% if host.can_schedule_scan %}
-            <a href="{% url 'scanning:start_scan_host' host.fqdn %}" class="btn btn-primary">
-            Queue scan
-            </a>
+            <form method="post" action="{% url 'scanning:start_scan_host' host.fqdn %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                    Queue scan
+                </button>
+            </form>
         {% endif %}
         {% if layout.wild_wasteland %}
             <p>
