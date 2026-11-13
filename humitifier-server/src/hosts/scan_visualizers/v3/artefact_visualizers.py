@@ -510,6 +510,7 @@ class DockerImageVisualizer(SearchableCardsWithHeaderVisualizer):
                         "Image ID": image.image_id,
                         "Digest": image.digest or "",
                         "Repository": image.repository or "",
+                        "Size": image.size_str or "",
                         "Tag": image.tag or "",
                         "Created": created_at,
                         "Containers using image": str(image.used_by_n_containers),
