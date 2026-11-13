@@ -214,6 +214,11 @@ class DockerComposeProject(BaseModel):
     status_str: str | None = None
     status: str | None = None
     running_containers: int | None = None
+    exited_containers: int | None = None
+    paused_containers: int | None = None
+    restarting_containers: int | None = None
+    created_containers: int | None = None
+    dead_containers: int | None = None
     config_files: list[str] | None = Field(default_factory=list)
 
 

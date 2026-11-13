@@ -494,31 +494,37 @@ class DockerFactCollector(ShellCollector):
 
         for project in data:
             try:
-                status, running = None, None
-
                 status_str = project.get("Status", None)
-                if status_str and "(" in status_str:
-                    try:
-                        status, running = status_str.split("(", maxsplit=1)
-                        running = running.rstrip(")")
-                        running = int(running)
-                    except ValueError:
-                        pass
+                counts: dict[str, int] = {}
+                if isinstance(status_str, str):
+                    matches = re.findall(
+                        r"([a-zA-Z_-]+)\s*\(\s*(\d+)\s*\)", status_str
+                    )
+                    counts = {k.lower(): int(v) for k, v in matches}
 
                 config_files = project.get("ConfigFiles", None)
-                if config_files:
-                    config_files = config_files.split(",")
+                if isinstance(config_files, str):
+                    config_files = [
+                        f.strip() for f in config_files.split(",") if f.strip()
+                    ]
+                elif not isinstance(config_files, list):
+                    config_files = []
 
                 output.append(
                     DockerComposeProject(
                         name=project.get("Name", "Unknown project"),
                         status_str=status_str,
-                        status=status,
-                        running_containers=running,
+                        status=status_str,
+                        running_containers=counts.get("running"),
+                        exited_containers=counts.get("exited"),
+                        paused_containers=counts.get("paused"),
+                        restarting_containers=counts.get("restarting"),
+                        created_containers=counts.get("created"),
+                        dead_containers=counts.get("dead"),
                         config_files=config_files,
                     )
                 )
-            except ValueError:
+            except Exception:
                 self.add_error("Failed to parse docker compose ls output item")
 
         return output

@@ -414,15 +414,49 @@ class DockerComposeVisualizer(SearchableCardsVisualizer):
         output = []
 
         for project in artefact_data.compose_projects:
+            content_items = {
+                "Status": project.status_str or project.status or "",
+                "Running containers": str(
+                    project.running_containers
+                    if project.running_containers is not None
+                    else 0
+                ),
+            }
+
+            if project.exited_containers:
+                content_items["Exited containers"] = str(project.exited_containers)
+            if project.paused_containers:
+                content_items["Paused containers"] = str(project.paused_containers)
+            if project.restarting_containers:
+                content_items["Restarting containers"] = str(
+                    project.restarting_containers
+                )
+            if project.created_containers:
+                content_items["Created containers"] = str(project.created_containers)
+            if project.dead_containers:
+                content_items["Dead containers"] = str(project.dead_containers)
+
+            content_items["Config files"] = ", ".join(project.config_files or [])
+
+            search_parts = [
+                project.name,
+                project.status_str or "",
+                project.status or "",
+                str(project.running_containers or ""),
+                str(project.exited_containers or ""),
+                str(project.paused_containers or ""),
+                str(project.restarting_containers or ""),
+                str(project.created_containers or ""),
+                str(project.dead_containers or ""),
+                " ".join(project.config_files or []),
+            ]
+            search_value = " ".join(part for part in search_parts if part).strip()
+
             output.append(
                 Card(
                     title=project.name,
-                    search_value=project.name,
-                    content_items={
-                        "Status": project.status or project.status_str or "",
-                        "Running containers": str(project.running_containers) or "",
-                        "Config files": ", ".join(project.config_files or []),
-                    },
+                    search_value=search_value,
+                    content_items=content_items,
                 )
             )
 
