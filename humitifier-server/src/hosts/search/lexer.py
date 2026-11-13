@@ -5,7 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from .constants import ALIAS_KEYWORD, GROUP_CLOSE, GROUP_OPEN, LogicalOperator, TokenType
+from .constants import (
+    ALIAS_KEYWORD,
+    GROUP_CLOSE,
+    GROUP_OPEN,
+    LogicalOperator,
+    TokenType,
+)
 
 
 @dataclass(frozen=True)
@@ -46,6 +52,8 @@ def tokenize(query: str) -> list[Token]:
                 c = query[i]
                 if c == "\\":
                     if i + 1 < n:
+                        if query[i + 1] not in (quote, "\\"):
+                            chars.append("\\")
                         chars.append(query[i + 1])
                         i += 2
                     else:
