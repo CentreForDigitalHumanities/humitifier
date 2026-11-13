@@ -54,7 +54,9 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
             )
 
             if field_name == "acknowledged":
-                is_acknowledged = rhs.value if not getattr(op, "negated", False) else (not rhs.value)
+                is_acknowledged = (
+                    rhs.value if not getattr(op, "negated", False) else (not rhs.value)
+                )
                 if is_acknowledged:
                     subq = Alert.objects.filter(ack_exists, host=OuterRef("pk"))
                 else:
@@ -89,8 +91,8 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
             field_path_str = "__".join(field.field_path)
             lookup_path = f"last_scan_cache__{field.section}__{field.artefact_key}__{field_path_str}"
             if rhs.value_type == ValueType.NULL:
-                is_null = not getattr(op, "negated", False)
-                return Q(**{f"{lookup_path}__isnull": is_null})
+                q = Q(**{f"{lookup_path}__isnull": True}) | Q(**{lookup_path: None})
+                return ~q if getattr(op, "negated", False) else q
             lookup = op.to_lookup(field.value_type)
             lookup_suffix = f"__{lookup}" if lookup != "exact" else ""
             q = Q(**{f"{lookup_path}{lookup_suffix}": rhs.value})
@@ -102,20 +104,34 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
             cond = op.to_sql(
                 elem_set.value,
                 rhs.value,
-                rhs.value_type if rhs.value_type == ValueType.NULL else field.value_type,
+                (
+                    rhs.value_type
+                    if rhs.value_type == ValueType.NULL
+                    else field.value_type
+                ),
             )
             exists_frag = elem_set.to_exists(extra_condition=cond)
-            return Q(RawSQL(exists_frag.sql, exists_frag.params, output_field=BooleanField()))
+            return Q(
+                RawSQL(exists_frag.sql, exists_frag.params, output_field=BooleanField())
+            )
 
     if isinstance(lhs, FunctionCall):
         compiled = lhs.function.compile(lhs.args, ctx)
-        val_type = rhs.value_type if rhs.value_type == ValueType.NULL else (
-            compiled.value_type if hasattr(compiled, "value_type") else lhs.expr_type.value_type
+        val_type = (
+            rhs.value_type
+            if rhs.value_type == ValueType.NULL
+            else (
+                compiled.value_type
+                if hasattr(compiled, "value_type")
+                else lhs.expr_type.value_type
+            )
         )
         if isinstance(compiled, ElementSet):
             cond = op.to_sql(compiled.value, rhs.value, val_type)
             exists_frag = compiled.to_exists(extra_condition=cond)
-            return Q(RawSQL(exists_frag.sql, exists_frag.params, output_field=BooleanField()))
+            return Q(
+                RawSQL(exists_frag.sql, exists_frag.params, output_field=BooleanField())
+            )
         elif isinstance(compiled, ScalarSql):
             cond = op.to_sql(compiled.fragment, rhs.value, val_type)
             return Q(RawSQL(cond.sql, cond.params, output_field=BooleanField()))
@@ -158,11 +174,19 @@ def compile_node(node: BoolNode, ctx: CompileContext) -> Q:
         compiled = node.function.compile(node.args, ctx)
         if isinstance(compiled, ElementSet):
             exists_frag = compiled.to_exists()
-            return Q(RawSQL(exists_frag.sql, exists_frag.params, output_field=BooleanField()))
+            return Q(
+                RawSQL(exists_frag.sql, exists_frag.params, output_field=BooleanField())
+            )
         elif isinstance(compiled, SqlFragment):
             return Q(RawSQL(compiled.sql, compiled.params, output_field=BooleanField()))
         elif isinstance(compiled, ScalarSql):
-            return Q(RawSQL(compiled.fragment.sql, compiled.fragment.params, output_field=BooleanField()))
+            return Q(
+                RawSQL(
+                    compiled.fragment.sql,
+                    compiled.fragment.params,
+                    output_field=BooleanField(),
+                )
+            )
 
     raise ValueError(f"Unsupported AST node: {type(node)}")
 
