@@ -346,16 +346,16 @@ class IPTableRules(BaseModel):
     @classmethod
     def map_protocol(cls, v):
         try:
-            v = int(v)
+            v_int = int(v)
         except ValueError:
             return v
 
         protocol_map = {0: "all", 1: "icmp", 6: "tcp", 17: "udp"}
 
-        if v not in protocol_map:
+        if v_int not in protocol_map:
             return v
 
-        return protocol_map[v]
+        return protocol_map[v_int]
 
 
 class IPTablesChain(BaseModel):
