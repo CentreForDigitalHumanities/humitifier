@@ -18,10 +18,10 @@
                     data: [{{ num_fine }}, {{ num_info }}, {{ num_warning }}, {{ num_critical }}],
                     backgroundColor: ["#44ef44", "#93c5fd", "#f97316", "#ef4444"],
                     links: [
-                        '?{% param_replace severity="" %}#alerts',
-                        '?{% param_replace severity="info" %}#alerts',
-                        '?{% param_replace severity="warning" %}#alerts',
-                        '?{% param_replace severity="critical" %}#alerts'
+                        '?{% param_replace severity="" page="" %}#alerts',
+                        '?{% param_replace severity="info" page="" %}#alerts',
+                        '?{% param_replace severity="warning" page="" %}#alerts',
+                        '?{% param_replace severity="critical" page="" %}#alerts'
                     ]
                 }]
             );
@@ -32,7 +32,7 @@
                     label: 'Alert type',
                     data: [{% for item in alert_message_counts %}{{ item.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for item in alert_message_counts %}'?{% param_replace type=item.short_message %}#alerts',{% endfor %}]
+                    links: [{% for item in alert_message_counts %}'?{% param_replace type=item.short_message page="" %}#alerts',{% endfor %}]
                 }]
             );
 

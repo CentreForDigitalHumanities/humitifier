@@ -84,8 +84,9 @@ class DashboardStatsFilterTest(TestCase):
         content = response.content.decode("utf-8")
 
         # Dashboard alert links keep dashboard filter names (severity, type, customer)
+        # while clearing pagination
         self.assertIn(
-            "severity=warning&type=Disk+full&page=2&customer=Acme#alerts", content
+            "severity=warning&type=Disk+full&customer=Acme#alerts", content
         )
 
         # Host list links preserve only stats filters (customer=Acme) plus the stat dimension,
