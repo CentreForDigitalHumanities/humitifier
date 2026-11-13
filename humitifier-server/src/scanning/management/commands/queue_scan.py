@@ -50,6 +50,8 @@ class Command(BaseCommand):
                         "Invalid value for delay, please use a positive integer"
                     )
 
-            task = start_full_scan(host, force=options["force"], delay_seconds=delay)
+            start_full_scan(host, force=options["force"], delay_seconds=delay)
 
-            print("Queued task: {}".format(task))
+            print("Queued scan for '{}'".format(host.fqdn))
+
+        print("Queued scans for {} hosts".format(hosts.count()))
