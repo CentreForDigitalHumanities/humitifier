@@ -81,20 +81,19 @@ def parse_human_readable_filesize(
         return None
 
     # split the value into size and unit by taking the last two characters as the unit
-    unit = size_str[-2:]
-    size = size_str[:-2]
-
-    # A unit might also be a single character, see if the first character of our 'unit'
-    # is a digit or space. If so, change our unit to only the last character
-    if unit[0] in "0123456789 ":
-        unit = unit[1:]
-        size = size_str[:-1]
+    size_str = size_str.strip()
+    unit_start = len(size_str)
+    while unit_start > 0 and size_str[unit_start - 1].isalpha():
+        unit_start -= 1
+    unit = size_str[unit_start:]
+    size = size_str[:unit_start]
 
     try:
         # Strip out any whitespace ('40 Gb' for example)
         size = size.strip()
         size = float(size)
-    except ValueError:
+    except ValueError as e:
+        print(e)
         return None
 
     unit = unit.upper()
