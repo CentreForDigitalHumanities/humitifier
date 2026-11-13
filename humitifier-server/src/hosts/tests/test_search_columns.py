@@ -269,6 +269,19 @@ class DerivedMatchColumnsTests(AdvancedSearchTestCase):
         matches = results[0]["fields"][derived[0].label]
         self.assertEqual(matches, ["openssh-server"])
 
+    def test_derive_from_integer_array_ordering_comparison(self):
+        query = parse_query("facts.generic.Hardware.memory[].size >= 2147483648")
+        derived = derive_match_columns(query)
+        self.assertEqual(len(derived), 1)
+        self.assertTrue(derived[0].derived)
+
+        results = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), derived
+        )
+        self.assertEqual(len(results), 1)
+        matches = results[0]["fields"][derived[0].label]
+        self.assertEqual(matches, [2147483648, 2147483648])
+
     def test_derive_from_regex_array_comparison_and_match(self):
         """Test match column derivation and evaluation with regular expression patterns."""
         # Regex array comparison

@@ -74,7 +74,9 @@ class Equals(ComparisonOperator):
         if rhs is None or value_type == ValueType.NULL:
             return SqlFragment(f"({lhs.sql}) IS NULL", lhs.params)
         if value_type == ValueType.STRING:
-            return SqlFragment(f"LOWER({lhs.sql}) = LOWER(%s)", lhs.params + (str(rhs),))
+            return SqlFragment(
+                f"LOWER({lhs.sql}) = LOWER(%s)", lhs.params + (str(rhs),)
+            )
         val = str(rhs).lower() if isinstance(rhs, bool) else str(rhs)
         return SqlFragment(f"{lhs.sql} = %s", lhs.params + (val,))
 
@@ -99,7 +101,9 @@ class NotEquals(ComparisonOperator):
         if rhs is None or value_type == ValueType.NULL:
             return SqlFragment(f"({lhs.sql}) IS NOT NULL", lhs.params)
         if value_type == ValueType.STRING:
-            return SqlFragment(f"LOWER({lhs.sql}) != LOWER(%s)", lhs.params + (str(rhs),))
+            return SqlFragment(
+                f"LOWER({lhs.sql}) != LOWER(%s)", lhs.params + (str(rhs),)
+            )
         val = str(rhs).lower() if isinstance(rhs, bool) else str(rhs)
         return SqlFragment(f"{lhs.sql} != %s", lhs.params + (val,))
 
@@ -115,6 +119,8 @@ class GreaterThan(ComparisonOperator):
 
     @classmethod
     def to_sql(cls, lhs: SqlFragment, rhs: Any, value_type: ValueType) -> SqlFragment:
+        if value_type == ValueType.INTEGER:
+            return SqlFragment(f"({lhs.sql})::numeric > %s", lhs.params + (rhs,))
         return SqlFragment(f"{lhs.sql} > %s", lhs.params + (rhs,))
 
 
@@ -129,6 +135,8 @@ class GreaterOrEqual(ComparisonOperator):
 
     @classmethod
     def to_sql(cls, lhs: SqlFragment, rhs: Any, value_type: ValueType) -> SqlFragment:
+        if value_type == ValueType.INTEGER:
+            return SqlFragment(f"({lhs.sql})::numeric >= %s", lhs.params + (rhs,))
         return SqlFragment(f"{lhs.sql} >= %s", lhs.params + (rhs,))
 
 
@@ -143,6 +151,8 @@ class LessThan(ComparisonOperator):
 
     @classmethod
     def to_sql(cls, lhs: SqlFragment, rhs: Any, value_type: ValueType) -> SqlFragment:
+        if value_type == ValueType.INTEGER:
+            return SqlFragment(f"({lhs.sql})::numeric < %s", lhs.params + (rhs,))
         return SqlFragment(f"{lhs.sql} < %s", lhs.params + (rhs,))
 
 
@@ -157,6 +167,8 @@ class LessOrEqual(ComparisonOperator):
 
     @classmethod
     def to_sql(cls, lhs: SqlFragment, rhs: Any, value_type: ValueType) -> SqlFragment:
+        if value_type == ValueType.INTEGER:
+            return SqlFragment(f"({lhs.sql})::numeric <= %s", lhs.params + (rhs,))
         return SqlFragment(f"{lhs.sql} <= %s", lhs.params + (rhs,))
 
 

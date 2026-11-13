@@ -734,14 +734,14 @@ class SimpleSearchTests(AdvancedSearchTestCase):
 
     def test_search_by_meta_archived(self):
         """Test searching by archived status."""
-        query = parse_query('meta.archived = true')
+        query = parse_query("meta.archived = true")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "legacy01.example.com")
 
     def test_search_by_meta_billable(self):
         """Test searching by billable status."""
-        query = parse_query('meta.billable = false')
+        query = parse_query("meta.billable = false")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "legacy01.example.com")
@@ -754,14 +754,14 @@ class SimpleSearchTests(AdvancedSearchTestCase):
 
     def test_search_by_cpu_count_exact(self):
         """Test searching by CPU count with exact match."""
-        query = parse_query('facts.generic.Hardware.num_cpus = 8')
+        query = parse_query("facts.generic.Hardware.num_cpus = 8")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "web01.example.com")
 
     def test_search_by_cpu_count_gte(self):
         """Test searching by CPU count with greater than or equal."""
-        query = parse_query('facts.generic.Hardware.num_cpus >= 12')
+        query = parse_query("facts.generic.Hardware.num_cpus >= 12")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 2)
         fqdns = {host.fqdn for host in result}
@@ -770,14 +770,14 @@ class SimpleSearchTests(AdvancedSearchTestCase):
 
     def test_search_by_cpu_count_lt(self):
         """Test searching by CPU count with less than."""
-        query = parse_query('facts.generic.Hardware.num_cpus < 8')
+        query = parse_query("facts.generic.Hardware.num_cpus < 8")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "legacy01.example.com")
 
     def test_search_by_memory_total(self):
         """Test searching by total memory."""
-        query = parse_query('facts.generic.Hardware.total_memory_gb >= 32')
+        query = parse_query("facts.generic.Hardware.total_memory_gb >= 32")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 2)
         fqdns = {host.fqdn for host in result}
@@ -793,14 +793,14 @@ class SimpleSearchTests(AdvancedSearchTestCase):
 
     def test_search_by_selinux_enabled(self):
         """Test searching by SELinux enabled status."""
-        query = parse_query('facts.generic.SELinux.enabled = true')
+        query = parse_query("facts.generic.SELinux.enabled = true")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "legacy01.example.com")
 
     def test_search_by_puppet_enabled(self):
         """Test searching by Puppet enabled status."""
-        query = parse_query('facts.server.PuppetAgent.enabled = true')
+        query = parse_query("facts.server.PuppetAgent.enabled = true")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 3)
 
@@ -812,14 +812,14 @@ class SimpleSearchTests(AdvancedSearchTestCase):
 
     def test_search_by_memory_metric_used(self):
         """Test searching by used memory metric."""
-        query = parse_query('metrics.generic.Memory.used_mb >= 20000')
+        query = parse_query("metrics.generic.Memory.used_mb >= 20000")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "db01.example.com")
 
     def test_search_no_results(self):
         """Test search that should return no results."""
-        query = parse_query('facts.generic.Hardware.num_cpus = 999')
+        query = parse_query("facts.generic.Hardware.num_cpus = 999")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 0)
 
@@ -846,9 +846,7 @@ class ComplexSearchTests(AdvancedSearchTestCase):
     def test_and_query_case_insensitive(self):
         """Test AND operator works case-insensitively (AND, and, And) and produces uppercase AST."""
         for op in ["and", "And", "AND"]:
-            query_string = (
-                f'meta.department = "Engineering" {op} facts.generic.Hardware.num_cpus >= 8'
-            )
+            query_string = f'meta.department = "Engineering" {op} facts.generic.Hardware.num_cpus >= 8'
             parsed_query = parse_query(query_string)
             self.assertEqual(parsed_query.operator, LogicalOperator.AND)
             result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
@@ -891,13 +889,17 @@ class ComplexSearchTests(AdvancedSearchTestCase):
         query_string = (
             '{facts.generic.HostnameCtl.os CONTAINS "Ubuntu" or '
             'facts.generic.HostnameCtl.os CoNtAiNs "Debian"} and '
-            'facts.generic.Hardware.num_cpus >= 8'
+            "facts.generic.Hardware.num_cpus >= 8"
         )
         parsed_query = parse_query(query_string)
         self.assertEqual(parsed_query.operator, LogicalOperator.AND)
         self.assertEqual(parsed_query.children[0].operator, LogicalOperator.OR)
-        self.assertEqual(parsed_query.children[0].children[0].operator.symbol, "CONTAINS")
-        self.assertEqual(parsed_query.children[0].children[1].operator.symbol, "CONTAINS")
+        self.assertEqual(
+            parsed_query.children[0].children[0].operator.symbol, "CONTAINS"
+        )
+        self.assertEqual(
+            parsed_query.children[0].children[1].operator.symbol, "CONTAINS"
+        )
         self.assertEqual(parsed_query.children[1].operator.symbol, ">=")
         result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
         self.assertEqual(result.count(), 3)
@@ -906,11 +908,11 @@ class ComplexSearchTests(AdvancedSearchTestCase):
         """Test that all comparison and logical operators are uppercase in the AST."""
         ops_test = [
             ('meta.department = "Engineering"', "="),
-            ('facts.generic.Hardware.num_cpus > 8', ">"),
-            ('facts.generic.Hardware.num_cpus >= 8', ">="),
-            ('facts.generic.Hardware.num_cpus < 8', "<"),
-            ('facts.generic.Hardware.num_cpus <= 8', "<="),
-            ('facts.generic.Hardware.num_cpus != 8', "!="),
+            ("facts.generic.Hardware.num_cpus > 8", ">"),
+            ("facts.generic.Hardware.num_cpus >= 8", ">="),
+            ("facts.generic.Hardware.num_cpus < 8", "<"),
+            ("facts.generic.Hardware.num_cpus <= 8", "<="),
+            ("facts.generic.Hardware.num_cpus != 8", "!="),
             ('facts.generic.HostnameCtl.os contains "Ubuntu"', "CONTAINS"),
             ('facts.generic.HostnameCtl.os CONTAINS "Ubuntu"', "CONTAINS"),
         ]
@@ -918,10 +920,14 @@ class ComplexSearchTests(AdvancedSearchTestCase):
             parsed = parse_query(query_str)
             self.assertEqual(parsed.operator.symbol, expected_op)
 
-        and_query = parse_query('meta.department = "Engineering" and facts.generic.Hardware.num_cpus >= 8')
+        and_query = parse_query(
+            'meta.department = "Engineering" and facts.generic.Hardware.num_cpus >= 8'
+        )
         self.assertEqual(and_query.operator, LogicalOperator.AND)
 
-        or_query = parse_query('meta.department = "Engineering" or facts.generic.Hardware.num_cpus >= 8')
+        or_query = parse_query(
+            'meta.department = "Engineering" or facts.generic.Hardware.num_cpus >= 8'
+        )
         self.assertEqual(or_query.operator, LogicalOperator.OR)
 
         not_query = parse_query('not meta.department = "Engineering"')
@@ -1116,23 +1122,88 @@ class ArrayFieldSearchTests(AdvancedSearchTestCase):
 
         query_false = "count(filter(facts.generic.PackageManagerInfo.installed_packages[].upgrade_available, false)) >= 5"
         parsed_query_false = parse_query(query_false)
-        result_false = search_hosts_by_scan_fields(Host.objects.all(), parsed_query_false)
+        result_false = search_hosts_by_scan_fields(
+            Host.objects.all(), parsed_query_false
+        )
         self.assertEqual(result_false.count(), 2)
 
     def test_filter_integer_exact_lookup(self):
         """Test filtering array by integer exact lookup."""
-        query_string = "count(filter(facts.generic.Hardware.memory[].size, 2147483648)) >= 2"
+        query_string = (
+            "count(filter(facts.generic.Hardware.memory[].size, 2147483648)) >= 2"
+        )
         parsed_query = parse_query(query_string)
         result = search_hosts_by_scan_fields(Host.objects.all(), parsed_query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "web01.example.com")
 
         # Direct comparison on filtered integer array
-        query_direct = "filter(facts.generic.Hardware.memory[].size, 2147483648) = 2147483648"
+        query_direct = (
+            "filter(facts.generic.Hardware.memory[].size, 2147483648) = 2147483648"
+        )
         parsed_query_direct = parse_query(query_direct)
-        result_direct = search_hosts_by_scan_fields(Host.objects.all(), parsed_query_direct)
+        result_direct = search_hosts_by_scan_fields(
+            Host.objects.all(), parsed_query_direct
+        )
         self.assertEqual(result_direct.count(), 1)
         self.assertEqual(result_direct.first().fqdn, "web01.example.com")
+
+    def test_integer_array_ordering_comparisons(self):
+        """Test ordering comparisons (>, >=, <, <=) on integer array fields and filter results."""
+        # Greater than
+        query_gt = "facts.generic.Hardware.memory[].size > 2147483648"
+        result_gt = search_hosts_by_scan_fields(
+            Host.objects.all(), parse_query(query_gt)
+        )
+        self.assertEqual(result_gt.count(), 2)
+        fqdns = {h.fqdn for h in result_gt}
+        self.assertEqual(fqdns, {"db01.example.com", "storage01.example.com"})
+
+        # Greater than or equal
+        query_gte = "facts.generic.Hardware.memory[].size >= 2147483648"
+        result_gte = search_hosts_by_scan_fields(
+            Host.objects.all(), parse_query(query_gte)
+        )
+        self.assertEqual(result_gte.count(), 3)
+        fqdns = {h.fqdn for h in result_gte}
+        self.assertEqual(
+            fqdns, {"web01.example.com", "db01.example.com", "storage01.example.com"}
+        )
+
+        # Less than
+        query_lt = "facts.generic.Hardware.memory[].size < 2147483648"
+        result_lt = search_hosts_by_scan_fields(
+            Host.objects.all(), parse_query(query_lt)
+        )
+        self.assertEqual(result_lt.count(), 1)
+        self.assertEqual(result_lt.first().fqdn, "legacy01.example.com")
+
+        # Less than or equal
+        query_lte = "facts.generic.Hardware.memory[].size <= 2147483648"
+        result_lte = search_hosts_by_scan_fields(
+            Host.objects.all(), parse_query(query_lte)
+        )
+        self.assertEqual(result_lte.count(), 2)
+        fqdns = {h.fqdn for h in result_lte}
+        self.assertEqual(fqdns, {"web01.example.com", "legacy01.example.com"})
+
+        # Ordering comparison on filter() result
+        query_filter_gte = (
+            "filter(facts.generic.Hardware.memory[].size, 2147483648) >= 2147483648"
+        )
+        result_filter_gte = search_hosts_by_scan_fields(
+            Host.objects.all(), parse_query(query_filter_gte)
+        )
+        self.assertEqual(result_filter_gte.count(), 1)
+        self.assertEqual(result_filter_gte.first().fqdn, "web01.example.com")
+
+        query_filter_gt = (
+            "filter(facts.generic.Hardware.memory[].size, 2147483648) > 2147483648"
+        )
+        result_filter_gt = search_hosts_by_scan_fields(
+            Host.objects.all(), parse_query(query_filter_gt)
+        )
+        self.assertEqual(result_filter_gt.count(), 0)
 
     def test_array_search_with_other_conditions(self):
         """Test combining array search with other conditions."""
@@ -1238,18 +1309,20 @@ class NegatedSearchTests(AdvancedSearchTestCase):
 
     def test_not_equals_boolean_meta_field(self):
         """Test != operator on boolean meta fields."""
-        query = parse_query('meta.archived != true')
+        query = parse_query("meta.archived != true")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 3)
         self.assertNotIn("legacy01.example.com", {h.fqdn for h in result})
 
     def test_not_equals_scalar_json_field(self):
         """Test != operator on scalar JSON fields."""
-        query = parse_query('facts.generic.Hardware.num_cpus != 8')
+        query = parse_query("facts.generic.Hardware.num_cpus != 8")
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 3)
         fqdns = {h.fqdn for h in result}
-        self.assertEqual(fqdns, {"db01.example.com", "legacy01.example.com", "storage01.example.com"})
+        self.assertEqual(
+            fqdns, {"db01.example.com", "legacy01.example.com", "storage01.example.com"}
+        )
 
     def test_not_equals_string_json_field(self):
         """Test != operator on string JSON fields."""
@@ -1277,7 +1350,7 @@ class NegatedSearchTests(AdvancedSearchTestCase):
     def test_unary_not_case_insensitive(self):
         """Test NOT operator works case-insensitively (not, Not, NOT)."""
         for op in ["not", "Not", "NOT"]:
-            query = parse_query(f'{op} meta.archived = true')
+            query = parse_query(f"{op} meta.archived = true")
             self.assertEqual(query.operator, LogicalOperator.NOT)
             result = search_hosts_by_scan_fields(Host.objects.all(), query)
             self.assertEqual(result.count(), 3)
@@ -1343,7 +1416,10 @@ class NegatedSearchTests(AdvancedSearchTestCase):
                 "version": artefact_registry.latest_version,
                 "scan_date": self.now.isoformat(),
                 "hostname": "unmanaged.example.com",
-                "original_input": {"hostname": "unmanaged.example.com", "artefacts": {}},
+                "original_input": {
+                    "hostname": "unmanaged.example.com",
+                    "artefacts": {},
+                },
                 "facts": {},
             },
         )
@@ -1379,7 +1455,10 @@ class NegatedSearchTests(AdvancedSearchTestCase):
                 "version": artefact_registry.latest_version,
                 "scan_date": self.now.isoformat(),
                 "hostname": "unmanaged.example.com",
-                "original_input": {"hostname": "unmanaged.example.com", "artefacts": {}},
+                "original_input": {
+                    "hostname": "unmanaged.example.com",
+                    "artefacts": {},
+                },
                 "facts": {},
             },
         )
@@ -1494,7 +1573,9 @@ class NegatedSearchTests(AdvancedSearchTestCase):
         self.assertEqual(result.first().fqdn, "noshell.example.com")
 
         query_not_null = parse_query("facts.generic.Users[].shell != none")
-        result_not_null = search_hosts_by_scan_fields(Host.objects.all(), query_not_null)
+        result_not_null = search_hosts_by_scan_fields(
+            Host.objects.all(), query_not_null
+        )
         self.assertEqual(result_not_null.count(), 4)
         fqdns = {h.fqdn for h in result_not_null}
         self.assertNotIn("noshell.example.com", fqdns)
@@ -1515,7 +1596,10 @@ class NegatedSearchTests(AdvancedSearchTestCase):
                 "version": artefact_registry.latest_version,
                 "scan_date": self.now.isoformat(),
                 "hostname": "unmanaged01.example.com",
-                "original_input": {"hostname": "unmanaged01.example.com", "artefacts": {}},
+                "original_input": {
+                    "hostname": "unmanaged01.example.com",
+                    "artefacts": {},
+                },
                 "facts": {},
             },
         )
@@ -1525,7 +1609,9 @@ class NegatedSearchTests(AdvancedSearchTestCase):
         self.assertEqual(result1.count(), 1)
         self.assertEqual(result1.first().fqdn, "unmanaged01.example.com")
 
-        query2 = parse_query("{meta.customer = null OR meta.contact = null} AND meta.billable = true")
+        query2 = parse_query(
+            "{meta.customer = null OR meta.contact = null} AND meta.billable = true"
+        )
         result2 = search_hosts_by_scan_fields(Host.objects.all(), query2)
         self.assertEqual(result2.count(), 1)
         self.assertEqual(result2.first().fqdn, "unmanaged01.example.com")
@@ -1552,7 +1638,10 @@ class NegatedSearchTests(AdvancedSearchTestCase):
                 "version": artefact_registry.latest_version,
                 "scan_date": self.now.isoformat(),
                 "hostname": "docker-null-mounts.example.com",
-                "original_input": {"hostname": "docker-null-mounts.example.com", "artefacts": {}},
+                "original_input": {
+                    "hostname": "docker-null-mounts.example.com",
+                    "artefacts": {},
+                },
                 "facts": {
                     "server.Docker": {
                         "containers": [
@@ -1583,7 +1672,10 @@ class NegatedSearchTests(AdvancedSearchTestCase):
                 "version": artefact_registry.latest_version,
                 "scan_date": self.now.isoformat(),
                 "hostname": "docker-with-mounts.example.com",
-                "original_input": {"hostname": "docker-with-mounts.example.com", "artefacts": {}},
+                "original_input": {
+                    "hostname": "docker-with-mounts.example.com",
+                    "artefacts": {},
+                },
                 "facts": {
                     "server.Docker": {
                         "containers": [
@@ -1608,8 +1700,12 @@ class NegatedSearchTests(AdvancedSearchTestCase):
         self.assertEqual(result.first().fqdn, "docker-with-mounts.example.com")
 
         # Regex search on nested array
-        query_contains = parse_query('facts.server.Docker.containers.mounts[] contains "lib"')
-        result_contains = search_hosts_by_scan_fields(Host.objects.all(), query_contains)
+        query_contains = parse_query(
+            'facts.server.Docker.containers.mounts[] contains "lib"'
+        )
+        result_contains = search_hosts_by_scan_fields(
+            Host.objects.all(), query_contains
+        )
         self.assertEqual(result_contains.count(), 1)
         self.assertEqual(result_contains.first().fqdn, "docker-with-mounts.example.com")
 
@@ -1646,14 +1742,20 @@ class RegexSearchTests(AdvancedSearchTestCase):
     def test_regex_scalar_jsonb(self):
         """Test regex pattern matching on scalar JSONB fields."""
         # Alternation and character class
-        query = parse_query('facts.generic.HostnameCtl.os contains "^(Ubuntu 22|Debian GNU)"')
+        query = parse_query(
+            'facts.generic.HostnameCtl.os contains "^(Ubuntu 22|Debian GNU)"'
+        )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 3)
         fqdns = {h.fqdn for h in result}
-        self.assertEqual(fqdns, {"web01.example.com", "db01.example.com", "storage01.example.com"})
+        self.assertEqual(
+            fqdns, {"web01.example.com", "db01.example.com", "storage01.example.com"}
+        )
 
         # Kernel version pattern
-        query = parse_query('facts.generic.HostnameCtl.kernel contains "^Linux 5\\.[0-9]+"')
+        query = parse_query(
+            'facts.generic.HostnameCtl.kernel contains "^Linux 5\\.[0-9]+"'
+        )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 2)
         fqdns = {h.fqdn for h in result}
@@ -1662,7 +1764,9 @@ class RegexSearchTests(AdvancedSearchTestCase):
     def test_regex_array_elements(self):
         """Test regex pattern matching on array fields."""
         # Installed package name alternation
-        query = parse_query('facts.generic.PackageManagerInfo.installed_packages[].name contains "^(apache2|postgresql-[0-9]+)"')
+        query = parse_query(
+            'facts.generic.PackageManagerInfo.installed_packages[].name contains "^(apache2|postgresql-[0-9]+)"'
+        )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 2)
         fqdns = {h.fqdn for h in result}
@@ -1677,17 +1781,29 @@ class RegexSearchTests(AdvancedSearchTestCase):
     def test_regex_filter_function(self):
         """Test regex pattern matching within filter() function."""
         # Filter packages matching php followed by version
-        query = parse_query('count(filter(facts.generic.PackageManagerInfo.installed_packages[].name, "^php[0-9]")) > 0')
+        query = parse_query(
+            'count(filter(facts.generic.PackageManagerInfo.installed_packages[].name, "^php[0-9]")) > 0'
+        )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 1)
         self.assertEqual(result.first().fqdn, "web01.example.com")
 
         # Case-insensitive filtering in filter() function (all 4 hosts have openssh-server)
-        query = parse_query('count(filter(facts.generic.PackageManagerInfo.installed_packages[].name, "^OPENSSH")) > 0')
+        query = parse_query(
+            'count(filter(facts.generic.PackageManagerInfo.installed_packages[].name, "^OPENSSH")) > 0'
+        )
         result = search_hosts_by_scan_fields(Host.objects.all(), query)
         self.assertEqual(result.count(), 4)
         fqdns = {h.fqdn for h in result}
-        self.assertEqual(fqdns, {"web01.example.com", "db01.example.com", "legacy01.example.com", "storage01.example.com"})
+        self.assertEqual(
+            fqdns,
+            {
+                "web01.example.com",
+                "db01.example.com",
+                "legacy01.example.com",
+                "storage01.example.com",
+            },
+        )
 
     def test_backward_compatibility_plain_substring(self):
         """Test plain substring queries without regex metacharacters work identically."""
@@ -1739,13 +1855,18 @@ class AdvancedSearchViewTests(TestCase):
         spec = response.context["language_spec"]
         match_spec = next((f for f in spec["functions"] if f["name"] == "match"), None)
         self.assertIsNotNone(match_spec)
-        self.assertEqual(match_spec["description"], "Match multiple fields against patterns on the same array element")
+        self.assertEqual(
+            match_spec["description"],
+            "Match multiple fields against patterns on the same array element",
+        )
         self.assertIsNotNone(match_spec["variadic"])
         self.assertEqual(len(match_spec["variadic"]), 2)
 
         content = response.content.decode("utf-8")
         self.assertIn("<code>match(...)</code>", content)
-        self.assertIn("Match multiple fields against patterns on the same array element", content)
+        self.assertIn(
+            "Match multiple fields against patterns on the same array element", content
+        )
 
     def test_view_spec_function_return_types(self):
         url = reverse("hosts:advanced_search")
