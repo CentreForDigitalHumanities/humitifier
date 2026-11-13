@@ -18,7 +18,7 @@ def update_os_list_task(scan_output: ScanOutput) -> None:
         return
 
     hostname_info: HostnameCtl | None = scan_output.facts.get("generic.HostnameCtl")
-    if not hostname_info:
+    if not hostname_info or not hostname_info.os:
         return
 
     os = hostname_info.os
