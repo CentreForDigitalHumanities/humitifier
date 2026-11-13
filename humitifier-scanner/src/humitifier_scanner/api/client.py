@@ -1,6 +1,3 @@
-import base64
-
-import requests
 from oauthlib.oauth2 import BackendApplicationClient
 from requests.auth import HTTPBasicAuth
 from requests_oauthlib import OAuth2Session

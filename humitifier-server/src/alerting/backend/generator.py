@@ -6,7 +6,6 @@ from django.db.models import QuerySet
 
 from alerting.backend.data import AlertData, AlertGeneratorType, AnnotatedAlertData
 from alerting.models import Alert
-from hosts.models import Host
 from humitifier_common.artefacts.registry import registry as artefacts_registry
 from humitifier_common.scan_data import ScanOutput
 

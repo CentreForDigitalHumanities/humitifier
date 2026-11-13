@@ -9,7 +9,6 @@ from main.filters import (
     BooleanChoiceFilter,
     FiltersForm,
     MultipleChoiceFilterWidget,
-    NullFilter,
     _get_choices,
 )
 from main.models import User

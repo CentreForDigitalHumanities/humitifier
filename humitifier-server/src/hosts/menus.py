@@ -1,5 +1,5 @@
 from django.urls import reverse
-from simple_menu import Menu, MenuItem
+from simple_menu import Menu
 
 from main.menu_item import HumitifierMenuItem
 
@@ -21,7 +21,9 @@ Menu.add_item(
             ),
             HumitifierMenuItem(
                 lambda request: (
-                    "Vibe Search" if request.user.wild_wasteland_mode else "Advanced Search"
+                    "Vibe Search"
+                    if request.user.wild_wasteland_mode
+                    else "Advanced Search"
                 ),
                 reverse("hosts:advanced_search"),
                 icon="icons/search.html",
@@ -46,6 +48,6 @@ Menu.add_item(
                 icon="icons/terminal.html",
                 check=lambda request: request.user.is_superuser,
             ),
-        ]
+        ],
     ),
 )

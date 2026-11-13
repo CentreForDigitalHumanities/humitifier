@@ -107,7 +107,7 @@ class MultiPlatformCostsTestCase(TestCase):
         start_date = date(2026, 8, 1)
         end_date = date(2026, 8, 1)
 
-        excel_buffer = create_timeseries_cost_excel(
+        create_timeseries_cost_excel(
             schemes_by_platform,
             "test_report.xlsx",
             start_date,
@@ -175,14 +175,6 @@ class MultiPlatformCostsTestCase(TestCase):
         # Month 2: Azure
         month2 = datetime(2026, 9, 1, tzinfo=timezone.utc)
         self._create_scan_at_time(host, "microsoft", 2, 4, 100, month2)
-
-        schemes_by_platform = {
-            "vmware": self.scheme_vmware,
-            "microsoft": self.scheme_azure,
-        }
-
-        start_date = date(2026, 8, 1)
-        end_date = date(2026, 9, 1)
 
         # This will trigger create_timeseries_cost_excel
         # We can't easily check the logic it uses

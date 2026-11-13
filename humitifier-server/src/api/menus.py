@@ -1,5 +1,5 @@
 from django.urls import reverse
-from simple_menu import Menu, MenuItem
+from simple_menu import Menu
 
 from main.menu_item import HumitifierMenuItem
 
