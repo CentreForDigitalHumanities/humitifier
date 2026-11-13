@@ -223,7 +223,7 @@ document.addEventListener('alpine:init', () => {
             }
 
             let rawCols = [];
-            const columnsParam = urlParams.get('columns');
+            const columnsParam = {% if form.is_bound %}'{{ form.columns.value|default:"[]"|escapejs }}'{% else %}urlParams.get('columns'){% endif %};
             if (columnsParam) {
                 try {
                     const parsed = JSON.parse(columnsParam);
