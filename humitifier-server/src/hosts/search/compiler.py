@@ -81,10 +81,14 @@ def compile_comparison(comp: Comparison, ctx: CompileContext) -> Q:
             subq = Alert.objects.filter(
                 ~ack_exists,
                 host=OuterRef("pk"),
-                **filter_kwargs,
             )
-            q = Q(Exists(subq))
-            return ~q if getattr(op, "negated", False) else q
+            if getattr(op, "negated", False):
+                subq = subq.filter(**{f"{orm_field}__isnull": False}).exclude(
+                    **filter_kwargs
+                )
+            else:
+                subq = subq.filter(**filter_kwargs)
+            return Q(Exists(subq))
 
         # Scalar JSON fields in last_scan_cache
         if field.kind == FieldKind.SCALAR:
