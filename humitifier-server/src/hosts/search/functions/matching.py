@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from ..constants import Cardinality, ValueType
 from ..sql import SqlFragment
@@ -13,6 +13,19 @@ if TYPE_CHECKING:
     from ..sql import CompileContext
 
 
+def _build_match_condition(
+    val: SqlFragment, pattern: Any, val_type: ValueType
+) -> SqlFragment:
+    if val_type == ValueType.STRING:
+        return SqlFragment(f"{val.sql} ILIKE %s", val.params + (f"%{pattern}%",))
+    if val_type == ValueType.BOOLEAN:
+        bool_val = (
+            str(pattern).lower() if isinstance(pattern, bool) else str(pattern).lower()
+        )
+        return SqlFragment(f"{val.sql} = %s", val.params + (bool_val,))
+    return SqlFragment(f"{val.sql} = %s", val.params + (str(pattern),))
+
+
 class MatchElements(SearchFunction):
     """Match multiple fields against patterns on the same array element."""
 
@@ -21,11 +34,23 @@ class MatchElements(SearchFunction):
     examples = (
         "match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', "
         "facts.generic.PackageManagerInfo.installed_packages[].current_version, '7.0')",
+        "match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', "
+        "facts.generic.PackageManagerInfo.installed_packages[].upgrade_available, true)",
     )
     params = ()
     variadic = (
-        Param("field", ParamKind.FIELD, frozenset({ValueType.STRING}), Cardinality.ELEMENTS),
-        Param("pattern", ParamKind.LITERAL, frozenset({ValueType.STRING}), Cardinality.SINGLE),
+        Param(
+            "field",
+            ParamKind.FIELD,
+            frozenset({ValueType.STRING, ValueType.INTEGER, ValueType.BOOLEAN}),
+            Cardinality.ELEMENTS,
+        ),
+        Param(
+            "pattern",
+            ParamKind.LITERAL,
+            frozenset({ValueType.STRING, ValueType.INTEGER, ValueType.BOOLEAN}),
+            Cardinality.SINGLE,
+        ),
     )
 
     @classmethod
@@ -47,6 +72,13 @@ class MatchElements(SearchFunction):
                 raise ValueError(
                     f"All fields in '{cls.name}' must belong to the same array at position {pos}"
                 )
+            field_type = args[i].expr_type.value_type
+            pattern_type = args[i + 1].expr_type.value_type
+            if field_type != pattern_type:
+                pos = getattr(args[i + 1], "position", 0)
+                raise ValueError(
+                    f"Type mismatch: cannot match {field_type.value} field with {pattern_type.value} literal at position {pos}"
+                )
 
     @classmethod
     def return_type(cls, args: tuple[Expr, ...]) -> ExprType:
@@ -63,12 +95,12 @@ class MatchElements(SearchFunction):
             f = args[i].field  # type: ignore[attr-defined]
             pattern = args[i + 1].value  # type: ignore[attr-defined]
             val = ctx.element_value(f, source)
-            conditions.append(
-                SqlFragment(f"{val.sql} ILIKE %s", val.params + (f"%{pattern}%",))
-            )
+            conditions.append(_build_match_condition(val, pattern, f.value_type))
         where_parts = [source.type_check] + conditions
         where_joined = SqlFragment.join(" AND ", where_parts)
-        sql = f"EXISTS (SELECT 1 FROM {source.from_clause.sql} WHERE {where_joined.sql})"
+        sql = (
+            f"EXISTS (SELECT 1 FROM {source.from_clause.sql} WHERE {where_joined.sql})"
+        )
         return SqlFragment(sql, source.from_clause.params + where_joined.params)
 
     @classmethod
@@ -85,9 +117,7 @@ class MatchElements(SearchFunction):
             f = args[i].field  # type: ignore[attr-defined]
             pattern = args[i + 1].value  # type: ignore[attr-defined]
             val = ctx.element_value(f, source)
-            conditions.append(
-                SqlFragment(f"{val.sql} ILIKE %s", val.params + (f"%{pattern}%",))
-            )
+            conditions.append(_build_match_condition(val, pattern, f.value_type))
             key = f.element_field_path[-1] if f.element_field_path else f.id
             obj_parts.append(f"%s, {val.sql}")
             obj_params.extend([key, *val.params])

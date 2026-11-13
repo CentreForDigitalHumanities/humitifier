@@ -65,15 +65,15 @@ class SearchMatchingValidationTestCase(TestCase):
             parse_query("match(meta.fqdn, 'web01')")
         self.assertIn("requires an array field", str(ctx.exception))
 
-    def test_validation_non_string_array_field(self):
-        """Passing a non-string array field to match() raises ValueError."""
+    def test_validation_type_mismatch_boolean_with_string(self):
+        """Passing a string literal for a boolean array field raises ValueError."""
         with self.assertRaises(ValueError) as ctx:
             parse_query(
                 "match("
                 "facts.generic.PackageManagerInfo.installed_packages[].upgrade_available, 'true'"
                 ")"
             )
-        self.assertIn("requires an string array field", str(ctx.exception))
+        self.assertIn("Type mismatch: cannot match boolean field with string literal", str(ctx.exception))
 
     def test_validation_non_literal_pattern(self):
         """Passing a field instead of a literal pattern raises ValueError."""
@@ -86,13 +86,29 @@ class SearchMatchingValidationTestCase(TestCase):
             )
         self.assertIn("must be a literal", str(ctx.exception))
 
-    def test_validation_non_string_literal_pattern(self):
-        """Passing a non-string literal pattern raises ValueError."""
+    def test_validation_type_mismatch_string_with_integer(self):
+        """Passing an integer literal for a string array field raises ValueError."""
         with self.assertRaises(ValueError) as ctx:
             parse_query(
                 "match(facts.generic.PackageManagerInfo.installed_packages[].name, 123)"
             )
-        self.assertIn("requires an string field", str(ctx.exception))
+        self.assertIn("Type mismatch: cannot match string field with integer literal", str(ctx.exception))
+
+    def test_validation_type_mismatch_integer_with_boolean(self):
+        """Passing a boolean literal for an integer array field raises ValueError."""
+        with self.assertRaises(ValueError) as ctx:
+            parse_query(
+                "match(facts.generic.Hardware.memory[].size, true)"
+            )
+        self.assertIn("Type mismatch: cannot match integer field with boolean literal", str(ctx.exception))
+
+    def test_validation_null_literal_pattern(self):
+        """Passing a null literal for pattern raises ValueError."""
+        with self.assertRaises(ValueError) as ctx:
+            parse_query(
+                "match(facts.generic.PackageManagerInfo.installed_packages[].name, null)"
+            )
+        self.assertIn("requires an boolean/integer/string field, got null", str(ctx.exception))
 
 
 class SearchMatchingExecutionTestCase(TestCase):
@@ -120,6 +136,21 @@ class SearchMatchingExecutionTestCase(TestCase):
                         "hostname": "matching",
                         "os": "Ubuntu 20.04",
                     },
+                    "generic.Hardware": {
+                        "num_cpus": 4,
+                        "memory": [
+                            {
+                                "range": "0-1",
+                                "size": 2147483648,
+                                "state": "online",
+                                "removable": False,
+                                "block": "0",
+                            }
+                        ],
+                        "block_devices": [],
+                        "pci_devices": [],
+                        "usb_devices": [],
+                    },
                     "generic.PackageManagerInfo": {
                         "installed_packages": [
                             {
@@ -132,7 +163,7 @@ class SearchMatchingExecutionTestCase(TestCase):
                                 "name": "apache2",
                                 "current_version": "2.4.52",
                                 "arch": "amd64",
-                                "upgrade_available": False,
+                                "upgrade_available": True,
                             },
                         ]
                     },
@@ -161,13 +192,28 @@ class SearchMatchingExecutionTestCase(TestCase):
                         "hostname": "split",
                         "os": "Debian 11",
                     },
+                    "generic.Hardware": {
+                        "num_cpus": 2,
+                        "memory": [
+                            {
+                                "range": "0-1",
+                                "size": 1073741824,
+                                "state": "online",
+                                "removable": True,
+                                "block": "1",
+                            }
+                        ],
+                        "block_devices": [],
+                        "pci_devices": [],
+                        "usb_devices": [],
+                    },
                     "generic.PackageManagerInfo": {
                         "installed_packages": [
                             {
                                 "name": "php8.1",
                                 "current_version": "8.1.2-1ubuntu2",
                                 "arch": "arm64",
-                                "upgrade_available": False,
+                                "upgrade_available": True,
                             },
                             {
                                 "name": "python3",
@@ -199,6 +245,21 @@ class SearchMatchingExecutionTestCase(TestCase):
                     "generic.HostnameCtl": {
                         "hostname": "other",
                         "os": "Ubuntu 22.04",
+                    },
+                    "generic.Hardware": {
+                        "num_cpus": 1,
+                        "memory": [
+                            {
+                                "range": "0-1",
+                                "size": 2147483648,
+                                "state": "offline",
+                                "removable": True,
+                                "block": "2",
+                            }
+                        ],
+                        "block_devices": [],
+                        "pci_devices": [],
+                        "usb_devices": [],
                     },
                     "generic.PackageManagerInfo": {
                         "installed_packages": [
@@ -318,6 +379,91 @@ class SearchMatchingExecutionTestCase(TestCase):
         self.assertIn("matching.example.com", fqdns)
         self.assertIn("other.example.com", fqdns)
 
+    def test_boolean_matching(self):
+        """match() works with boolean fields on array elements."""
+        # Host A has php7.0-cli with upgrade_available=False
+        query_false = (
+            "match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', "
+            "facts.generic.PackageManagerInfo.installed_packages[].upgrade_available, false)"
+        )
+        ast_false = parse_query(query_false)
+        res_false = list(search_hosts_by_scan_fields(Host.objects.all(), ast_false))
+        self.assertEqual(len(res_false), 1)
+        self.assertEqual(res_false[0].fqdn, "matching.example.com")
+
+        # Host B has php8.1 with upgrade_available=True
+        query_true = (
+            "match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', "
+            "facts.generic.PackageManagerInfo.installed_packages[].upgrade_available, true)"
+        )
+        ast_true = parse_query(query_true)
+        res_true = list(search_hosts_by_scan_fields(Host.objects.all(), ast_true))
+        self.assertEqual(len(res_true), 1)
+        self.assertEqual(res_true[0].fqdn, "split.example.com")
+
+        # Neither host has nginx with upgrade_available=True
+        query_none = (
+            "match(facts.generic.PackageManagerInfo.installed_packages[].name, 'nginx', "
+            "facts.generic.PackageManagerInfo.installed_packages[].upgrade_available, true)"
+        )
+        ast_none = parse_query(query_none)
+        res_none = list(search_hosts_by_scan_fields(Host.objects.all(), ast_none))
+        self.assertEqual(len(res_none), 0)
+
+    def test_integer_matching(self):
+        """match() works with integer fields on array elements."""
+        # Host A has memory size 2147483648 and block '0'
+        query_match_a = (
+            "match(facts.generic.Hardware.memory[].size, 2147483648, "
+            "facts.generic.Hardware.memory[].block, '0')"
+        )
+        ast_a = parse_query(query_match_a)
+        res_a = list(search_hosts_by_scan_fields(Host.objects.all(), ast_a))
+        self.assertEqual(len(res_a), 1)
+        self.assertEqual(res_a[0].fqdn, "matching.example.com")
+
+        # Host C has memory size 2147483648 and block '2'
+        query_match_c = (
+            "match(facts.generic.Hardware.memory[].size, 2147483648, "
+            "facts.generic.Hardware.memory[].block, '2')"
+        )
+        ast_c = parse_query(query_match_c)
+        res_c = list(search_hosts_by_scan_fields(Host.objects.all(), ast_c))
+        self.assertEqual(len(res_c), 1)
+        self.assertEqual(res_c[0].fqdn, "other.example.com")
+
+        # Host B has memory size 1073741824 and block '1'
+        query_match_b = (
+            "match(facts.generic.Hardware.memory[].size, 1073741824, "
+            "facts.generic.Hardware.memory[].block, '1')"
+        )
+        ast_b = parse_query(query_match_b)
+        res_b = list(search_hosts_by_scan_fields(Host.objects.all(), ast_b))
+        self.assertEqual(len(res_b), 1)
+        self.assertEqual(res_b[0].fqdn, "split.example.com")
+
+    def test_mixed_types_matching(self):
+        """match() works with combined string, integer, and boolean fields on array elements."""
+        query = (
+            "match(facts.generic.Hardware.memory[].size, 2147483648, "
+            "facts.generic.Hardware.memory[].block, '0', "
+            "facts.generic.Hardware.memory[].removable, false)"
+        )
+        ast = parse_query(query)
+        res = list(search_hosts_by_scan_fields(Host.objects.all(), ast))
+        self.assertEqual(len(res), 1)
+        self.assertEqual(res[0].fqdn, "matching.example.com")
+
+        # Host A has removable=False, so matching with removable=true returns empty
+        query_miss = (
+            "match(facts.generic.Hardware.memory[].size, 2147483648, "
+            "facts.generic.Hardware.memory[].block, '0', "
+            "facts.generic.Hardware.memory[].removable, true)"
+        )
+        ast_miss = parse_query(query_miss)
+        res_miss = list(search_hosts_by_scan_fields(Host.objects.all(), ast_miss))
+        self.assertEqual(len(res_miss), 0)
+
     def test_single_query_execution_count(self):
         """match() queries execute in exactly one SQL query."""
         queries = [
@@ -336,6 +482,11 @@ class SearchMatchingExecutionTestCase(TestCase):
                 "match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', "
                 "facts.generic.PackageManagerInfo.installed_packages[].current_version, '7.0') "
                 "OR meta.department = 'Operations'"
+            ),
+            # Boolean and integer match
+            (
+                "match(facts.generic.Hardware.memory[].size, 2147483648, "
+                "facts.generic.Hardware.memory[].removable, false)"
             ),
         ]
         for query_str in queries:
@@ -356,7 +507,13 @@ class SearchMatchingExecutionTestCase(TestCase):
         self.assertEqual(len(func_spec["variadic"]), 2)
         self.assertEqual(func_spec["variadic"][0]["name"], "field")
         self.assertEqual(func_spec["variadic"][0]["cardinality"], Cardinality.ELEMENTS.value)
-        self.assertEqual(func_spec["variadic"][0]["value_types"], [ValueType.STRING.value])
+        self.assertEqual(
+            func_spec["variadic"][0]["value_types"],
+            ["boolean", "integer", "string"],
+        )
         self.assertEqual(func_spec["variadic"][1]["name"], "pattern")
         self.assertEqual(func_spec["variadic"][1]["cardinality"], Cardinality.SINGLE.value)
-        self.assertEqual(func_spec["variadic"][1]["value_types"], [ValueType.STRING.value])
+        self.assertEqual(
+            func_spec["variadic"][1]["value_types"],
+            ["boolean", "integer", "string"],
+        )

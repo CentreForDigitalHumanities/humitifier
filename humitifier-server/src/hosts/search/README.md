@@ -82,8 +82,8 @@ class MatchElements(SearchFunction):
     )
     params = ()
     variadic = (
-        Param("field", ParamKind.FIELD, frozenset({ValueType.STRING}), Cardinality.ELEMENTS),
-        Param("pattern", ParamKind.LITERAL, frozenset({ValueType.STRING}), Cardinality.SINGLE),
+        Param("field", ParamKind.FIELD, frozenset({ValueType.STRING, ValueType.INTEGER, ValueType.BOOLEAN}), Cardinality.ELEMENTS),
+        Param("pattern", ParamKind.LITERAL, frozenset({ValueType.STRING, ValueType.INTEGER, ValueType.BOOLEAN}), Cardinality.SINGLE),
     )
 
     @classmethod
@@ -104,11 +104,12 @@ class MatchElements(SearchFunction):
 
 #### The `match(...)` Search Function
 - **Signature**: `match(field, pattern, [field, pattern, ...])`
-- **Arguments**: Variadic pairs consisting of an array element string field and a string literal pattern.
+- **Arguments**: Variadic pairs consisting of an array element field (string, integer, or boolean) and a matching literal pattern.
 - **Validation**:
   - Requires at least 2 arguments (one field/pattern pair) and an even argument count.
   - All fields must reference the exact same array (`section`, `artefact_key`, and `array_path`).
-- **Behavior**: Case-insensitive substring match (`ILIKE %pattern%`). Evaluates as a standalone boolean condition returning true if and only if at least one array element satisfies all criteria simultaneously.
+  - Each field/pattern pair must have matching types.
+- **Behavior**: Case-insensitive substring match (`ILIKE %pattern%`) for strings, exact match for booleans and integers. Evaluates as a standalone boolean condition returning true if and only if at least one array element satisfies all criteria simultaneously.
 - **Example**:
   ```
   match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', facts.generic.PackageManagerInfo.installed_packages[].current_version, '7.0')
