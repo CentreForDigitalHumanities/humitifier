@@ -55,7 +55,9 @@ class ElementSource:
                 'ON (ack."_alert_id" = a."id" OR (ack."host_id" = a."host_id" AND ack."_creator" = a."_creator" AND ack."custom_identifier" = a."custom_identifier"))'
             )
             if unacknowledged_only:
-                type_check_sql = f'a."host_id" = "{table_name}"."id" AND ack."id" IS NULL'
+                type_check_sql = (
+                    f'a."host_id" = "{table_name}"."id" AND ack."id" IS NULL'
+                )
             else:
                 type_check_sql = f'a."host_id" = "{table_name}"."id"'
             return cls(
@@ -177,7 +179,12 @@ class CompileContext:
             and field.field_path[0] == "acknowledged"
         )
         unack = not is_alert_ack
-        key = (field.section, field.artefact_key, field.array_path or (ARRAY_MARKER,), unack)
+        key = (
+            field.section,
+            field.artefact_key,
+            field.array_path or (ARRAY_MARKER,),
+            unack,
+        )
         if key not in self._sources:
             self._sources[key] = ElementSource.create(
                 section=field.section,
@@ -206,11 +213,7 @@ class CompileContext:
 
         if not path:
             if field.value_type == ValueType.STRING:
-                sql = (
-                    f"CASE WHEN jsonb_typeof({element_expr})='string' "
-                    f"THEN trim(both '\"' from {element_expr}::text) "
-                    f"ELSE {element_expr}::text END"
-                )
+                sql = f"{element_expr} #>> '{{}}'"
                 return SqlFragment(sql, ())
             return SqlFragment(f"{element_expr}::text", ())
 
