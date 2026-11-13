@@ -56,7 +56,7 @@ from humitifier_common.artefacts import (
 class HostMetaVisualizer(ItemizedArtefactVisualizer):
     artefact = HostMeta
     title = "GenDoc metadata"
-    category = "metadata"
+    category = "general"
     attributes = {
         "update_policy": "Update policy",
         "fileservers": "Fileservers",
@@ -416,7 +416,7 @@ class PyInfraReportVisualizer(ArtefactVisualizer):
 
 class IsWordpressVisualizer(ArtefactVisualizer):
     title = "Is Wordpress?"
-    category = "web"
+    category = "software"
     artefact = IsWordpress
 
     def show(self):
