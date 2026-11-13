@@ -8,7 +8,6 @@ from alerting.filters import AlertAcknowledgmentFilters
 from alerting.forms import AlertAcknowledgmentForm
 from alerting.models import Alert, AlertAcknowledgment
 from alerting.tables import AlertAcknowledgmentTable
-from hosts.models import Host
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
 
 
@@ -67,4 +66,10 @@ class AlertAcknowledgementsListView(LoginRequiredMixin, TableMixin, FilteredList
     }
 
     def get_queryset(self):
-        return self.model.objects.get_for_user(self.request.user)
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                pk__in=self.model.objects.get_for_user(self.request.user).values("pk")
+            )
+        )
