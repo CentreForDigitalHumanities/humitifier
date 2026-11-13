@@ -253,7 +253,7 @@ _https_enabled = HUMITIFIER_CONFIG.django.enable_https
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_SSL_REDIRECT = _https_enabled
-SECURE_REDIRECT_EXEMPT = [r"^api/upload_scans/$"]
+SECURE_REDIRECT_EXEMPT = []
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
