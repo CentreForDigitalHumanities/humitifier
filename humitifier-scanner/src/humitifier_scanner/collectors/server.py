@@ -528,7 +528,7 @@ class DockerFactCollector(ShellCollector):
     ) -> list[DockerContainer]:
 
         cmd = shell_executor.execute(
-            "sudo docker container ls --format json --no-trunc"
+            "sudo docker container ls -a --format json --no-trunc"
         )
 
         if cmd.return_code != 0:
