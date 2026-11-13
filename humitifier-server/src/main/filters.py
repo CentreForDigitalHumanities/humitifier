@@ -265,11 +265,11 @@ class UserFilters(django_filters.FilterSet):
 class AccessProfileFilters(django_filters.FilterSet):
     class Meta:
         model = AccessProfile
-        fields = ["departments"]
+        fields = ["customers"]
         form = FiltersForm
 
-    departments = django_filters.CharFilter(
-        field_name="departments",
+    customers = django_filters.CharFilter(
+        field_name="customers",
         lookup_expr="icontains",
     )
 
