@@ -12,9 +12,10 @@
                     class="max-h-80 overflow-y-auto rounded-sm border border-gray-200 dark:border-gray-700 divide-y divide-gray-200 dark:divide-gray-700">
                     {% for access in port_access %}
                         <div x-data="{ expanded: false }">
-                            <div
+                            <button
                                 class="flex items-center gap-2 px-3 py-2 cursor-pointer select-none hover:bg-gray-50 dark:hover:bg-gray-800/60 transition duration-150"
                                 @click="expanded = !expanded"
+                                :aria-expanded="expanded"
                             >
                                 <div
                                     class="shrink-0 text-gray-400 dark:text-gray-500 transition duration-150"
@@ -63,7 +64,7 @@
                                         </div>
                                     {% endif %}
                                 </div>
-                            </div>
+                            </button>
 
                             <div class="px-3 pb-3 pl-10 text-xs"
                                  x-show="expanded" style="display: none">
