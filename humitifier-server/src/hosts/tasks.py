@@ -21,7 +21,4 @@ def update_os_list_task(scan_output: ScanOutput) -> None:
     if not hostname_info or not hostname_info.os:
         return
 
-    os = hostname_info.os
-
-    if not OperatingSystem.objects.filter(name=os).exists():
-        OperatingSystem.objects.create(name=os)
+    OperatingSystem.objects.get_or_create(name=hostname_info.os)
