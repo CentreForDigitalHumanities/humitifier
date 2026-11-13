@@ -1,6 +1,5 @@
 {% extends "base/base_page_template.html" %}
 {% load static %}
-{% load strip_quotes %}
 
 {% load humanize %}
 {% load param_replace %}
@@ -19,10 +18,10 @@
                     data: [{{ num_fine }}, {{ num_info }}, {{ num_warning }}, {{ num_critical }}],
                     backgroundColor: ["#44ef44", "#93c5fd", "#f97316", "#ef4444"],
                     links: [
-                        '?#alerts',
-                        '?severity=info#alerts',
-                        '?severity=warning#alerts',
-                        '?severity=critical#alerts'
+                        '?{% param_replace severity="" page="" %}#alerts',
+                        '?{% param_replace severity="info" page="" %}#alerts',
+                        '?{% param_replace severity="warning" page="" %}#alerts',
+                        '?{% param_replace severity="critical" page="" %}#alerts'
                     ]
                 }]
             );
@@ -33,7 +32,7 @@
                     label: 'Alert type',
                     data: [{% for item in alert_message_counts %}{{ item.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for item in alert_message_counts %}'?type={{ item.short_message|urlencode }}#alerts',{% endfor %}]
+                    links: [{% for item in alert_message_counts %}'?{% param_replace type=item.short_message page="" %}#alerts',{% endfor %}]
                 }]
             );
 
@@ -43,38 +42,38 @@
                     label: 'OTAP stage',
                     data: [{% for item in otap_counts %}{{ item.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for item in otap_counts %}'{% url "hosts:list" %}?otap_stage={{ item.otap_stage|urlencode }}',{% endfor %}]
+                    links: [{% for item in otap_counts %}'{% url "hosts:list" %}?{% filter_params stats_filterset otap_stage=item.otap_stage %}',{% endfor %}]
                 }]
             );
 
             initDashboardChart('osChart', 'pie', 'Server OS distribution',
-                [{% for os in os_stats %}'{{ os.os|strip_quotes|escapejs }}',{% endfor %}],
+                [{% for os in os_stats %}'{{ os.os|escapejs }}',{% endfor %}],
                 [{
                     label: 'Operating Systems',
                     data: [{% for os in os_stats %}{{ os.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for os in os_stats %}'{% url "hosts:list" %}?os={{ os.os|urlencode }}',{% endfor %}]
+                    links: [{% for os in os_stats %}'{% url "hosts:list" %}?{% filter_params stats_filterset os=os.os %}',{% endfor %}]
                 }]
             );
 
             initDashboardChart('customerChart', 'pie', 'Servers by customer',
-                [{% for os in customer_stats %}'{{ os.customer|strip_quotes|escapejs }}',{% endfor %}],
+                [{% for os in customer_stats %}'{{ os.customer|escapejs }}',{% endfor %}],
                 [{
                     label: 'Operating Systems',
                     data: [{% for os in customer_stats %}{{ os.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for os in customer_stats %}'{% url "hosts:list" %}?customer={{ os.customer|urlencode }}',{% endfor %}]
+                    links: [{% for os in customer_stats %}'{% url "hosts:list" %}?{% filter_params stats_filterset customer=os.customer %}',{% endfor %}]
                 }],
                 { plugins: { legend: { position: 'bottom' } } }
             );
 
             initDashboardChart('datasourceChart', 'pie', 'Hosts by data source',
-                [{% for ds in datasource_counts %}'{{ ds.data_source__name|strip_quotes|escapejs }}',{% endfor %}],
+                [{% for ds in datasource_counts %}'{{ ds.data_source__name|escapejs }}',{% endfor %}],
                 [{
                     label: 'Hosts per data source',
                     data: [{% for ds in datasource_counts %}{{ ds.count }},{% endfor %}],
                     backgroundColor: chartColors,
-                    links: [{% for ds in datasource_counts %}'{% url "hosts:list" %}?data_source={{ ds.data_source__id }}',{% endfor %}]
+                    links: [{% for ds in datasource_counts %}'{% url "hosts:list" %}?{% filter_params stats_filterset data_source=ds.data_source__id %}',{% endfor %}]
                 }],
                 { plugins: { legend: { position: 'bottom' } } }
             );

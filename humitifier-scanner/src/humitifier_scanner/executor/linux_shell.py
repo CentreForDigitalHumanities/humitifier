@@ -19,6 +19,14 @@ class ShellOutput:
     stderr: list[str]
     return_code: int
 
+    @property
+    def stdout_str(self) -> str:
+        return "\n".join(self.stdout)
+
+    @property
+    def stderr_str(self) -> str:
+        return "\n".join(self.stderr)
+
 
 class LinuxShellExecutor(abc.ABC):
 
@@ -140,7 +148,9 @@ class RemoteLinuxShellExecutor(LinuxShellExecutor):
     #
 
     def _configure_bastion(self):
-        logger.debug(f"Configuring bastion host for {self.host}")
+        logger.debug(
+            f"Configuring bastion host ({CONFIG.ssh.bastion.host}) for {self.host}"
+        )
         self.bastion_host, self.bastion_port = self._extract_host_port(
             CONFIG.ssh.bastion.host
         )

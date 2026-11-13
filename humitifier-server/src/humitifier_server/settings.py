@@ -24,8 +24,8 @@ from .config import CONFIG as HUMITIFIER_CONFIG
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-HUMITIFIER_VERSION = "5.1.2"
-HUMITIFIER_VERSION_NAME = "Et tu, CB?"
+HUMITIFIER_VERSION = "6.0.0"
+HUMITIFIER_VERSION_NAME = "Just one more refactor..."
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
@@ -97,6 +97,11 @@ if ENABLE_WHITENOISE:
 if DEBUG:
     INSTALLED_APPS.append("debug_toolbar")
     MIDDLEWARE.append("debug_toolbar.middleware.DebugToolbarMiddleware")
+    DEBUG_TOOLBAR_CONFIG = {
+        # To limit memory usage; the visualizers are expensive....
+        "RESULTS_CACHE_SIZE": 3,
+        "SHOW_COLLAPSED": True,
+    }
 
 ROOT_URLCONF = "humitifier_server.urls"
 
@@ -248,7 +253,7 @@ _https_enabled = HUMITIFIER_CONFIG.django.enable_https
 
 X_FRAME_OPTIONS = "DENY"
 SECURE_SSL_REDIRECT = _https_enabled
-SECURE_REDIRECT_EXEMPT = [r"^api/upload_scans/$"]
+SECURE_REDIRECT_EXEMPT = []
 
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 
@@ -379,7 +384,7 @@ if HUMITIFIER_CONFIG.sentry:
     class CustomHttpTransport(HttpTransport):
         def _get_pool_options(self):
             # This should never be used in production, or even on any server
-            # THis is ONLY for when you're (for some reason) running sentry locally!
+            # This is ONLY for when you're (for some reason) running sentry locally!
             options = super()._get_pool_options()
             if SENTRY_INSECURE_DSN:
                 options["cert_reqs"] = "CERT_NONE"

@@ -2,14 +2,14 @@
 A collection of facts that are generic and can be collected on any system.
 """
 
-from typing import Literal
+from datetime import datetime
+from typing import Literal, Annotated, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, model_validator, field_validator
 
 from humitifier_common.artefacts.groups import GENERIC
 from humitifier_common.artefacts.registry import fact, metric
 from humitifier_common.artefacts.registry.registry import ArtefactMetadata
-
 
 ##
 ## Hardware
@@ -192,9 +192,77 @@ class Package(BaseModel):
     version: str
 
 
-@fact(group=GENERIC)
+# Deprecated, replaced by PackageManagerInfo
+@fact(group=GENERIC, max_version=2)
 class PackageList(list[Package]):
     pass
+
+
+###
+### V6 package manager info
+###
+
+
+class BaseRepository(BaseModel):
+    source_file: str
+    options: dict[str, str] | None = None
+
+
+class AptRepository(BaseRepository):
+    kind: Literal["apt"] = "apt"
+    dist: str
+    uri: str
+    components: list[str]
+
+
+class RpmRepository(BaseRepository):
+    kind: Literal["rpm"] = "rpm"
+
+    id: str
+    name: str
+
+    enabled: bool
+
+    base_url: str | None = None
+    mirrorlist: str | None = None
+    metalink: str | None = None
+
+    gpg_check: bool = False
+    gpg_key: str | None = None
+
+
+class InstalledPackage(BaseModel):
+    name: str
+    current_version: str
+    upgrade_available: bool
+    new_version: str | None = None
+    sources: list[str] | None = None
+    arch: str | None = None
+
+
+Repository = Annotated[
+    Union[AptRepository, RpmRepository],
+    Field(discriminator="kind"),
+]
+
+
+@fact(group=GENERIC, min_version=3)
+class PackageManagerInfo(BaseModel):
+    installed_packages: list[InstalledPackage] = Field(default_factory=list)
+    repositories: list[Repository] = Field(default_factory=list)
+    last_transaction_dt: datetime | None = None
+    last_transaction_changed: int | None = None
+
+    def is_package_installed(
+        self, package_name: str | list[str] | tuple[str, ...]
+    ) -> bool:
+        """Helper function to check if a package is installed; can be given a tuple/list
+        of package names if due to OS differences, a package may be called different things
+        """
+        if isinstance(package_name, list) or isinstance(package_name, tuple):
+            return any(self.is_package_installed(package) for package in package_name)
+
+        return any(package.name == package_name for package in self.installed_packages)
 
 
 ##
@@ -250,3 +318,87 @@ class SystemdUnit(BaseModel):
 @fact(group=GENERIC, metadata=ArtefactMetadata(null_is_valid=True))
 class Systemd(BaseModel):
     units: list[SystemdUnit]
+
+
+##
+## iptables
+##
+
+
+class IPTableRules(BaseModel):
+    # The scanner serializes this model by field name, so 'in_' needs to be
+    # accepted next to the 'in' alias when parsing it again
+    model_config = ConfigDict(populate_by_name=True)
+
+    num: int | None = None
+    pkts: int
+    bytes: int
+    target: str | None
+    prot: str
+    opt: str | None
+    in_: str = Field(alias="in")
+    out: str
+    source: str
+    destination: str
+    options: str = ""
+
+    @field_validator("prot", mode="before")
+    @classmethod
+    def map_protocol(cls, v):
+        try:
+            v_int = int(v)
+        except ValueError:
+            return v
+
+        protocol_map = {0: "all", 1: "icmp", 6: "tcp", 17: "udp"}
+
+        if v_int not in protocol_map:
+            return v
+
+        return protocol_map[v_int]
+
+
+class IPTablesChain(BaseModel):
+    chain: str
+    default_policy: str | None = None
+    default_packets: int | None = None
+    default_bytes: int | None = None
+    rules: list[IPTableRules]
+
+
+class IPTablesPortAccessSource(BaseModel):
+    source: str
+    resolved_hostname: str | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def _coerce_str(cls, data):
+        if isinstance(data, str):
+            return {"source": data}
+        return data
+
+
+class IPTablesPortAccess(BaseModel):
+    """Human-friendly summary of who can reach a given port.
+
+    Derived from the ACCEPT/DROP/REJECT rules in the INPUT chain. Sources are
+    the raw source specs of the matching rules (e.g. ``131.211.0.0/16``);
+    ``0.0.0.0/0`` means 'anyone'. A rule bound to a specific input interface
+    is recorded as ``<source>@<interface>`` (e.g. ``0.0.0.0/0@lo``).
+    """
+
+    # None means the rule(s) apply to every port
+    port: str | None
+    protocol: str
+    allowed_from: list[IPTablesPortAccessSource] = Field(default_factory=list)
+    denied_from: list[IPTablesPortAccessSource] = Field(default_factory=list)
+    # True if there is an ACCEPT rule for this port from any source on any
+    # interface
+    default_open: bool = False
+    default_closed: bool = False
+
+
+@fact(group=GENERIC, min_version=3)
+class IPTables(BaseModel):
+    chains: list[IPTablesChain]
+    port_access: list[IPTablesPortAccess] = Field(default_factory=list)

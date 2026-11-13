@@ -52,9 +52,7 @@ class AlertAcknowledgmentDeleteView(
         return reverse("hosts:detail", args=[self.object.host.fqdn])
 
 
-class AlertAcknowledgementsListView(
-    LoginRequiredMixin, SuperuserRequiredMixin, TableMixin, FilteredListView
-):
+class AlertAcknowledgementsListView(LoginRequiredMixin, TableMixin, FilteredListView):
     model = AlertAcknowledgment
     table_class = AlertAcknowledgmentTable
     filterset_class = AlertAcknowledgmentFilters
@@ -66,3 +64,12 @@ class AlertAcknowledgementsListView(
         "acknowledged_at": "Acknowledged at",
         "acknowledged_by": "Acknowledged by",
     }
+
+    def get_queryset(self):
+        return (
+            super()
+            .get_queryset()
+            .filter(
+                pk__in=self.model.objects.get_for_user(self.request.user).values("pk")
+            )
+        )

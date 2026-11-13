@@ -5,6 +5,7 @@ from django.utils import timezone
 
 from hosts.models import Host
 from humitifier_common.celery.task_names import SCANNER_RUN_SCAN
+
 from humitifier_server.celery.task_names import *
 
 
@@ -93,11 +94,21 @@ def _get_processing_chain(initial_args: tuple | None = None):
     # Get our generic log-error handler-task
     log_error_task = signature(MAIN_LOG_ERROR)
 
+    start_task = signature(SCANNING_PROCESS_SCAN, args=initial_args)
+    start_task.on_error(log_error_task)
+
+    # Attach the update-os-list task as a sidetrack to the main pipeline
+    update_os_list_task = signature(HOSTS_UPDATE_OS_LIST)
+    update_os_list_task.on_error(log_error_task)
+    ## By using link, this task will be run in parallel to the main pipeline but
+    ## otherwise not affect it.
+    start_task.link(update_os_list_task)
+
     # Setup scan processing
-    generate_alerts_task = signature(ALERTING_GENERATE_ALERTS, args=initial_args)
+    generate_alerts_task = signature(ALERTING_GENERATE_ALERTS)
     generate_alerts_task.on_error(log_error_task)
 
     save_scan_task = signature(SCANNING_SAVE_SCAN)
     save_scan_task.on_error(log_error_task)
 
-    return generate_alerts_task | save_scan_task
+    return start_task | generate_alerts_task | save_scan_task

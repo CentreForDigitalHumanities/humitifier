@@ -9,7 +9,6 @@ from main.filters import (
     BooleanChoiceFilter,
     FiltersForm,
     MultipleChoiceFilterWidget,
-    NullFilter,
     _get_choices,
 )
 from main.models import User
@@ -58,20 +57,34 @@ class AlertFilters(django_filters.FilterSet):
     type = django_filters.MultipleChoiceFilter(
         label="Alert type",
         field_name="short_message",
-        choices=lambda: _get_choices(Alert, "short_message", strip_quotes=False),
+        choices=lambda: _get_choices(Alert, "short_message"),
         widget=MultipleChoiceFilterWidget,
     )
 
     exclude_type = django_filters.MultipleChoiceFilter(
         label="Alert type (exclude)",
         field_name="short_message",
-        choices=lambda: _get_choices(Alert, "short_message", strip_quotes=False),
+        choices=lambda: _get_choices(Alert, "short_message"),
         widget=MultipleChoiceFilterWidget,
         exclude=True,
     )
 
     acknowledged = IncludeAcknowledgedFilter(
         empty_label="Exclude acknowledged alerts",
+    )
+
+    os = django_filters.MultipleChoiceFilter(
+        label="Operating System",
+        field_name="host__os",
+        choices=lambda: _get_choices(Host, "os"),
+        widget=MultipleChoiceFilterWidget,
+    )
+
+    customer = django_filters.MultipleChoiceFilter(
+        label="Customer",
+        field_name="host__customer",
+        choices=lambda: _get_choices(Host, "customer"),
+        widget=MultipleChoiceFilterWidget,
     )
 
 
@@ -98,7 +111,7 @@ class AlertAcknowledgmentFilters(django_filters.FilterSet):
     alert_type = django_filters.MultipleChoiceFilter(
         label="Department",
         field_name="department",
-        choices=lambda: _get_choices(Host, "department", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "department"),
         widget=MultipleChoiceFilterWidget,
     )
 

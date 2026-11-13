@@ -49,10 +49,9 @@ def _get_local_ip() -> str | None:
     return ip
 
 
-def _resolve_hostname_with_dns(ip: str) -> str | None:
-    reverse_name = dns.reversename.from_address(ip)
-
+def resolve_hostname_with_dns(ip: str) -> str | None:
     try:
+        reverse_name = dns.reversename.from_address(ip)
         resolved_hosts = dns.resolver.resolve(reverse_name, "PTR")
 
         for host in resolved_hosts:
@@ -68,3 +67,53 @@ def _resolve_hostname_with_dns(ip: str) -> str | None:
             return hostname
     except Exception:
         return None
+
+
+_resolve_hostname_with_dns = resolve_hostname_with_dns
+
+
+def parse_human_readable_filesize(
+    size_str: str, *, assume_decimal: bool = False
+) -> int | None:
+    """Parse a human readable filesize string into a bytes value."""
+    # We need a string of at least 2 characters ('0B' being the shortest valid value)
+    if not size_str or len(size_str) <= 1:
+        return None
+
+    # split the value into size and unit by taking the last two characters as the unit
+    size_str = size_str.strip()
+    unit_start = len(size_str)
+    while unit_start > 0 and size_str[unit_start - 1].isalpha():
+        unit_start -= 1
+    unit = size_str[unit_start:]
+    size = size_str[:unit_start]
+
+    try:
+        # Strip out any whitespace ('40 Gb' for example)
+        size = size.strip()
+        size = float(size)
+    except ValueError as e:
+        print(e)
+        return None
+
+    unit = unit.upper()
+    multipliers = {
+        "B": 1,
+        "K": 1000 if assume_decimal else 1024,
+        "KB": 1000 if assume_decimal else 1024,
+        "KIB": 1024,
+        "M": 1000**2 if assume_decimal else 1024**2,
+        "MB": 1000**2 if assume_decimal else 1024**2,
+        "MIB": 1024**2,
+        "G": 1000**3 if assume_decimal else 1024**3,
+        "GB": 1000**3 if assume_decimal else 1024**3,
+        "GIB": 1024**3,
+        "T": 1000**4 if assume_decimal else 1024**4,
+        "TB": 1000**4 if assume_decimal else 1024**4,
+        "TIB": 1024**4,
+    }
+
+    if unit not in multipliers:
+        return None
+
+    return int(size * multipliers[unit])

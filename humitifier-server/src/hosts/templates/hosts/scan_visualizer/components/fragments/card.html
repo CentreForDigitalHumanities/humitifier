@@ -1,0 +1,48 @@
+<div
+    class="rounded-md bg-gray-50 dark:bg-gray-800/60 mb-2 last:mb-0 border border-gray-200 dark:border-gray-700 overflow-x-auto"
+    x-data="{searchValue: '{{ item.search_value|escapejs }}'}"
+    x-bind:class="searchValue.toLowerCase().includes(search.toLowerCase()) ? '' : 'hidden' "
+>
+    <div class="flex items-center border-b border-gray-300 dark:border-gray-700 p-3 bg-black/5 dark:bg-white/5">
+        <div
+            class="font-semibold mr-auto">
+            {{ item.title }}
+        </div>
+        {% if item.aside %}
+            <div class="text-gray-700 dark:text-gray-300">
+                {{ item.aside }}
+            </div>
+        {% endif %}
+    </div>
+
+    {% if item.content or item.content_items %}
+        <div class="text-gray-700 dark:text-gray-300 p-3">
+            {% if item.content %}
+                <div>
+                    {{ item.content }}
+                </div>
+            {% elif item.content_items %}
+                <div
+                    class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3"
+                >
+                    {% for label, value in item.content_items.items %}
+                        <div class="font-semibold">{{ label }}</div>
+                        <div>
+                            {% if value %}
+                                {{ value }}
+                            {% else %}
+                                <div class="text-gray-600 dark:text-gray-400">
+                                    Unknown
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {% if not forloop.last %}
+                            <div class="col-span-2 border-b border-gray-300 dark:border-gray-700"></div>
+                        {% endif %}
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

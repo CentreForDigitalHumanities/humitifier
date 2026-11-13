@@ -1,7 +1,16 @@
+from unittest import mock
+
+from django.contrib.auth import get_user_model
+from django.contrib.messages import get_messages
 from django.test import TestCase
+from django.urls import reverse
 from humitifier_common.artefacts import registry
 
+from hosts.models import DataSource, Host, ScanScheduling
+from scanning.forms import ScanSpecForm
 from scanning.models import ScanSpec, ArtefactSpec
+
+User = get_user_model()
 
 
 class ScanInputBuildingTestCase(TestCase):
@@ -159,3 +168,205 @@ class ScanInputBuildingTestCase(TestCase):
             len(resolved_scan_artefacts.items()),
             len(registry.get_all_in_group("generic")),
         )
+
+    def test_ignore_older_version_only_artefacts(self):
+        """Test that artefacts only present in older versions are ignored."""
+        from pydantic import BaseModel
+
+        class LegacyOnlyArtefact(BaseModel):
+            old: str
+
+        # Register an artefact only for version 1 (or max_version=1 when latest is 2)
+        registry.register(
+            "LegacyArtefact",
+            "testgroup",
+            LegacyOnlyArtefact,
+            max_version=1,
+        )
+
+        spec = ScanSpec.objects.create(
+            name="legacy_spec", artefact_groups=["testgroup"]
+        )
+        ArtefactSpec.objects.create(
+            artefact_name="testgroup.LegacyArtefact",
+            scan_spec=spec,
+        )
+
+        resolved = spec._build_artefact_scan_input()
+        self.assertNotIn("testgroup.LegacyArtefact", resolved)
+
+        artefact_spec = ArtefactSpec(
+            artefact_name="testgroup.LegacyArtefact", scan_spec=spec
+        )
+        self.assertFalse(artefact_spec.is_valid_config)
+
+
+class ScanSpecFormTestCase(TestCase):
+
+    def test_form_initial_with_multiple_groups(self):
+        spec = ScanSpec.objects.create(
+            name="multi_group_spec",
+            artefact_groups=["generic", "server"],
+        )
+        form = ScanSpecForm(instance=spec)
+        rendered = form.as_p()
+
+        # Both checkboxes should have checked attribute rendered
+        self.assertIn('value="generic"\n    \n     id="id_artefact_groups_1" checked', rendered)
+        self.assertIn('value="server"\n    \n     id="id_artefact_groups_3" checked', rendered)
+
+        # In optgroups, generic and server should be marked selected
+        bound_field = form["artefact_groups"]
+        widget_data = bound_field.field.widget.get_context(
+            "artefact_groups", bound_field.value(), {"id": "id_artefact_groups"}
+        )
+        selected_values = [
+            opt["value"]
+            for group, options, index in widget_data["widget"]["optgroups"]
+            for opt in options
+            if opt["selected"]
+        ]
+        self.assertEqual(sorted(selected_values), ["generic", "server"])
+
+    def test_form_save_updates_artefact_groups(self):
+        spec = ScanSpec.objects.create(
+            name="test_spec",
+            artefact_groups=["generic"],
+        )
+        data = {
+            "name": "test_spec_updated",
+            "artefact_groups": ["server", "special"],
+        }
+        form = ScanSpecForm(data=data, instance=spec)
+        self.assertTrue(form.is_valid(), form.errors)
+        saved = form.save()
+        self.assertEqual(saved.name, "test_spec_updated")
+        self.assertEqual(sorted(saved.artefact_groups), ["server", "special"])
+
+    def test_form_save_empty_artefact_groups(self):
+        spec = ScanSpec.objects.create(
+            name="test_spec",
+            artefact_groups=["generic", "server"],
+        )
+        data = {
+            "name": "test_spec_cleared",
+        }
+        form = ScanSpecForm(data=data, instance=spec)
+        self.assertTrue(form.is_valid(), form.errors)
+        saved = form.save()
+        self.assertEqual(saved.artefact_groups, [])
+
+
+class ScanSpecViewsTestCase(TestCase):
+
+    def setUp(self):
+        self.user = User.objects.create_superuser(
+            username="admin", password="password", email="admin@example.com"
+        )
+        self.client.force_login(self.user)
+
+    def test_edit_scan_spec_view_get_populates_checked_boxes(self):
+        spec = ScanSpec.objects.create(
+            name="multi_spec",
+            artefact_groups=["generic", "server"],
+        )
+        url = reverse("scanning:edit_scan_spec", args=[spec.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+
+        content = response.content.decode("utf-8")
+        self.assertTrue('value="generic"' in content)
+        self.assertTrue('value="server"' in content)
+        # Verify both generic and server inputs are checked in the HTML response
+        self.assertRegex(
+            content,
+            r'<input[^>]*value="generic"[^>]*checked',
+        )
+        self.assertRegex(
+            content,
+            r'<input[^>]*value="server"[^>]*checked',
+        )
+
+
+class StartHostScanViewTestCase(TestCase):
+
+    def setUp(self):
+        self.superuser = User.objects.create_superuser(
+            username="admin", password="password", email="admin@example.com"
+        )
+        self.regular_user = User.objects.create_user(
+            username="user", password="password", email="user@example.com"
+        )
+        self.data_source = DataSource.objects.create(
+            name="Test DataSource",
+            scan_scheduling=ScanScheduling.SCHEDULED,
+        )
+        self.host_schedulable = Host.objects.create(
+            fqdn="schedulable.example.com",
+            data_source=self.data_source,
+        )
+        self.host_non_schedulable = Host.objects.create(
+            fqdn="non-schedulable.example.com",
+        )
+
+    def test_anonymous_user_redirected(self):
+        url = reverse("scanning:start_scan_host", args=[self.host_schedulable.fqdn])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.url)
+
+    @mock.patch("scanning.views.start_full_scan")
+    def test_regular_user_forbidden(self, mock_start_scan):
+        self.client.force_login(self.regular_user)
+        url = reverse("scanning:start_scan_host", args=[self.host_schedulable.fqdn])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("/login", response.url)
+        response_post = self.client.post(url)
+        self.assertEqual(response_post.status_code, 302)
+        self.assertIn("/login", response_post.url)
+        mock_start_scan.assert_not_called()
+
+    @mock.patch("scanning.views.start_full_scan")
+    def test_get_is_non_mutating(self, mock_start_scan):
+        self.client.force_login(self.superuser)
+        url = (
+            reverse("scanning:start_scan_host", args=[self.host_schedulable.fqdn])
+            + "?scan=latest"
+        )
+        response = self.client.get(url)
+        mock_start_scan.assert_not_called()
+        self.assertRedirects(
+            response, f"/hosts/host/{self.host_schedulable.fqdn}/?scan=latest"
+        )
+        messages = list(get_messages(response.wsgi_request))
+        self.assertEqual(len(messages), 0)
+
+    @mock.patch("scanning.views.start_full_scan")
+    def test_post_queues_scan_for_schedulable_host(self, mock_start_scan):
+        self.client.force_login(self.superuser)
+        url = (
+            reverse("scanning:start_scan_host", args=[self.host_schedulable.fqdn])
+            + "?scan=latest"
+        )
+        response = self.client.post(url)
+        mock_start_scan.assert_called_once_with(self.host_schedulable)
+        self.assertRedirects(
+            response, f"/hosts/host/{self.host_schedulable.fqdn}/?scan=latest"
+        )
+        messages = [str(m) for m in get_messages(response.wsgi_request)]
+        self.assertIn("Scan scheduled. It may take a few minutes to complete.", messages)
+
+    @mock.patch("scanning.views.start_full_scan")
+    def test_post_fails_for_non_schedulable_host(self, mock_start_scan):
+        self.client.force_login(self.superuser)
+        url = reverse(
+            "scanning:start_scan_host", args=[self.host_non_schedulable.fqdn]
+        )
+        response = self.client.post(url)
+        mock_start_scan.assert_not_called()
+        self.assertRedirects(
+            response, f"/hosts/host/{self.host_non_schedulable.fqdn}/"
+        )
+        messages = [str(m) for m in get_messages(response.wsgi_request)]
+        self.assertIn("Scans cannot be scheduled for this host.", messages)

@@ -13,7 +13,6 @@ from main.filters import (
     _get_choices,
 )
 
-
 #
 # DataSource filters
 #
@@ -91,14 +90,14 @@ class PackageFilter(django_filters.Filter):
         """
         query = (
             "SELECT count(*) FROM jsonb_array_elements("
-            "\"hosts_host\".\"last_scan_cache\"->'facts'->'generic.PackageList'"
+            "\"hosts_host\".\"last_scan_cache\"->'facts'->'generic.PackageManagerInfo'->'installed_packages'"
             ") AS pkg WHERE pkg->>'name' LIKE %s"
         )
         params = [f"%{name_filter}%"]
 
         if version_filter:
             operator = "=" if exact_match else "LIKE"
-            query += f" AND pkg->>'version' {operator} %s"
+            query += f" AND pkg->>'current_version' {operator} %s"
             params.append(version_filter if exact_match else f"%{version_filter}%")
 
         return query, params
@@ -137,7 +136,9 @@ class HostAlertSeverityFilter(ChoiceFilter):
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__severity=value, alerts__acknowledgement=None).distinct()
+            return qs.filter(
+                alerts__severity=value, alerts__acknowledgement=None
+            ).distinct()
         return qs
 
 
@@ -151,7 +152,9 @@ class HostAlertTypeFilter(ChoiceFilter):
 
     def filter(self, qs, value):
         if value:
-            return qs.filter(alerts__short_message=value, alerts__acknowledgement=None).distinct()
+            return qs.filter(
+                alerts__short_message=value, alerts__acknowledgement=None
+            ).distinct()
         return qs
 
 
@@ -205,28 +208,28 @@ class HostFilters(django_filters.FilterSet):
     department = django_filters.MultipleChoiceFilter(
         label="Department",
         field_name="department",
-        choices=lambda: _get_choices(Host, "department", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "department"),
         widget=MultipleChoiceFilterWidget,
     )
 
     customer = django_filters.MultipleChoiceFilter(
         label="Customer",
         field_name="customer",
-        choices=lambda: _get_choices(Host, "customer", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "customer"),
         widget=MultipleChoiceFilterWidget,
     )
 
     contact = django_filters.MultipleChoiceFilter(
         label="Contact",
         field_name="contact",
-        choices=lambda: _get_choices(Host, "contact", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "contact"),
         widget=MultipleChoiceFilterWidget,
     )
 
     otap_stage = django_filters.MultipleChoiceFilter(
         label="OTAP",
         field_name="otap_stage",
-        choices=lambda: _get_choices(Host, "otap_stage", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "otap_stage"),
         widget=MultipleChoiceFilterWidget,
     )
 
@@ -263,9 +266,11 @@ class HostFilters(django_filters.FilterSet):
         empty_label="Exclude archived servers",
     )
 
+
 ##
 ## SavedSearch filters
 ##
+
 
 class SavedSearchFilters(django_filters.FilterSet):
     class Meta:

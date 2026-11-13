@@ -1,7 +1,7 @@
 {% load host_tags %}
 {% load param_replace %}
 
-<div class="grid lg:grid-cols-[auto_350px] grid-cols-1 grid-rows-[3.5rem_1fr] h-full--header relative" x-data="{show_action_bar: false}">
+<div class="grid lg:grid-cols-[auto_300px] grid-cols-1 grid-rows-[3.5rem_1fr] h-full--header relative" x-data="{show_action_bar: false}">
     <div class="sticky col-span-2 top-header z-10 backdrop-blur-sm bg-white/30 dark:bg-black/30 border-b border-gray-300 dark:border-gray-700 px-5 flex items-center gap-3 transition ease-in-out duration-150">
         <div class="font-bold truncate">{{ host.fqdn }}</div>
         <div class="hidden md:flex items-center gap-1.5 rounded-full border border-gray-300 dark:border-gray-700 px-2.5 py-0.5 text-xs text-gray-600 dark:text-gray-400">
@@ -19,23 +19,43 @@
         </div>
 
 
-        <form method="get" class="gap-2.5 items-center ml-auto hidden lg:flex" x-data="{}"
-              x-ref="scanForm">
-            <label for="scan" class="text-nowrap text-sm font-semibold">Scan:</label>
-            <select id="scan" name="scan" class="input select grow py-1.5"
-                    @change="$refs.scanForm.submit()">
-                <option {% if current_scan == 'latest' %}selected{% endif %}
-                        value="latest">
-                    Latest scan
-                </option>
-                {% for scan in all_scans %}
-                    <option value="{{ scan.isoformat }}"
-                            {% if current_scan == scan.isoformat %}selected{% endif %}>
-                        {{ scan|date:"Y-m-d H:i" }}
+        <div class="ml-auto hidden lg:flex items-center gap-4">
+            <form
+                method="post"
+                action="{% url 'hosts:toggle_visualizer_layout' host.fqdn %}?{% param_replace %}"
+                class="flex items-center"
+            >
+                {% csrf_token %}
+                <button
+                    type="submit"
+                    class="flex items-center gap-2 cursor-pointer select-none text-sm font-semibold text-gray-700 dark:text-gray-300 bg-transparent border-0 p-0"
+                    title="Toggle categorized layout"
+                >
+                    <span>Categorized</span>
+                    <div class="relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors duration-200 ease-in-out p-0.5 {% if categorized_scan_visualizer %}bg-primary{% else %}bg-gray-300 dark:bg-gray-700{% endif %}">
+                        <span class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-sm ring-0 transition duration-200 ease-in-out {% if categorized_scan_visualizer %}translate-x-4{% else %}translate-x-0{% endif %}"></span>
+                    </div>
+                </button>
+            </form>
+
+            <form method="get" class="flex gap-2.5 items-center" x-data="{}"
+                  x-ref="scanForm">
+                <label for="scan" class="text-nowrap text-sm font-semibold">Scan:</label>
+                <select id="scan" name="scan" class="input select grow py-1.5"
+                        @change="$refs.scanForm.submit()">
+                    <option {% if current_scan == 'latest' %}selected{% endif %}
+                            value="latest">
+                        Latest scan
                     </option>
-                {% endfor %}
-            </select>
-        </form>
+                    {% for scan in all_scans %}
+                        <option value="{{ scan.isoformat }}"
+                                {% if current_scan == scan.isoformat %}selected{% endif %}>
+                            {{ scan|date:"Y-m-d H:i" }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </form>
+        </div>
     </div>
 
     <div class="p-3 pt-0 pb-8 bg-gray-100 dark:bg-gray-950 transition duration-150">
@@ -71,38 +91,42 @@
             </div>
         {% endif %}
 
-        <div  x-data="{componentSearch: ''}">
-            <div class="flex items-center gap-3 w-full px-2 pt-6 pb-3">
-                <h1 class="text-sm font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300">Metrics</h1>
-                <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
-                <input placeholder="Search metrics" class="input w-48 py-1.5" x-model="componentSearch">
-            </div>
-            <div class="stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-3 px-2">
-                {% for component, content in metrics.items %}
-                    <div x-data="{ title: '{{ component }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
-                        {{ content }}
+        {% for section in artefact_sections %}
+            <div x-data="{componentSearch: '', collapsed: false}">
+                <button class="flex items-center gap-3 w-full px-2 pt-6 pb-3 cursor-pointer select-none" @click="collapsed = !collapsed" :aria-expanded="!collapsed">
+                    <div class="flex gap-2 text-gray-400 dark:text-gray-500 shrink-0">
+                        <div>
+                            <div x-show="collapsed">
+                                {% with icon_size='size-4' %}
+                                    {% include 'icons/chevron-up.html' %}
+                                {% endwith %}
+                            </div>
+                            <div x-show="!collapsed">
+                                {% with icon_size='size-4' %}
+                                    {% include 'icons/chevron-down.html' %}
+                                {% endwith %}
+                            </div>
+                        </div>
                     </div>
-                {% endfor %}
-            </div>
-        </div>
 
-        <div  x-data="{componentSearch: ''}">
-            <div class="flex items-center gap-3 w-full px-2 pt-6 pb-3">
-                <h1 class="text-sm font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300">Facts</h1>
-                <div class="text-xs text-gray-600 dark:text-gray-400">
-                    {{ current_scan_date|date:"Y-m-d H:i" }}
+                    <h1 class="text-sm font-bold uppercase tracking-widest text-gray-600 dark:text-gray-300">{{ section.title }}</h1>
+                    <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
+                    <input placeholder="Search {{ section.title|lower }}" class="input w-48 py-1.5" x-model="componentSearch" @click.stop>
+
+                </button>
+
+                <div x-show="!collapsed" class="stable-columns grid grid-cols-1{% if section.components|length > 1 %} xl:grid-cols-2{% endif %}{% if section.components|length > 2 %} ultrawide:grid-cols-3{% endif %} items-start gap-3 px-2">
+                    {% for item in section.components %}
+                        <div data-slot-index="{{ item.order_index }}" x-data="{ title: '{{ item.title }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
+                            {{ item.content }}
+                        </div>
+                    {% endfor %}
                 </div>
-                <div class="h-px grow bg-gray-300 dark:bg-gray-700"></div>
-                <input placeholder="Search facts" class="input w-48 py-1.5" x-model="componentSearch">
             </div>
+        {% endfor %}
 
-            <div class="stable-columns grid grid-cols-1 xl:grid-cols-2 ultrawide:grid-cols-3 items-start gap-3 px-2">
-                {% for component, content in facts.items %}
-                    <div x-data="{ title: '{{ component }} '}" x-bind:class="title.toLowerCase().includes(componentSearch.toLowerCase()) ? '' : 'hidden' ">
-                        {{ content }}
-                    </div>
-                {% endfor %}
-            </div>
+        <div class="pt-2 text-gray-600 dark:text-gray-400 font-light italic">
+            Scan format version: {{ scan_format_version }}, Visualizer version: {{ visualizer_version }}
         </div>
     </div>
 
@@ -119,9 +143,9 @@
 
 <script>
     (function () {
-        // Stable multi-column layout: items are assigned to a fixed column
-        // (round-robin by index), so they don't jump between columns when
-        // their height changes (e.g. when collapsing/expanding components).
+        // Stable multi-column layout: items are assigned to a predictable column
+        // based on their static slot index (slotIndex % columnCount), ensuring consistent
+        // positioning across hosts regardless of which components are present.
         // The column count matches the Tailwind breakpoints on the container:
         // 1 column by default, 2 from 'xl' (80rem), 3 from 'ultrawide' (100rem).
         const twoColumnQuery = window.matchMedia('(min-width: 80rem)');
@@ -134,15 +158,18 @@
         }
 
         function distribute(container, items) {
-            const columnCount = getColumnCount();
+            const columnCount = Math.min(items.length, getColumnCount()) || 1;
+            container.style.gridTemplateColumns = `repeat(${columnCount}, minmax(0, 1fr))`;
 
-            const columns = [];
-            for (let i = 0; i < columnCount; i++) {
-                columns.push(document.createElement('div'));
-            }
+            const columns = Array.from({ length: columnCount }, () => {
+                const col = document.createElement('div');
+                col.className = 'flex flex-col gap-3';
+                return col;
+            });
 
-            items.forEach(function (item, index) {
-                columns[index % columnCount].appendChild(item);
+            items.forEach(function (item) {
+                const slotIndex = parseInt(item.dataset.slotIndex || '0', 10);
+                columns[slotIndex % columnCount].appendChild(item);
             });
 
             container.replaceChildren(...columns);
@@ -161,4 +188,3 @@
         });
     })();
 </script>
-

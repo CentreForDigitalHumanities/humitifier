@@ -20,6 +20,11 @@ from hosts.scan_visualizers.base_components import (
     TreeNode,
     TreeVisualizer,
 )
+from main.templatetags.indicator_pills import (
+    red_indicator_pill,
+    green_indicator_pill,
+    indicator_pill,
+)
 
 from hosts.templatetags.host_tags import size_from_mb, uptime
 from humitifier_common.artefacts import (
@@ -51,6 +56,7 @@ from humitifier_common.artefacts import (
 class HostMetaVisualizer(ItemizedArtefactVisualizer):
     artefact = HostMeta
     title = "GenDoc metadata"
+    category = "general"
     attributes = {
         "update_policy": "Update policy",
         "fileservers": "Fileservers",
@@ -79,14 +85,14 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
         output = "<div class='flex gap-2 justify-start font-semibold'>"
 
         if value["enable"]:
-            output += f"<span class='px-3 py-1 rounded-sm bg-green-500 text-white'>Enabled</span>"
+            output += f"<span class='px-3 py-1 rounded-sm border border-green-500/40 bg-green-200 dark:bg-green-900 text-green-950 dark:text-green-100'>Enabled</span>"
         else:
-            output += f"<span class='px-3 py-1 rounded-sm bg-red-500 text-white'>Disabled</span>"
+            output += f"<span class='px-3 py-1 rounded-sm border border-red-500/40 bg-red-200 dark:bg-red-900 text-red-950 dark:text-red-100'>Disabled</span>"
 
         if value["apply_updates"]:
-            output += f"<span class='px-3 py-1 rounded-sm bg-green-500 text-white'>Applied</span>"
+            output += f"<span class='px-3 py-1 rounded-sm border border-green-500/40 bg-green-200 dark:bg-green-900 text-green-950 dark:text-green-100'>Applied</span>"
         else:
-            output += f"<span class='px-3 py-1 rounded-sm bg-red-500 text-white'>Not applied</span>"
+            output += f"<span class='px-3 py-1 rounded-sm border border-red-500/40 bg-red-200 dark:bg-red-900 text-red-950 dark:text-red-100'>Not applied</span>"
 
         output += "</div>"
 
@@ -97,6 +103,7 @@ class HostMetaVisualizer(ItemizedArtefactVisualizer):
 class HostMetaVHostsVisualizer(SearchableCardsVisualizer):
     artefact = HostMeta
     title = "Apache vhosts"
+    category = "web"
 
     def show(self):
         if not super().show():
@@ -136,6 +143,7 @@ class HostMetaVHostsVisualizer(SearchableCardsVisualizer):
 class WebserverVisualizer(SearchableCardsVisualizer):
     artefact = Webserver
     title = "Webserver"
+    category = "software"
 
     def show(self):
         if self.artefact_data.hosts:
@@ -169,6 +177,7 @@ class WebserverVisualizer(SearchableCardsVisualizer):
 class DNSVisualizer(SearchableCardsVisualizer):
     artefact = DNS
     title = "DNS"
+    category = "network"
 
     def get_items(self) -> list[Card]:
         dns_lookups: list[DNSLookup] | None = self.artefact_data.dns_lookups
@@ -209,6 +218,7 @@ class DNSVisualizer(SearchableCardsVisualizer):
 class HostnameCtlVisualizer(ItemizedArtefactVisualizer):
     artefact = HostnameCtl
     title = "Host metadata"
+    category = "general"
     attributes = {
         "hostname": "Hostname",
         "os": "OS",
@@ -220,6 +230,7 @@ class HostnameCtlVisualizer(ItemizedArtefactVisualizer):
 
 class UptimeVisualizer(ArtefactVisualizer):
     title = "Host uptime"
+    category = "metrics"
     artefact = Uptime
 
     def get_context(self, **kwargs):
@@ -239,6 +250,7 @@ class UptimeVisualizer(ArtefactVisualizer):
 
 class MemoryVisualizer(BarsArtefactVisualizer):
     title = "Memory usage"
+    category = "metrics"
     artefact = Memory
 
     def get_bar_items(self) -> list[Bar]:
@@ -275,6 +287,7 @@ class MemoryVisualizer(BarsArtefactVisualizer):
 
 class BlocksVisualizer(BarsArtefactVisualizer):
     title = "Disk usage"
+    category = "metrics"
     artefact = Blocks
 
     def get_bar_items(self) -> list[Bar]:
@@ -295,6 +308,7 @@ class BlocksVisualizer(BarsArtefactVisualizer):
 
 class UsersVisualizer(SearchableCardsVisualizer):
     title = "Users"
+    category = "users"
     artefact = Users
     search_placeholder = "Search groups"
 
@@ -321,6 +335,7 @@ class UsersVisualizer(SearchableCardsVisualizer):
 
 class GroupsVisualizer(SearchableCardsVisualizer):
     title = "Groups"
+    category = "users"
     artefact = Groups
     search_placeholder = "Search groups"
 
@@ -341,6 +356,7 @@ class GroupsVisualizer(SearchableCardsVisualizer):
 
 class PackageListVisualizer(SearchableCardsVisualizer):
     title = "Packages"
+    category = "software"
     artefact = PackageList
     search_placeholder = "Search packages"
 
@@ -360,6 +376,7 @@ class PackageListVisualizer(SearchableCardsVisualizer):
 
 class PuppetAgentVisualizer(ArtefactVisualizer):
     title = "Puppet Agent"
+    category = "automation"
     artefact = PuppetAgent
 
     template = "hosts/scan_visualizer/components/puppet_component.html"
@@ -379,6 +396,7 @@ class PuppetAgentVisualizer(ArtefactVisualizer):
 
 class PyInfraReportVisualizer(ArtefactVisualizer):
     title = "PyInfra"
+    category = "automation"
     artefact = PyInfraReport
 
     template = "hosts/scan_visualizer/components/pyinfra_component.html"
@@ -398,6 +416,7 @@ class PyInfraReportVisualizer(ArtefactVisualizer):
 
 class IsWordpressVisualizer(ArtefactVisualizer):
     title = "Is Wordpress?"
+    category = "software"
     artefact = IsWordpress
 
     def show(self):
@@ -414,6 +433,7 @@ class IsWordpressVisualizer(ArtefactVisualizer):
 
 class HardwareVisualizer(ArtefactVisualizer):
     title = "Hardware (overview)"
+    category = "general"
     artefact = Hardware
     template = "hosts/scan_visualizer/components/hardware_component.html"
 
@@ -430,6 +450,7 @@ class HardwareVisualizer(ArtefactVisualizer):
 
 class LshwVisualizer(TreeVisualizer):
     title = "Hardware (detailed)"
+    category = "general"
     artefact = Lshw
     search_placeholder = "Search devices"
     # The system node and whatever is bolted onto it directly (usually the
@@ -534,6 +555,7 @@ class LshwVisualizer(TreeVisualizer):
 
 class NetworkInterfacesVisualizer(SearchableCardsVisualizer):
     title = "Network Interfaces"
+    category = "network"
     artefact = NetworkInterfaces
 
     def get_items(self) -> list[Card]:
@@ -564,6 +586,7 @@ class NetworkInterfacesVisualizer(SearchableCardsVisualizer):
 
 class ZFSVisualizer(ArtefactVisualizer):
     title = "ZFS"
+    category = "metrics"
     artefact = ZFS
     template = "hosts/scan_visualizer/components/zfs_component.html"
 
@@ -575,10 +598,38 @@ class ZFSVisualizer(ArtefactVisualizer):
         return context
 
 
-class RebootPolicyVisualizer(ArtefactVisualizer):
+class RebootPolicyVisualizer(ItemizedArtefactVisualizer):
     title = "Reboot Policy"
+    category = "general"
     artefact = RebootPolicy
-    template = "hosts/scan_visualizer/components/reboot_policy.html"
+    # template = "hosts/scan_visualizer/components/reboot_policy.html"
+
+    def get_items(self) -> list[dict[str, str]]:
+
+        items = [
+            {
+                "label": "Configured",
+                "value": (
+                    green_indicator_pill("Configured")
+                    if self.artefact_data.configured
+                    else red_indicator_pill("Not configured")
+                ),
+            },
+            {
+                "label": "Enabled",
+                "value": (
+                    green_indicator_pill("Enabled")
+                    if self.artefact_data.enabled
+                    else red_indicator_pill("Disabled")
+                ),
+            },
+            {
+                "label": "Schedule",
+                "value": self.parse_cron(),
+            },
+        ]
+
+        return items
 
     def parse_cron(self) -> str:
         if not (
@@ -615,6 +666,7 @@ class RebootPolicyVisualizer(ArtefactVisualizer):
 class SELinuxVisualizer(ItemizedArtefactVisualizer):
     artefact = SELinux
     title = "SELinux"
+    category = "general"
     attributes = {
         "enabled": "Enabled",
         "mode": "Enforcement mode",
@@ -623,27 +675,21 @@ class SELinuxVisualizer(ItemizedArtefactVisualizer):
 
     def get_enabled_display(self, value):
         if value:
-            return self._get_button_str("Enabled", "green")
+            return green_indicator_pill("Enabled")
         else:
-            return self._get_button_str("Disabled", "red")
+            return red_indicator_pill("Disabled")
 
     def get_mode_display(self, value: str):
         if value == "enforcing":
-            return self._get_button_str("Enforcing", "green")
+            return green_indicator_pill("Enforcing")
         else:
-            return self._get_button_str(value, "orange")
-
-    def _get_button_str(self, value, color):
-        return mark_safe(f"""
-            <div class="px-3 py-1 inline-block mr-auto rounded-sm bg-{color}-500 text-white">
-                {value.capitalize()}
-            </div>
-            """)
+            return indicator_pill("orange", value)
 
 
 class SystemdUnitsVisualizer(SearchableCardsVisualizer):
     artefact = Systemd
     title = "Systemd Units"
+    category = "software"
 
     def get_items(self) -> list[Card]:
         items = []

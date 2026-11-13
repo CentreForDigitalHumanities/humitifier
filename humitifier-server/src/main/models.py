@@ -23,6 +23,12 @@ class User(AbstractUser):
         help_text="Enables easter eggs, non-default as it's less professional.",
     )
 
+    categorized_scan_visualizer = models.BooleanField(
+        default=False,
+        verbose_name="Categorized scan visualizer",
+        help_text="Split facts into categorized sections in the scan visualizer (scan format v2+).",
+    )
+
     default_home = models.CharField(
         max_length=20,
         choices=HomeOptions.choices,

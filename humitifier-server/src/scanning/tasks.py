@@ -5,6 +5,7 @@ from django.db.models import Q
 from django.utils import timezone
 
 from humitifier_common.scan_data import ScanInput, ScanOutput
+from humitifier_common.utils import pydantic
 
 from humitifier_server.celery.task_names import *
 from humitifier_server.logger import logger
@@ -38,6 +39,12 @@ def get_scan_input_from_host(fqdn: str, force: bool = False) -> ScanInput:
         raise ValueError("Missing scan spec")
 
     return scan_input
+
+@shared_task(name=SCANNING_PROCESS_SCAN, pydantic=True)
+def process_scan(scan_output: ScanOutput) -> ScanOutput:
+    """Dummy task, does nothing on its own but is used by our processing-chain builder
+     to attach other tasks to."""
+    return scan_output
 
 
 @shared_task(name=SCANNING_SAVE_SCAN, pydantic=True)
