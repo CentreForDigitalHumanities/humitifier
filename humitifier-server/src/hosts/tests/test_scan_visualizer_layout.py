@@ -506,7 +506,7 @@ class ScanVisualizerLayoutTestCase(TestCase):
 
     def test_toggle_visualizer_layout_view(self):
         """
-        Verify that ToggleVisualizerLayoutView inverts user preference and redirects to host.
+        Verify that ToggleVisualizerLayoutView GET is non-mutating and POST inverts user preference.
         """
         user = UserModel.objects.create_superuser(
             username="toggle_view_user",
@@ -516,14 +516,21 @@ class ScanVisualizerLayoutTestCase(TestCase):
         self.client.force_login(user)
 
         toggle_url = f"/hosts/host/{self.host.fqdn}/toggle-layout/?scan=latest"
-        response = self.client.get(toggle_url)
 
+        # GET should be non-mutating
+        response = self.client.get(toggle_url)
+        user.refresh_from_db()
+        self.assertTrue(user.categorized_scan_visualizer)
+        self.assertRedirects(response, f"/hosts/host/{self.host.fqdn}/?scan=latest")
+
+        # POST should toggle preference
+        response = self.client.post(toggle_url)
         user.refresh_from_db()
         self.assertFalse(user.categorized_scan_visualizer)
         self.assertRedirects(response, f"/hosts/host/{self.host.fqdn}/?scan=latest")
 
         # Toggle back
-        response = self.client.get(toggle_url)
+        response = self.client.post(toggle_url)
         user.refresh_from_db()
         self.assertTrue(user.categorized_scan_visualizer)
         self.assertRedirects(response, f"/hosts/host/{self.host.fqdn}/?scan=latest")
