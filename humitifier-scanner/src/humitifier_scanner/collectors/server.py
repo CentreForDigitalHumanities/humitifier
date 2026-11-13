@@ -552,7 +552,7 @@ class DockerFactCollector(ShellCollector):
             container.size_str = container_info.get("Size")
             if container.size_str is not None:
                 container.size_bytes = parse_human_readable_filesize(
-                    container.size_str, decimal=True
+                    container.size_str, assume_decimal=True
                 )
             container.state = container_info.get("State")
             container.status = container_info.get("Status")
@@ -638,7 +638,7 @@ class DockerFactCollector(ShellCollector):
             image.size_str = image_info.get("Size")
             if image.size_str:
                 image.size_bytes = parse_human_readable_filesize(
-                    image.size_str, decimal=True
+                    image.size_str, assume_decimal=True
                 )
 
             try:
