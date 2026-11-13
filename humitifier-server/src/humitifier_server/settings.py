@@ -384,7 +384,7 @@ if HUMITIFIER_CONFIG.sentry:
     class CustomHttpTransport(HttpTransport):
         def _get_pool_options(self):
             # This should never be used in production, or even on any server
-            # THis is ONLY for when you're (for some reason) running sentry locally!
+            # This is ONLY for when you're (for some reason) running sentry locally!
             options = super()._get_pool_options()
             if SENTRY_INSECURE_DSN:
                 options["cert_reqs"] = "CERT_NONE"
