@@ -224,7 +224,7 @@ class UserFilters(django_filters.FilterSet):
             "is_active",
             "is_local_account",
             "is_financial_operator",
-            "access_profile",
+            "access_profiles",
         ]
         form = FiltersForm
 
@@ -255,8 +255,8 @@ class UserFilters(django_filters.FilterSet):
         ],
     )
 
-    access_profile = django_filters.ModelChoiceFilter(
-        field_name="access_profile",
+    access_profiles = django_filters.ModelChoiceFilter(
+        field_name="access_profiles",
         queryset=AccessProfile.objects.all(),
         empty_label="Access profile",
     )
