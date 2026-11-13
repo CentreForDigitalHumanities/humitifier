@@ -17,7 +17,7 @@ def _build_match_condition(
     val: SqlFragment, pattern: Any, val_type: ValueType
 ) -> SqlFragment:
     if val_type == ValueType.STRING:
-        return SqlFragment(f"{val.sql} ILIKE %s", val.params + (f"%{pattern}%",))
+        return SqlFragment(f"{val.sql} ~* %s", val.params + (str(pattern),))
     if val_type == ValueType.BOOLEAN:
         bool_val = (
             str(pattern).lower() if isinstance(pattern, bool) else str(pattern).lower()

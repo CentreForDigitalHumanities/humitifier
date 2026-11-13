@@ -464,6 +464,50 @@ class SearchMatchingExecutionTestCase(TestCase):
         res_miss = list(search_hosts_by_scan_fields(Host.objects.all(), ast_miss))
         self.assertEqual(len(res_miss), 0)
 
+    def test_regex_matching_alternation_and_anchors(self):
+        """match() supports regular expressions for string patterns across array elements."""
+        # Host A has php7.0-cli with version 7.0.33
+        query_a = (
+            "match(facts.generic.PackageManagerInfo.installed_packages[].name, '^(php|apache)', "
+            "facts.generic.PackageManagerInfo.installed_packages[].current_version, '^7\\.')"
+        )
+        ast_a = parse_query(query_a)
+        res_a = list(search_hosts_by_scan_fields(Host.objects.all(), ast_a))
+        self.assertEqual(len(res_a), 1)
+        self.assertEqual(res_a[0].fqdn, "matching.example.com")
+
+        # Host B has php8.1 with version 8.1.2-1ubuntu2
+        query_b = (
+            "match(facts.generic.PackageManagerInfo.installed_packages[].name, '^php[0-9]\\.[0-9]', "
+            "facts.generic.PackageManagerInfo.installed_packages[].current_version, '^8\\.')"
+        )
+        ast_b = parse_query(query_b)
+        res_b = list(search_hosts_by_scan_fields(Host.objects.all(), ast_b))
+        self.assertEqual(len(res_b), 1)
+        self.assertEqual(res_b[0].fqdn, "split.example.com")
+
+        # Alternation matching both Host A (apache2) and Host C (nginx)
+        query_ac = (
+            "match(facts.generic.PackageManagerInfo.installed_packages[].name, '^(apache2|nginx)$', "
+            "facts.generic.PackageManagerInfo.installed_packages[].arch, 'amd64')"
+        )
+        ast_ac = parse_query(query_ac)
+        res_ac = list(search_hosts_by_scan_fields(Host.objects.all(), ast_ac))
+        self.assertEqual(len(res_ac), 2)
+        fqdns = {h.fqdn for h in res_ac}
+        self.assertEqual(fqdns, {"matching.example.com", "other.example.com"})
+
+    def test_regex_matching_anchors_prevent_false_positives(self):
+        """Strict regex anchors prevent partial substring matches when desired."""
+        # Exact name '^php$' matches neither 'php7.0-cli' nor 'php8.1'
+        query_strict = (
+            "match(facts.generic.PackageManagerInfo.installed_packages[].name, '^php$', "
+            "facts.generic.PackageManagerInfo.installed_packages[].arch, 'amd64')"
+        )
+        ast_strict = parse_query(query_strict)
+        res_strict = list(search_hosts_by_scan_fields(Host.objects.all(), ast_strict))
+        self.assertEqual(len(res_strict), 0)
+
     def test_single_query_execution_count(self):
         """match() queries execute in exactly one SQL query."""
         queries = [

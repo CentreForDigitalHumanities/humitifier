@@ -163,12 +163,12 @@ class LessOrEqual(ComparisonOperator):
 class Contains(ComparisonOperator):
     symbol = "CONTAINS"
     keyword = True
-    description = "substring match (case-insensitive)"
+    description = "substring or regex match (case-insensitive)"
 
     @classmethod
     def to_lookup(cls, value_type: ValueType) -> str:
-        return "icontains"
+        return "iregex"
 
     @classmethod
     def to_sql(cls, lhs: SqlFragment, rhs: Any, value_type: ValueType) -> SqlFragment:
-        return SqlFragment(f"{lhs.sql} ILIKE %s", lhs.params + (f"%{rhs}%",))
+        return SqlFragment(f"{lhs.sql} ~* %s", lhs.params + (str(rhs),))

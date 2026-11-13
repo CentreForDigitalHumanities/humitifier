@@ -74,7 +74,7 @@ class Filter(SearchFunction):
 
         if elem_set.value_type == ValueType.STRING:
             condition = SqlFragment(
-                f"{elem_set.value.sql} ~ %s", elem_set.value.params + (str(val),)
+                f"{elem_set.value.sql} ~* %s", elem_set.value.params + (str(val),)
             )
         elif elem_set.value_type == ValueType.BOOLEAN:
             bool_val = str(val).lower() if isinstance(val, bool) else str(val).lower()

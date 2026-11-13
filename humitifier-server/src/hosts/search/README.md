@@ -96,7 +96,7 @@ class MatchElements(SearchFunction):
         source = ctx.get_element_source(first_field)
         # All fields share the same source (same LATERAL element alias)
         conditions = [
-            SqlFragment(f"{ctx.element_value(args[i].field, source).sql} ILIKE %s", (f"%{args[i+1].value}%",))
+            SqlFragment(f"{ctx.element_value(args[i].field, source).sql} ~* %s", (str(args[i+1].value),))
             for i in range(0, len(args), 2)
         ]
         ...
@@ -109,7 +109,7 @@ class MatchElements(SearchFunction):
   - Requires at least 2 arguments (one field/pattern pair) and an even argument count.
   - All fields must reference the exact same array (`section`, `artefact_key`, and `array_path`).
   - Each field/pattern pair must have matching types.
-- **Behavior**: Case-insensitive substring match (`ILIKE %pattern%`) for strings, exact match for booleans and integers. Evaluates as a standalone boolean condition returning true if and only if at least one array element satisfies all criteria simultaneously.
+- **Behavior**: Case-insensitive regular expression match (`~*`) for strings, exact match for booleans and integers. Evaluates as a standalone boolean condition returning true if and only if at least one array element satisfies all criteria simultaneously.
 - **Example**:
   ```
   match(facts.generic.PackageManagerInfo.installed_packages[].name, 'php', facts.generic.PackageManagerInfo.installed_packages[].current_version, '7.0')

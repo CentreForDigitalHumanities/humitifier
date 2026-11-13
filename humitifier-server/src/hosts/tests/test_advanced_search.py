@@ -1537,6 +1537,84 @@ class NegatedSearchTests(AdvancedSearchTestCase):
         self.assertNotIn("unmanaged01.example.com", fqdns)
 
 
+class RegexSearchTests(AdvancedSearchTestCase):
+    """Test suite covering regex string searches across meta, JSONB scalar, and JSONB array fields."""
+
+    def test_regex_meta_fqdn_anchors_and_classes(self):
+        """Test regex pattern matching with anchors and classes on meta fields."""
+        # Exact match with anchors
+        query = parse_query('meta.fqdn contains "^web01.example.com$"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "web01.example.com")
+
+        # Alternation with prefix anchor
+        query = parse_query('meta.fqdn contains "^(web|db)01"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 2)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"web01.example.com", "db01.example.com"})
+
+        # Digits class matching
+        query = parse_query('meta.fqdn contains "[0-9]+.example.com"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 4)
+
+    def test_regex_scalar_jsonb(self):
+        """Test regex pattern matching on scalar JSONB fields."""
+        # Alternation and character class
+        query = parse_query('facts.generic.HostnameCtl.os contains "^(Ubuntu 22|Debian GNU)"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 3)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"web01.example.com", "db01.example.com", "storage01.example.com"})
+
+        # Kernel version pattern
+        query = parse_query('facts.generic.HostnameCtl.kernel contains "^Linux 5\\.[0-9]+"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 2)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"web01.example.com", "storage01.example.com"})
+
+    def test_regex_array_elements(self):
+        """Test regex pattern matching on array fields."""
+        # Installed package name alternation
+        query = parse_query('facts.generic.PackageManagerInfo.installed_packages[].name contains "^(apache2|postgresql-[0-9]+)"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 2)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"web01.example.com", "db01.example.com"})
+
+        # Exact user matching with anchors
+        query = parse_query('facts.generic.Users[].name contains "^postgres$"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "db01.example.com")
+
+    def test_regex_filter_function(self):
+        """Test regex pattern matching within filter() function."""
+        # Filter packages matching php followed by version
+        query = parse_query('count(filter(facts.generic.PackageManagerInfo.installed_packages[].name, "^php[0-9]")) > 0')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 1)
+        self.assertEqual(result.first().fqdn, "web01.example.com")
+
+        # Case-insensitive filtering in filter() function (all 4 hosts have openssh-server)
+        query = parse_query('count(filter(facts.generic.PackageManagerInfo.installed_packages[].name, "^OPENSSH")) > 0')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 4)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"web01.example.com", "db01.example.com", "legacy01.example.com", "storage01.example.com"})
+
+    def test_backward_compatibility_plain_substring(self):
+        """Test plain substring queries without regex metacharacters work identically."""
+        query = parse_query('facts.generic.HostnameCtl.os contains "Ubuntu"')
+        result = search_hosts_by_scan_fields(Host.objects.all(), query)
+        self.assertEqual(result.count(), 2)
+        fqdns = {h.fqdn for h in result}
+        self.assertEqual(fqdns, {"web01.example.com", "storage01.example.com"})
+
+
 class AdvancedSearchViewTests(TestCase):
     """Test the AdvancedSearchView endpoint, context data, and rendered help."""
 

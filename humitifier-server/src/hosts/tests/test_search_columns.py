@@ -269,6 +269,37 @@ class DerivedMatchColumnsTests(AdvancedSearchTestCase):
         matches = results[0]["fields"][derived[0].label]
         self.assertEqual(matches, ["openssh-server"])
 
+    def test_derive_from_regex_array_comparison_and_match(self):
+        """Test match column derivation and evaluation with regular expression patterns."""
+        # Regex array comparison
+        query_comp = parse_query(
+            'facts.generic.PackageManagerInfo.installed_packages[].name contains "^(apache|mysql)"'
+        )
+        derived_comp = derive_match_columns(query_comp)
+        self.assertEqual(len(derived_comp), 1)
+        results_comp = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), derived_comp
+        )
+        self.assertEqual(len(results_comp), 1)
+        matches_comp = results_comp[0]["fields"][derived_comp[0].label]
+        self.assertEqual(set(matches_comp), {"apache2", "mysql-server"})
+
+        # Regex correlated match()
+        query_match = parse_query(
+            "match(facts.generic.PackageManagerInfo.installed_packages[].name, '^php[0-9]?', "
+            "facts.generic.PackageManagerInfo.installed_packages[].current_version, '^8\\.')"
+        )
+        derived_match = derive_match_columns(query_match)
+        self.assertEqual(len(derived_match), 1)
+        results_match = evaluate_columns(
+            Host.objects.filter(fqdn="web01.example.com"), derived_match
+        )
+        self.assertEqual(len(results_match), 1)
+        matches_match = results_match[0]["fields"][derived_match[0].label]
+        self.assertEqual(len(matches_match), 1)
+        self.assertEqual(matches_match[0]["name"], "php8.1")
+        self.assertEqual(matches_match[0]["current_version"], "8.1.2-1ubuntu2.14")
+
     def test_skip_not_and_scalar_and_meta(self):
         query = parse_query(
             'meta.fqdn contains "web" and facts.generic.HostnameCtl.os contains "Ubuntu" '
