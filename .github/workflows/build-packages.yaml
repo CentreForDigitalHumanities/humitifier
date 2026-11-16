@@ -22,7 +22,7 @@ jobs:
 
     strategy:
       matrix:
-        os: [ "ubuntu-latest", "macos-latest", "windows-latest" ]
+        os: [ "ubuntu-24.04", "macos-latest", "windows-latest" ]
       fail-fast: false
     defaults:
       run:
@@ -81,6 +81,7 @@ jobs:
 
       - name: Test binary
         run: |
+          ${{ env.BINARY_PATH }} version
           ${{ env.BINARY_PATH }} print_config
           ${{ env.BINARY_PATH }} hostname
 
@@ -95,53 +96,14 @@ jobs:
           path: ${{ env.ARTIFACT_PATH }}
 
 
-  build-legacy-ubuntu:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Login to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build build container
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: humitifier-scanner/build-support/Ubuntu2004.Dockerfile
-          push: false
-          tags: humitifier/ubuntu2004-build:latest
-          load: true
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-
-      - name: Build package
-        run: |
-          docker run --rm -w /app -v "${{ github.workspace }}/dist:/dist" humitifier/ubuntu2004-build:latest bash -c "poetry run -- pyinstaller -F --clean -n humitifier-scanner src/cli.py --distpath /dist"
-
-      - name: Upload build artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: pyinstaller-build-ubuntu-20.04
-          path: dist/humitifier-scanner
-
-
   package-linux:
     runs-on: ubuntu-latest
     needs:
       - build
-      - build-legacy-ubuntu
     strategy:
       matrix:
         package: ['deb', 'rpm']
-        source: ['latest', '20.04']
+        source: ['24.04']
     steps:
       #
       # Setup
