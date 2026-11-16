@@ -2,9 +2,7 @@ from typing import TYPE_CHECKING
 
 from alerting.backend.data import AlertGeneratorType
 
-from humitifier_common.artefacts.registry.registry import ArtefactType
 from humitifier_common.scan_data import ScanOutput
-
 
 if TYPE_CHECKING:
     from .generator import BaseScanAlertGenerator, BaseArtefactAlertGenerator

@@ -213,7 +213,6 @@ class ApacheConfigParser:
                 except PermissionError as e:
                     # Happens with includes sometimes
                     logger.debug(f"Permission denied for file {file}: {e}")
-                    pass
 
         except FileNotFoundError:
             logger.debug(f"File {filename} not found")

@@ -28,6 +28,7 @@ class CustomUserAdmin(UserAdmin):
                 "fields": (
                     "is_local_account",
                     "wild_wasteland_mode",
+                    "categorized_scan_visualizer",
                     "default_home",
                     "access_profiles",
                 ),

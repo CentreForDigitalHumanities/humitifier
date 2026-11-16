@@ -22,6 +22,7 @@ from humitifier_scanner.config import (
     _CONFIG_LOCATIONS,
     _SECRETS_DIR,
 )
+from humitifier_scanner.constants import HUMITIFIER_VERSION
 from humitifier_scanner.collectors.backend import registry as collector_registry
 from humitifier_scanner.scanner import scan
 from humitifier_scanner.logger import logger
@@ -154,6 +155,13 @@ class PrintArtefactGroups(BaseModel):
             print(f"  - {group}")
 
 
+class PrintVersion(BaseModel):
+    """Print the scanner version."""
+
+    def cli_cmd(self):
+        print(HUMITIFIER_VERSION)
+
+
 ##
 ## Main config for CLI
 ##
@@ -187,6 +195,7 @@ class CLISettings(Settings, BaseSettings):
     scan_spec: CliSubCommand[RetrieveScanSpec]
     print_artefacts: CliSubCommand[PrintArtefacts]
     print_artefact_groups: CliSubCommand[PrintArtefactGroups]
+    version: CliSubCommand[PrintVersion]
 
     def cli_cmd(self) -> None:
         if self.debug:

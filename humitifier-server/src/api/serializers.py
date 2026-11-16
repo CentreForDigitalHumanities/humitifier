@@ -1,5 +1,4 @@
 from drf_spectacular.utils import extend_schema_field
-from pydantic import ValidationError
 from rest_framework import serializers
 
 from hosts.models import Host

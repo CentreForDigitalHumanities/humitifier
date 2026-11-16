@@ -52,8 +52,7 @@ class CostsOverviewForm(forms.Form):
 
     customer = forms.ChoiceField(
         label="Customer",
-        choices=lambda: _get_choices(Host, "customer", strip_quotes=False)
-        + [(None, "-" * 9)],
+        choices=lambda: _get_choices(Host, "customer") + [(None, "-" * 9)],
         required=False,
     )
 
@@ -72,7 +71,7 @@ class CostsReportForm(forms.Form):
 
     customers = forms.MultipleChoiceField(
         label="Customer",
-        choices=lambda: _get_choices(Host, "customer", strip_quotes=False),
+        choices=lambda: _get_choices(Host, "customer"),
         required=False,
         widget=MultipleChoiceFilterWidget(attrs={"placeholder": "All customers"}),
     )

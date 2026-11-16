@@ -35,7 +35,9 @@ from typing import Any, Iterable
 
 from django.db.models import QuerySet
 
+from humitifier_common.artefacts import registry as artefact_registry
 from ..models import Host
+from .constants import ARRAY_MARKER, FieldKind, Section
 from .field_discovery import get_searchable_fields
 from .types import SearchableField
 
@@ -47,18 +49,23 @@ def _get_scan_data(host: Host) -> dict | None:
         host: A Host model instance.
 
     Returns:
-        The cache dictionary if available, otherwise None.
+        The cache dictionary if available and of the latest format version, otherwise None.
 
     Example:
-        >>> host = Host(last_scan_cache={"facts": {}})
+        >>> host = Host(last_scan_cache={"facts": {}, "version": 2})
         >>> _get_scan_data(host)
-        {"facts": {}}
+        {"facts": {}, "version": 2}
 
         >>> host_without_cache = Host(last_scan_cache=None)
         >>> _get_scan_data(host_without_cache)
         None
     """
-    return host.last_scan_cache
+    data = host.last_scan_cache
+    if not isinstance(data, dict):
+        return None
+    if data.get("version") != artefact_registry.latest_version:
+        return None
+    return data
 
 
 def _get_artefact_data(
@@ -122,7 +129,7 @@ def _expand_array_nodes(current_nodes: list[Any], path_token: str) -> list[Any]:
     """
     expanded_nodes: list[Any] = []
 
-    if path_token == "[]":
+    if path_token == ARRAY_MARKER:
         # Flatten arrays: extend with array contents
         for node in current_nodes:
             if isinstance(node, list):
@@ -144,7 +151,7 @@ def _extract_array_elements(
     Args:
         artefact_data: The starting data structure.
         array_path: Sequence of tokens describing how to traverse arrays/dicts.
-                   None defaults to ("[]",) for top-level array expansion.
+                   None defaults to (ARRAY_MARKER,) for top-level array expansion.
 
     Returns:
         List of extracted elements (non-None values only).
@@ -155,7 +162,7 @@ def _extract_array_elements(
     """
     nodes: list[Any] = [artefact_data]
 
-    path_tokens = array_path or ("[]",)
+    path_tokens = array_path or (ARRAY_MARKER,)
     for token in path_tokens:
         nodes = _expand_array_nodes(nodes, token)
         # Filter out None values after each expansion
@@ -255,10 +262,10 @@ def _extract_from_scan_data(data: dict, descriptor: SearchableField) -> Any:
 
     # Handle invalid cache structure
     if artefact_data is None:
-        return None if descriptor.kind == "scalar" else []
+        return None if descriptor.kind == FieldKind.SCALAR else []
 
     # Extract based on field kind
-    if descriptor.kind == "scalar":
+    if descriptor.kind == FieldKind.SCALAR:
         return _extract_scalar_value(artefact_data, descriptor.field_path)
     else:
         return _extract_array_field_values(
@@ -305,7 +312,7 @@ def _extract_field_values_for_host(
 
     for field_id, field_descriptor in field_descriptors.items():
         # Handle meta fields directly from Host model
-        if field_descriptor.section == "meta":
+        if field_descriptor.section == Section.META:
             # Meta fields are directly on the Host model
             field_name = field_descriptor.field_path[0] if field_descriptor.field_path else None
             if field_name:
@@ -314,7 +321,7 @@ def _extract_field_values_for_host(
                 host_data["fields"][field_id] = None
         elif scan_cache is None:
             # No cache available: return appropriate empty value
-            default_value = None if field_descriptor.kind == "scalar" else []
+            default_value = None if field_descriptor.kind == FieldKind.SCALAR else []
             host_data["fields"][field_id] = default_value
         else:
             # Extract value from cache
@@ -404,7 +411,7 @@ def get_scan_field_value_for_object(
         return None
 
     # Handle meta fields
-    if field_descriptor.section == "meta":
+    if field_descriptor.section == Section.META:
         field_name = field_descriptor.field_path[0] if field_descriptor.field_path else None
         if field_name:
             return getattr(host, field_name, None)
@@ -414,7 +421,7 @@ def get_scan_field_value_for_object(
     scan_data = _get_scan_data(host)
     if scan_data is None:
         # No data available: return appropriate empty value
-        return None if field_descriptor.kind == "scalar" else []
+        return None if field_descriptor.kind == FieldKind.SCALAR else []
 
     # Extract and return value
     return _extract_from_scan_data(scan_data, field_descriptor)

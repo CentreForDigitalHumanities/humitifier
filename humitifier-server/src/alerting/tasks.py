@@ -1,5 +1,6 @@
 from celery import shared_task
 from django.utils import timezone
+from humitifier_common.artefacts import registry
 
 from hosts.models import Host
 from humitifier_common.scan_data import ScanOutput
@@ -17,6 +18,11 @@ from .models import Alert
 @shared_task(name=ALERTING_GENERATE_ALERTS, pydantic=True)
 def generate_alerts(scan_output: ScanOutput) -> ScanOutput | None:
     """Main task for generating alerts for a given ScanOutput."""
+
+    # We only support latest version of scan output
+    if scan_output.version != registry.latest_version:
+        return scan_output
+
     try:
         host = Host.objects.get(fqdn=scan_output.hostname)
     except Host.DoesNotExist as e:

@@ -1,4 +1,4 @@
-from typing import Any, Optional, Type, TypedDict, Callable
+from typing import Any, Optional, Type, TypedDict
 from pydantic import BaseModel, GetCoreSchemaHandler
 from pydantic_core import core_schema
 

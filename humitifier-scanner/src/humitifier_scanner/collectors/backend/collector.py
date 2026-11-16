@@ -215,7 +215,7 @@ class Collector(metaclass=CollectorMetaclass):
         # that the collector has added a more detailed error message
         except FatalCollectorError:
             logger.error(f"Fatal error encountered while collecting {info}")
-            pass
+
         # Any other exceptions we create a ScanError for; while the collector
         # should be handling any errors itself, we want to make sure that we
         # log any unhandled exceptions

@@ -10,13 +10,21 @@ class Command(BaseCommand):
         parser.add_argument("--host")
         parser.add_argument("--force", action="store_true")
         parser.add_argument("--all", action="store_true")
+        parser.add_argument("--query")
         parser.add_argument("--delay")
 
     def handle(self, *args, **options):
         from scanning.utils import start_full_scan
 
+        if options["all"] and options["query"]:
+            raise CommandError("Cannot use --all and --query together")
+        if options["query"] and options["host"]:
+            raise CommandError("Cannot use --query and --host together")
+
         if options["all"]:
             hosts = Host.objects.all()
+        elif options["query"]:
+            hosts = Host.objects.advanced_search(options["query"])
         else:
             hosts = Host.objects.filter(fqdn=options["host"])
 
@@ -42,6 +50,8 @@ class Command(BaseCommand):
                         "Invalid value for delay, please use a positive integer"
                     )
 
-            task = start_full_scan(host, force=options["force"], delay_seconds=delay)
+            start_full_scan(host, force=options["force"], delay_seconds=delay)
 
-            print("Queued task: {}".format(task))
+            print("Queued scan for '{}'".format(host.fqdn))
+
+        print("Queued scans for {} hosts".format(hosts.count()))

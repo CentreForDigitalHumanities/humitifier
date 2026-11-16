@@ -1,8 +1,6 @@
-import subprocess
 from collections import defaultdict, deque
 from datetime import datetime
 
-import sys
 from typing import Any, Type
 
 from humitifier_common.artefacts.registry.registry import ArtefactType
@@ -259,8 +257,8 @@ def _run_collector(
             ),
         )
         errors.append(error)
-    finally:
-        return output, errors
+
+    return output, errors
 
 
 def _get_executors(
@@ -290,8 +288,8 @@ def _get_executors(
             global_error=True,
         )
         errors.append(error)
-    finally:
-        return executors, errors
+
+    return executors, errors
 
 
 def _release_executors(input_data: ScanInput) -> None:

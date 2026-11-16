@@ -21,6 +21,7 @@ class UserForm(forms.ModelForm):
             "first_name",
             "last_name",
             "wild_wasteland_mode",
+            "categorized_scan_visualizer",
             "default_home",
             "is_superuser",
             "is_financial_operator",
@@ -65,10 +66,12 @@ class UserProfileForm(forms.ModelForm):
         model = User
         fields = [
             "wild_wasteland_mode",
+            "categorized_scan_visualizer",
             "default_home",
         ]
         widgets = {
             "wild_wasteland_mode": forms.CheckboxInput,
+            "categorized_scan_visualizer": forms.CheckboxInput,
         }
 
 
@@ -131,7 +134,7 @@ class CustomersWidget(forms.CheckboxSelectMultiple):
     def optgroups(self, name, value, attrs=None):
         # First, reset the choices with the current options from the DB
         # This cannot be done in __init__ because the choices change over time
-        self.choices = _get_choices(Host, "customer", strip_quotes=False)
+        self.choices = _get_choices(Host, "customer")
 
         # Then, add any values that are not in the choices (but are in the
         # value) to the options, as they might be customers that were removed

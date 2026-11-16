@@ -4,7 +4,21 @@ from django import template
 from django.template.defaultfilters import filesizeformat
 from django.utils.timesince import timesince
 
+from ..search.columns import format_value
+
 register = template.Library()
+
+
+@register.filter()
+def format_search_value(value):
+    return format_value(value)
+
+
+@register.filter()
+def get_item(dictionary, key):
+    if isinstance(dictionary, dict):
+        return dictionary.get(key)
+    return None
 
 
 @register.filter()

@@ -1,5 +1,7 @@
 {% extends 'hosts/scan_visualizer/components/base_component.html' %}
 
+{% load indicator_pills %}
+
 {% block header %}
 
 {% endblock %}
@@ -7,40 +9,21 @@
 {% block content %}
     <div class="flex flex-col gap-4">
         <div
-            class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3">
+            class="grid grid-cols-1 md:grid-cols-[200px_1fr] items-top gap-y-2 gap-3">
             <div class="font-semibold">Status</div>
             <div class="flex font-semibold">
                 {% if puppet.running %}
-                    <div
-                        class="px-3 py-1 mr-2 rounded-sm bg-green-500 text-white"
-                    >
-                        Running
-                    </div>
+                    {% green_indicator_pill "Running" %}
                 {% elif puppet.running == None %}
-                    <div
-                        class="px-3 py-1 mr-2 rounded-sm bg-red-500 text-white"
-                    >
-                        Unknown
-                    </div>
+                    {% red_indicator_pill "Unknown" %}
                 {% else %}
-                    <div
-                        class="px-3 py-1 mr-2 rounded-sm bg-red-500 text-white"
-                    >
-                        Not running
-                    </div>
+                    {% red_indicator_pill "Not running" %}
                 {% endif %}
 
                 {% if puppet.enabled %}
-                    <div
-                        class="px-3 py-1 mr-auto rounded-sm bg-green-500 text-white">
-                        Enabled
-                    </div>
+                    {% green_indicator_pill "Enabled" %}
                 {% else %}
-                    <div
-                        class="px-3 py-1 mr-auto rounded-sm bg-red-500 text-white">
-                        Disabled
-                    </div>
-
+                    {% red_indicator_pill "Disabled" %}
                 {% endif %}
             </div>
             {% if not puppet.enabled %}
@@ -65,18 +48,18 @@
             {% endif %}
         </div>
 
-        <div class="h-px grow bg-gray-400 dark:bg-gray-700 mx-2"></div>
+        <div class="h-px grow bg-gray-400 dark:bg-gray-700"></div>
 
         <div
-            class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3">
+            class="grid grid-cols-1 md:grid-cols-[200px_1fr] items-top gap-y-2 gap-3">
             <div class="font-semibold">Environment</div>
             <div>{{ puppet.environment }}</div>
         </div>
 
-        <div class="h-px grow bg-gray-400 dark:bg-gray-700 mx-2"></div>
+        <div class="h-px grow bg-gray-400 dark:bg-gray-700"></div>
 
         <div
-            class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3">
+            class="grid grid-cols-1 md:grid-cols-[200px_1fr] items-top gap-y-2 gap-3">
             <div class="font-semibold">Code role(s)</div>
             <div>{{ puppet.code_roles|join:", " }}</div>
 
@@ -84,10 +67,10 @@
             <div>{{ puppet.profiles|join:", " }}</div>
         </div>
 
-        <div class="h-px grow bg-gray-400 dark:bg-gray-700 mx-2"></div>
+        <div class="h-px grow bg-gray-400 dark:bg-gray-700"></div>
 
         <div
-            class="grid grid-cols-1 md:grid-cols-[1fr_2fr] items-top gap-y-2 gap-3">
+            class="grid grid-cols-1 md:grid-cols-[200px_1fr] items-top gap-y-2 gap-3">
             <div class="font-semibold">Data role</div>
             <div>{{ puppet.data_role }}</div>
 

@@ -13,7 +13,8 @@ T = TypeVar("T")
 
 class ArtefactVisualizer:
     artefact: type[T] = None
-    title: str | None = None
+    title: str
+    category: str = "general"
     template: str = "hosts/scan_visualizer/components/base_component.html"
 
     def __init__(self, artefact_data: T, scan_date: datetime):
@@ -23,8 +24,11 @@ class ArtefactVisualizer:
     def show(self):
         return self.artefact_data is not None
 
+    def get_title(self):
+        return self.title
+
     def get_context(self, **kwargs) -> dict:
-        kwargs["title"] = self.title
+        kwargs["title"] = self.get_title()
         kwargs["is_metric"] = self.artefact.__artefact_type__ == ArtefactType.METRIC
         kwargs["alpinejs_settings"] = {}
 
@@ -235,5 +239,26 @@ class SearchableCardsVisualizer(ArtefactVisualizer):
         context["search_placeholder"] = self.search_placeholder
 
         context["alpinejs_settings"]["search"] = "''"
+
+        return context
+
+
+class SearchableCardsWithHeaderVisualizer(SearchableCardsVisualizer):
+    template = (
+        "hosts/scan_visualizer/components/searchable_cards_component_with_header.html"
+    )
+
+    def get_header_content(self) -> list[dict[str, str]] | str:
+        raise NotImplementedError()
+
+    def get_context(self, **kwargs) -> dict:
+        context = super().get_context(**kwargs)
+
+        content = self.get_header_content()
+
+        if isinstance(content, list):
+            context["header_content_items"] = content
+        elif isinstance(content, str):
+            context["header_content"] = content
 
         return context

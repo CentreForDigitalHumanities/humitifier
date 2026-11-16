@@ -4,7 +4,7 @@ import threading
 import shutil
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import Callable, Literal, TextIO
+from typing import Callable, Literal, BinaryIO
 
 from paramiko import SFTPClient, SFTPFile
 import paramiko
@@ -32,7 +32,7 @@ class LinuxFilesExecutor(abc.ABC):
     :type _check_path: static method
     """
 
-    def open(self, filename: str | Path) -> TextIO | SFTPFile:
+    def open(self, filename: str | Path) -> BinaryIO | SFTPFile:
         """
         Open a file given its path, ensuring consistent read-only behavior across both
         local and SSH contexts.
@@ -107,7 +107,7 @@ class LinuxFilesExecutor(abc.ABC):
     ##
 
     @abc.abstractmethod
-    def _open(self, filename: Path, mode: str) -> TextIO | SFTPFile:
+    def _open(self, filename: Path, mode: str) -> BinaryIO | SFTPFile:
         pass
 
     @abc.abstractmethod
@@ -132,11 +132,11 @@ class LocalLinuxFilesExecutor(LinuxFilesExecutor):
     appropriate validations and exceptions as necessary.
     """
 
-    def _open(self, filename: Path, mode: str) -> TextIO:
+    def _open(self, filename: Path, mode: str) -> BinaryIO:
         if mode not in ["r", "rb", "rt"]:
             raise ValueError("Mode must be 'r' or 'rb'")
 
-        return open(filename, mode)
+        return open(filename, mode)  # noQA
 
     def _cp(self, source: Path, target: Path):
         if not source.exists():

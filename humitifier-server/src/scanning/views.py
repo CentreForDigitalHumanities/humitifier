@@ -2,9 +2,11 @@ from django.contrib import messages
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import modelformset_factory
 from django.forms.formsets import DELETION_FIELD_NAME
+from django.http import HttpResponseRedirect
 from django.urls import reverse, reverse_lazy
 from django.utils.functional import cached_property
-from django.views.generic import CreateView, DeleteView, RedirectView, UpdateView
+from django.views import View
+from django.views.generic import CreateView, DeleteView, UpdateView
 
 from hosts.models import Host
 from main.views import FilteredListView, SuperuserRequiredMixin, TableMixin
@@ -15,29 +17,39 @@ from scanning.tables import ScanSpecTable
 from scanning.utils import start_full_scan
 
 
-class StartHostScanView(LoginRequiredMixin, SuperuserRequiredMixin, RedirectView):
+class StartHostScanView(LoginRequiredMixin, SuperuserRequiredMixin, View):
 
-    def get_redirect_url(self, *args, **kwargs):
-        host_fqdn = kwargs.get("fqdn", None)
-
-        if not host_fqdn:
+    def _get_redirect_url(self, request, fqdn=None):
+        if not fqdn:
             return "/"
 
+        target_url = reverse("hosts:detail", args=[fqdn])
+        query = request.GET.urlencode()
+        if query:
+            target_url = f"{target_url}?{query}"
+        return target_url
+
+    def get(self, request, fqdn=None, *args, **kwargs):
+        return HttpResponseRedirect(self._get_redirect_url(request, fqdn))
+
+    def post(self, request, fqdn=None, *args, **kwargs):
+        if not fqdn:
+            return HttpResponseRedirect("/")
+
         try:
-            host = Host.objects.get(fqdn=host_fqdn)
+            host = Host.objects.get(fqdn=fqdn)
         except Host.DoesNotExist:
-            # Yes, this cannot possibly work. But 404's can be better posted there
-            return reverse("hosts:detail", args=[host_fqdn])
+            return HttpResponseRedirect(reverse("hosts:detail", args=[fqdn]))
 
         if host.can_schedule_scan:
             start_full_scan(host)
             messages.success(
-                self.request, "Scan scheduled. It may take a few minutes to complete."
+                request, "Scan scheduled. It may take a few minutes to complete."
             )
         else:
-            messages.error(self.request, "Scans cannot be scheduled for this host.")
+            messages.error(request, "Scans cannot be scheduled for this host.")
 
-        return reverse("hosts:detail", args=[host_fqdn])
+        return HttpResponseRedirect(self._get_redirect_url(request, fqdn))
 
 
 class ScanSpecView(

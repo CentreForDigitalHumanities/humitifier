@@ -1,5 +1,6 @@
 import random
 from datetime import datetime
+from typing import Union
 
 from django.conf import settings
 from django.utils.safestring import mark_safe
@@ -7,7 +8,7 @@ from django.utils.safestring import mark_safe
 from alerting.models import Alert, AlertSeverity
 from hosts.models import Host
 
-WILD_WASTELAND_JOKES = [
+WILD_WASTELAND_JOKES: list[Union[str, tuple[str, ...]]] = [
     # @formatter:disable
     "Performs best on a 386",
     "Now with 100% more bugs!",
@@ -150,6 +151,10 @@ WILD_WASTELAND_JOKES = [
         "Please don't wait till the last day to change your password, again....",
         "I will be very sad if you don't change your password on time",
     ),
+    "We’ll continue to apply learnings towards remediation actions as we confirm effectiveness mitigation actions.",
+    "Wake up, a new CVE 10.0 just dropped!",
+    "4",
+    tuple(("4", "56", "66", "115", "155", "156", "230", "237")),
     # @formatter:on
 ]
 

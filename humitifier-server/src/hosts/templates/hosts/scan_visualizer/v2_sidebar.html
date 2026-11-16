@@ -84,12 +84,19 @@
         >
             Download raw data
         </a>
-        <a
-            href="{% url 'scanning:start_scan_host' host.fqdn %}"
-            class="btn btn-sm btn-secondary"
+        <form
+            method="post"
+            action="{% url 'scanning:start_scan_host' host.fqdn %}?{% param_replace %}"
+            class="w-full flex"
         >
-            Queue scan
-        </a>
+            {% csrf_token %}
+            <button
+                type="submit"
+                class="btn btn-sm btn-secondary w-full"
+            >
+                Queue scan
+            </button>
+        </form>
 
         {% if host.can_manually_edit %}
             <a href="{% url 'hosts:edit' host.fqdn %}" class="btn btn-sm btn-secondary">

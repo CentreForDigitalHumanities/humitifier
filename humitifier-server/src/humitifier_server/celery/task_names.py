@@ -6,8 +6,10 @@ API_DATASOURCE_SYNC = f"{SERVER_QUEUE_PREFIX}.internal.api.datasource_sync"
 MAIN_LOG_ERROR = f"{SERVER_QUEUE_PREFIX}.internal.main.log_error"
 
 HOSTS_HISTORICAL_CLEAN = f"{SERVER_QUEUE_PREFIX}.internal.hosts.historical_clean"
+HOSTS_UPDATE_OS_LIST = f"{SERVER_QUEUE_PREFIX}.internal.hosts.update_os_list"
 
 SCANNING_GET_SCAN_INPUT = f"{SERVER_QUEUE_PREFIX}.internal.scanning.get_scan_input"
+SCANNING_PROCESS_SCAN = f"{SERVER_QUEUE_PREFIX}.internal.scanning.process_scan"
 SCANNING_SAVE_SCAN = f"{SERVER_QUEUE_PREFIX}.internal.scanning.save_scan"
 SCANNING_SCAN_HANDLE_ERROR = (
     f"{SERVER_QUEUE_PREFIX}.internal.scanning.handle_scan_error"
