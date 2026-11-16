@@ -77,7 +77,7 @@ jobs:
       - name: Run PyInstaller
         run: |
           source $VENV
-          pyinstaller -F --clean -n humitifier-scanner src/cli.py
+          pyinstaller -F --clean --collect-submodules jc -n humitifier-scanner src/cli.py
 
       - name: Test binary
         run: |
