@@ -25,7 +25,7 @@ from .config import CONFIG as HUMITIFIER_CONFIG
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 HUMITIFIER_VERSION = "6.0.0"
-HUMITIFIER_VERSION_NAME = "Just one more refactor..."
+HUMITIFIER_VERSION_NAME = "Paranoia as a Service"
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.1/howto/deployment/checklist/
