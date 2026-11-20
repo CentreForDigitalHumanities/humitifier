@@ -155,6 +155,8 @@ WILD_WASTELAND_JOKES: list[Union[str, tuple[str, ...]]] = [
     "Wake up, a new CVE 10.0 just dropped!",
     "4",
     tuple(("4", "56", "66", "115", "155", "156", "230", "237")),
+    "Look, I'm not crazy! I just notice things!",
+    "But what about the mysterious behaviour of the BBQ lid?",
     # @formatter:on
 ]
 
